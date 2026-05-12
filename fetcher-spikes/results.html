@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NRL Predictor — Data Source Spike Results</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    line-height: 1.6;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #21262d;
+  }
+  .page-header h1 { font-size: 2rem; color: #f0f6fc; font-weight: 700; }
+  .page-header .subtitle { color: #8b949e; margin-top: 0.4rem; font-size: 0.95rem; }
+  .run-badge {
+    display: inline-block;
+    margin-top: 0.8rem;
+    padding: 0.25rem 0.75rem;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    color: #8b949e;
+  }
+
+  /* ── Section titles ── */
+  h2 {
+    font-size: 1.2rem;
+    color: #f0f6fc;
+    margin: 2.5rem 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  h2 .icon { font-size: 1.1rem; }
+  h3 { font-size: 1rem; color: #e6edf3; margin: 1.2rem 0 0.5rem; }
+
+  /* ── Summary cards ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .card.ok::before   { background: #3fb950; }
+  .card.warn::before { background: #d29922; }
+  .card.fail::before { background: #f85149; }
+  .card.mixed::before { background: linear-gradient(90deg, #3fb950 50%, #d29922 50%); }
+
+  .card-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e; margin-bottom: 0.3rem; }
+  .card-title { font-size: 1rem; font-weight: 600; color: #e6edf3; }
+  .card-status { margin-top: 0.6rem; font-size: 0.82rem; }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge.ok   { background: #0f3d20; color: #3fb950; border: 1px solid #238636; }
+  .badge.warn { background: #2d1f05; color: #d29922; border: 1px solid #9e6a03; }
+  .badge.fail { background: #3d0f0f; color: #f85149; border: 1px solid #da3633; }
+  .badge.info { background: #0d2045; color: #58a6ff; border: 1px solid #1f6feb; }
+
+  /* ── Main results table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  thead th {
+    background: #161b22;
+    color: #8b949e;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #30363d;
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid #21262d; }
+  tbody tr:hover { background: #161b22; }
+  tbody td { padding: 0.7rem 1rem; vertical-align: top; }
+  .source-name { font-weight: 600; color: #e6edf3; white-space: nowrap; }
+  .http-code { font-family: monospace; font-size: 0.8rem; }
+  .note-text { color: #8b949e; font-size: 0.82rem; }
+  code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.8rem;
+    background: #21262d;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    color: #e6edf3;
+  }
+
+  /* ── Architecture diagram ── */
+  .diagram-wrap {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  /* ── Weather sample ── */
+  .weather-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 600px) { .weather-grid { grid-template-columns: 1fr; } }
+  .weather-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+  }
+  .weather-card h4 { font-size: 0.85rem; color: #8b949e; margin-bottom: 0.8rem; font-weight: 500; }
+  .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; }
+  .weather-label { color: #8b949e; }
+  .rain-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+  .rain-bar-bg { background: #21262d; border-radius: 4px; height: 8px; width: 100px; }
+  .rain-bar { background: #388bfd; border-radius: 4px; height: 8px; }
+  .rain-bar.high { background: #1f6feb; }
+  .rain-val { font-size: 0.8rem; color: #c9d1d9; min-width: 30px; text-align: right; }
+
+  /* ── Priority ladder ── */
+  .priority-list { list-style: none; margin-top: 0.75rem; }
+  .priority-list li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 0.875rem;
+  }
+  .priority-list li:last-child { border-bottom: none; }
+  .priority-num {
+    min-width: 1.6rem;
+    height: 1.6rem;
+    background: #21262d;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #58a6ff;
+    flex-shrink: 0;
+  }
+  .priority-body { flex: 1; }
+  .priority-body strong { color: #e6edf3; }
+  .priority-body p { color: #8b949e; font-size: 0.82rem; margin-top: 0.15rem; }
+
+  /* ── Action items ── */
+  .action-list { list-style: none; margin-top: 0.75rem; }
+  .action-list li {
+    padding: 0.5rem 0 0.5rem 1.5rem;
+    position: relative;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #21262d;
+  }
+  .action-list li:last-child { border-bottom: none; }
+  .action-list li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.9rem;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #f85149;
+  }
+  .action-list li.done::before { background: #3fb950; }
+  .action-list li.warn::before { background: #d29922; }
+
+  /* ── Section panel ── */
+  .panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* ── Key-value pairs ── */
+  .kv { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: 0.5rem; font-size: 0.85rem; }
+  .kv span { color: #8b949e; }
+  .kv span strong { color: #c9d1d9; }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #21262d;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #484f58;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ══════════════════════════════════════════════
+       Header
+  ══════════════════════════════════════════════ -->
+  <div class="page-header">
+    <h1>NRL Predictor — Data Source Spike Results</h1>
+    <div class="subtitle">Probing all external data sources before writing Lambda scrapers</div>
+    <div class="run-badge">Run: 2026-05-12 &nbsp;|&nbsp; python3 run_spikes.py</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Summary cards
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#9654;</span> Spike Summary</h2>
+  <div class="cards">
+    <div class="card mixed">
+      <div class="card-label">Spike 1</div>
+      <div class="card-title">NRL.com</div>
+      <div class="card-status">
+        <span class="badge ok">Draw API OK</span>&nbsp;
+        <span class="badge ok">Ladder OK</span>&nbsp;
+        <span class="badge warn">Team Sheet: needs matchCentreUrl</span>
+      </div>
+    </div>
+    <div class="card mixed">
+      <div class="card-label">Spike 2</div>
+      <div class="card-title">Weather (BOM / Open-Meteo)</div>
+      <div class="card-status">
+        <span class="badge ok">BOM Daily OK</span>&nbsp;
+        <span class="badge warn">BOM Hourly 400</span>&nbsp;
+        <span class="badge ok">Open-Meteo OK</span>
+      </div>
+    </div>
+    <div class="card ok">
+      <div class="card-label">Spike 3</div>
+      <div class="card-title">News / Articles</div>
+      <div class="card-status">
+        <span class="badge ok">Zero Tackle RSS OK</span>&nbsp;
+        <span class="badge ok">The Roar RSS OK</span>
+      </div>
+    </div>
+    <div class="card warn">
+      <div class="card-label">Spike 4</div>
+      <div class="card-title">Fantasy Prices</div>
+      <div class="card-status">
+        <span class="badge fail">SuperCoach Auth</span>&nbsp;
+        <span class="badge fail">NRL Fantasy Auth</span>&nbsp;
+        <span class="badge ok">nrl.com/stats OK</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Data flow diagram
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#8644;</span> Data Flow Architecture</h2>
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 980 340" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#484f58"/>
+        </marker>
+        <marker id="arr-ok" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+        </marker>
+        <marker id="arr-warn" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#d29922"/>
+        </marker>
+        <marker id="arr-fail" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#f85149"/>
+        </marker>
+      </defs>
+
+      <!-- ─── Source boxes (left) ─── -->
+
+      <!-- NRL Draw API -->
+      <rect x="10" y="20" width="170" height="44" rx="6" fill="#0f3d20" stroke="#238636" stroke-width="1.2"/>
+      <text x="95" y="38" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">nrl.com/draw/data</text>
+      <text x="95" y="54" text-anchor="middle" fill="#3fb950" font-size="10">200 JSON  |  no auth</text>
+
+      <!-- NRL Team Sheet -->
+      <rect x="10" y="80" width="170" height="44" rx="6" fill="#3d0f0f" stroke="#da3633" stroke-width="1.2"/>
+      <text x="95" y="98" text-anchor="middle" fill="#f85149" font-size="11" font-weight="600">nrl.com team sheet</text>
+      <text x="95" y="114" text-anchor="middle" fill="#f85149" font-size="10">BUG — fix CURRENT_YEAR</text>
+
+      <!-- BOM REST -->
+      <rect x="10" y="150" width="170" height="44" rx="6" fill="#0f3d20" stroke="#238636" stroke-width="1.2"/>
+      <text x="95" y="168" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">api.weather.bom.gov.au</text>
+      <text x="95" y="184" text-anchor="middle" fill="#3fb950" font-size="10">200 daily  |  400 hourly</text>
+
+      <!-- Open-Meteo -->
+      <rect x="10" y="210" width="170" height="44" rx="6" fill="#0f3d20" stroke="#238636" stroke-width="1.2"/>
+      <text x="95" y="228" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">api.open-meteo.com</text>
+      <text x="95" y="244" text-anchor="middle" fill="#3fb950" font-size="10">200  |  7-day hourly  |  free</text>
+
+      <!-- Zero Tackle -->
+      <rect x="10" y="270" width="170" height="44" rx="6" fill="#0f3d20" stroke="#238636" stroke-width="1.2"/>
+      <text x="95" y="288" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">zerotackle.com/feed</text>
+      <text x="95" y="304" text-anchor="middle" fill="#3fb950" font-size="10">200 RSS  |  injury articles</text>
+
+      <!-- ─── Lambda / Scraper boxes (middle) ─── -->
+
+      <rect x="340" y="30" width="150" height="34" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+      <text x="415" y="51" text-anchor="middle" fill="#c9d1d9" font-size="11">Lambda: NRL Scraper</text>
+
+      <rect x="340" y="155" width="150" height="34" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+      <text x="415" y="176" text-anchor="middle" fill="#c9d1d9" font-size="11">Lambda: BOM Scraper</text>
+
+      <rect x="340" y="270" width="150" height="34" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+      <text x="415" y="291" text-anchor="middle" fill="#c9d1d9" font-size="11">Lambda: Article Scraper</text>
+
+      <!-- ─── Storage (right-middle) ─── -->
+
+      <rect x="560" y="100" width="140" height="44" rx="6" fill="#0d2045" stroke="#1f6feb" stroke-width="1.2"/>
+      <text x="630" y="118" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">S3</text>
+      <text x="630" y="134" text-anchor="middle" fill="#58a6ff" font-size="10">raw JSON / article text</text>
+
+      <rect x="560" y="200" width="140" height="44" rx="6" fill="#0d2045" stroke="#1f6feb" stroke-width="1.2"/>
+      <text x="630" y="218" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">DynamoDB</text>
+      <text x="630" y="234" text-anchor="middle" fill="#58a6ff" font-size="10">parsed records + prices</text>
+
+      <!-- ─── Agent (far right) ─── -->
+
+      <rect x="790" y="140" width="160" height="60" rx="6" fill="#2d1f05" stroke="#9e6a03" stroke-width="1.2"/>
+      <text x="870" y="163" text-anchor="middle" fill="#d29922" font-size="12" font-weight="700">Claude Agent</text>
+      <text x="870" y="179" text-anchor="middle" fill="#d29922" font-size="10">match prediction</text>
+      <text x="870" y="193" text-anchor="middle" fill="#d29922" font-size="10">tool: get_weather, get_teams…</text>
+
+      <!-- ─── Haiku pre-processor ─── -->
+      <rect x="560" y="290" width="140" height="34" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+      <text x="630" y="305" text-anchor="middle" fill="#8b949e" font-size="10">Haiku pre-processor</text>
+      <text x="630" y="318" text-anchor="middle" fill="#8b949e" font-size="9">extract injury JSON</text>
+
+      <!-- ─── Arrows: sources → lambdas ─── -->
+      <!-- Draw API → NRL Lambda -->
+      <line x1="180" y1="47" x2="338" y2="47" stroke="#3fb950" stroke-width="1.4" marker-end="url(#arr-ok)"/>
+      <!-- Team sheet → NRL Lambda (dashed = broken) -->
+      <line x1="180" y1="102" x2="338" y2="58" stroke="#f85149" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arr-fail)"/>
+
+      <!-- BOM → BOM Lambda -->
+      <line x1="180" y1="172" x2="338" y2="172" stroke="#3fb950" stroke-width="1.4" marker-end="url(#arr-ok)"/>
+      <!-- Open-Meteo → BOM Lambda -->
+      <line x1="180" y1="232" x2="338" y2="185" stroke="#3fb950" stroke-width="1.4" marker-end="url(#arr-ok)"/>
+
+      <!-- Zero Tackle → Article Lambda -->
+      <line x1="180" y1="287" x2="338" y2="287" stroke="#3fb950" stroke-width="1.4" marker-end="url(#arr-ok)"/>
+
+      <!-- ─── Arrows: lambdas → storage ─── -->
+      <line x1="490" y1="47" x2="558" y2="115" stroke="#484f58" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="490" y1="172" x2="558" y2="213" stroke="#484f58" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="490" y1="287" x2="558" y2="305" stroke="#484f58" stroke-width="1.2" marker-end="url(#arr)"/>
+
+      <!-- Haiku → DynamoDB -->
+      <line x1="630" y1="290" x2="630" y2="246" stroke="#484f58" stroke-width="1.2" marker-end="url(#arr)"/>
+
+      <!-- ─── Arrows: storage → Agent ─── -->
+      <line x1="700" y1="122" x2="788" y2="155" stroke="#9e6a03" stroke-width="1.4" marker-end="url(#arr-warn)"/>
+      <line x1="700" y1="222" x2="788" y2="175" stroke="#9e6a03" stroke-width="1.4" marker-end="url(#arr-warn)"/>
+
+      <!-- ─── Legend ─── -->
+      <text x="10" y="330" fill="#484f58" font-size="9">Legend:</text>
+      <line x1="55" y1="327" x2="80" y2="327" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="83" y="330" fill="#484f58" font-size="9">working</text>
+      <line x1="115" y1="327" x2="140" y2="327" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="143" y="330" fill="#484f58" font-size="9">broken / needs fix</text>
+    </svg>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Results table
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#9776;</span> Source-by-Source Results</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>HTTP</th>
+          <th>Auth?</th>
+          <th>Format</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="source-name">nrl.com draw API</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">JSON</span></td>
+          <td class="note-text"><code>Cache-Control: public, max-age=5</code>. Top-level key <code>fixtures[]</code>. Match ID lives inside <code>matchCentreUrl</code>, not at top level. Use <code>?competition=111&amp;season=YYYY&amp;round=N</code>.</td>
+        </tr>
+        <tr>
+          <td class="source-name">nrl.com team sheet</td>
+          <td><span class="badge warn">404 (dummy ID)</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">HTML/__NEXT_DATA__</span></td>
+          <td class="note-text">Bug fixed (<code>CURRENT_YEAR</code> scope). 404 because draw API has no <code>matchId</code>/<code>id</code> field — match slug lives inside <code>matchCentreUrl</code> (e.g. <code>raiders-v-dolphins-20260514</code>). Lambda must extract slug from <code>matchCentreUrl</code>, hit <code>/draw/nrl-premiership/{year}/{slug}</code>, then parse <code>__NEXT_DATA__</code>.</td>
+        </tr>
+        <tr>
+          <td class="source-name">nrl.com ladder</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">JSON</span></td>
+          <td class="note-text"><code>/ladder/data?competition=111&amp;season=YYYY</code>. Keys: <code>positions[]</code> — 17 teams, each with <code>stats</code>, <code>teamNickname</code>, <code>movement</code>, <code>next</code>. <code>Cache-Control: public, max-age=5</code>.</td>
+        </tr>
+        <tr>
+          <td class="source-name">BOM REST API (daily)</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">JSON</span></td>
+          <td class="note-text">Location search by lat/lon returns geohash. Then <code>/forecasts/daily</code> gives 8-day forecast: temp, rain chance, rain mm. Tested for Accor + Suncorp stadiums.</td>
+        </tr>
+        <tr>
+          <td class="source-name">BOM REST API (hourly)</td>
+          <td><span class="badge fail">400</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td>—</td>
+          <td class="note-text"><code>/forecasts/hourly</code> returns 400 for both test venues. May need different geohash precision or is region-restricted. Fall back to Open-Meteo for hourly.</td>
+        </tr>
+        <tr>
+          <td class="source-name">BOM legacy feed</td>
+          <td><span class="badge fail">404</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td>—</td>
+          <td class="note-text"><code>reg.bom.gov.au/fwo/IDN10064/...</code> returns 404. Dead endpoint — do not use.</td>
+        </tr>
+        <tr>
+          <td class="source-name">Open-Meteo</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">JSON</span></td>
+          <td class="note-text">Free, no key, global. 7-day hourly + daily. Fields: <code>precipitation_probability</code>, <code>precipitation</code>, <code>windspeed_10m</code>, <code>temperature_2m</code>. Best for non-AU venues (Las Vegas) or BOM hourly fallback.</td>
+        </tr>
+        <tr>
+          <td class="source-name">Zero Tackle RSS</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">RSS/XML</span></td>
+          <td class="note-text">10 items in feed. Injury + team-list articles present. Article body is clean plain text via BeautifulSoup. Subscribe and poll every 2 h Thu–Sat.</td>
+        </tr>
+        <tr>
+          <td class="source-name">The Roar RSS</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">RSS/XML</span></td>
+          <td class="note-text">6 items, multi-sport. Filter by NRL team/player keywords. Updated less frequently than Zero Tackle.</td>
+        </tr>
+        <tr>
+          <td class="source-name">SuperCoach API</td>
+          <td><span class="badge fail">Auth redirect</span></td>
+          <td><span class="badge fail">Yes</span></td>
+          <td><span class="badge warn">HTML</span></td>
+          <td class="note-text">All <code>/api/v3/nrl/players</code> endpoints return <code>text/html</code> (~4 KB) — login redirect. Needs Bearer token. Store in Secrets Manager: <code>nrl-predictor/supercoach-token</code>. Not MVP-blocking.</td>
+        </tr>
+        <tr>
+          <td class="source-name">NRL Fantasy API</td>
+          <td><span class="badge fail">Auth redirect</span></td>
+          <td><span class="badge fail">Yes</span></td>
+          <td><span class="badge warn">HTML</span></td>
+          <td class="note-text"><code>fantasy.nrl.com/api/*</code> returns <code>text/html</code> (~29 KB). Same auth pattern as SuperCoach. Use <code>nrl.com/stats/data</code> (Champion Data proxy) instead — returns real JSON with <code>teamStats</code> + <code>playerStats</code>.</td>
+        </tr>
+        <tr>
+          <td class="source-name">nrl.com/stats/data</td>
+          <td><span class="badge ok">200</span></td>
+          <td><span class="badge ok">None</span></td>
+          <td><span class="badge info">JSON</span></td>
+          <td class="note-text">~275 KB. Keys: <code>teamStats</code>, <code>playerStats</code>, <code>filterSeasons</code>. Best open alternative to SuperCoach for player data.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Weather sample
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#9928;</span> Weather Sample Data (Open-Meteo, 2026-05-12)</h2>
+  <div class="weather-grid">
+    <div class="weather-card">
+      <h4>Accor Stadium, Sydney  (-33.85, 151.06)</h4>
+      <div class="weather-row">
+        <span class="weather-label">May 12</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar high" style="width:85px"></span></span>
+          <span class="rain-val">85%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">2.2 mm &nbsp; 15.7 km/h</span>
+      </div>
+      <div class="weather-row">
+        <span class="weather-label">May 13</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar high" style="width:97px"></span></span>
+          <span class="rain-val">97%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">6.2 mm &nbsp; 11.5 km/h</span>
+      </div>
+      <div class="weather-row">
+        <span class="weather-label">May 14</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar" style="width:76px"></span></span>
+          <span class="rain-val">76%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">3.6 mm &nbsp; 11.2 km/h</span>
+      </div>
+      <div class="weather-row">
+        <span class="weather-label">May 15</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar" style="width:70px"></span></span>
+          <span class="rain-val">70%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">4.3 mm &nbsp; &nbsp;7.8 km/h</span>
+      </div>
+    </div>
+    <div class="weather-card">
+      <h4>Suncorp Stadium, Brisbane  (-27.47, 153.01)</h4>
+      <div class="weather-row">
+        <span class="weather-label">May 12</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar" style="width:64px"></span></span>
+          <span class="rain-val">64%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">0.7 mm &nbsp; 19.8 km/h</span>
+      </div>
+      <div class="weather-row">
+        <span class="weather-label">May 13</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar" style="width:69px"></span></span>
+          <span class="rain-val">69%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">1.9 mm &nbsp; 17.3 km/h</span>
+      </div>
+      <div class="weather-row">
+        <span class="weather-label">May 14</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar" style="width:65px"></span></span>
+          <span class="rain-val">65%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">1.9 mm &nbsp; 15.6 km/h</span>
+      </div>
+      <div class="weather-row">
+        <span class="weather-label">May 15</span>
+        <span class="rain-bar-wrap">
+          <span class="rain-bar-bg"><span class="rain-bar" style="width:52px"></span></span>
+          <span class="rain-val">52%</span>
+        </span>
+        <span style="color:#8b949e;font-size:0.8rem">0.4 mm &nbsp; 12.8 km/h</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Recommended scraping strategy
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#9881;</span> Recommended Scraping Strategy</h2>
+
+  <h3>Weather</h3>
+  <div class="panel">
+    <ul class="priority-list">
+      <li>
+        <span class="priority-num">1</span>
+        <div class="priority-body">
+          <strong>BOM REST API — daily forecast</strong>
+          <p>Hit <code>/locations?search={lat},{lon}</code> for geohash, then <code>/forecasts/daily</code>. Free, no key, AU-hosted. Hardcode geohashes per venue as fallback.</p>
+        </div>
+      </li>
+      <li>
+        <span class="priority-num">2</span>
+        <div class="priority-body">
+          <strong>Open-Meteo — hourly forecast</strong>
+          <p>BOM hourly is 400. Use Open-Meteo for kick-off-specific hourly data. Also primary for non-AU venues (Las Vegas).</p>
+        </div>
+      </li>
+      <li>
+        <span class="priority-num">3</span>
+        <div class="priority-body">
+          <strong>BOM legacy feed — skip</strong>
+          <p>Dead. 404 on all tested product URLs.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <h3>Team / Draw data</h3>
+  <div class="panel">
+    <ul class="priority-list">
+      <li>
+        <span class="priority-num">1</span>
+        <div class="priority-body">
+          <strong>nrl.com Draw JSON API</strong>
+          <p>Clean JSON, public cache. Fetch by round: <code>/draw/data?competition=111&amp;season=YYYY&amp;round=N</code>. Extract <code>matchCentreUrl</code> for team sheet lookups.</p>
+        </div>
+      </li>
+      <li>
+        <span class="priority-num">2</span>
+        <div class="priority-body">
+          <strong>nrl.com Team Sheet via <code>__NEXT_DATA__</code></strong>
+          <p>Fix <code>CURRENT_YEAR</code> bug first, then test. nrl.com is Next.js — parse the embedded JSON script tag, not CSS selectors.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <h3>Articles / Injury news</h3>
+  <div class="panel">
+    <ul class="priority-list">
+      <li>
+        <span class="priority-num">1</span>
+        <div class="priority-body">
+          <strong>Zero Tackle RSS</strong>
+          <p>Best source. Poll every 2 h Thu–Sat. Filter for NRL team/player keywords. Store extracted text in S3.</p>
+        </div>
+      </li>
+      <li>
+        <span class="priority-num">2</span>
+        <div class="priority-body">
+          <strong>The Roar RSS</strong>
+          <p>Secondary. Multi-sport feed — filter aggressively. Fewer NRL-specific items.</p>
+        </div>
+      </li>
+      <li>
+        <span class="priority-num">3</span>
+        <div class="priority-body">
+          <strong>Haiku pre-processing step</strong>
+          <p>Don't send raw articles to the main agent. Run a cheap Haiku call to extract <code>[{player, team, status, detail}]</code> JSON per article. Store alongside raw text in S3.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <h3>Player prices / Fantasy signals</h3>
+  <div class="panel">
+    <ul class="priority-list">
+      <li>
+        <span class="priority-num">1</span>
+        <div class="priority-body">
+          <strong>nrl.com/stats/data (Champion Data proxy)</strong>
+          <p>Open JSON, ~275 KB, <code>teamStats</code> + <code>playerStats</code>. Best free player data source.</p>
+        </div>
+      </li>
+      <li>
+        <span class="priority-num">2</span>
+        <div class="priority-body">
+          <strong>SuperCoach / NRL Fantasy price delta (V1.1)</strong>
+          <p>Both require auth. Capture Bearer token via browser devtools, store in Secrets Manager. Wed night baseline → Thu night delta: &gt;5% price drop = <code>LIKELY_OUT</code> signal. Not MVP-blocking.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Action items
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#9873;</span> Action Items</h2>
+  <div class="panel">
+    <ul class="action-list">
+      <li class="done">Fixed <code>UnboundLocalError: CURRENT_YEAR</code> in <code>spike_nrl.py</code>. Team sheet spike now runs. 404 because no real match slug — Lambda must extract <code>matchCentreUrl</code> from draw API fixtures, then parse <code>__NEXT_DATA__</code> on the match page.</li>
+      <li class="warn">Investigate BOM hourly 400 — try alternate geohash precision levels or check if a different endpoint path is needed.</li>
+      <li class="done">NRL draw API confirmed working — proceed to Lambda implementation.</li>
+      <li class="done">Open-Meteo confirmed working — use for hourly kick-off weather and non-AU venues.</li>
+      <li class="done">Zero Tackle + The Roar RSS confirmed — proceed to article Lambda with Haiku pre-processing.</li>
+      <li class="warn">Register SuperCoach account, capture Bearer token via browser devtools, store in Secrets Manager for V1.1 price signal feature.</li>
+      <li class="done">nrl.com/stats/data confirmed as open alternative to Fantasy APIs — use for player stats in MVP.</li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       EventBridge schedule
+  ══════════════════════════════════════════════ -->
+  <h2><span class="icon">&#9201;</span> Suggested Lambda / EventBridge Schedule</h2>
+  <div class="panel">
+    <div class="diagram-wrap" style="padding: 0; border: none;">
+      <svg viewBox="0 0 700 120" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- Timeline -->
+        <line x1="30" y1="60" x2="670" y2="60" stroke="#30363d" stroke-width="1.5"/>
+
+        <!-- :00 NRL -->
+        <circle cx="100" cy="60" r="6" fill="#3fb950"/>
+        <line x1="100" y1="54" x2="100" y2="20" stroke="#3fb950" stroke-width="1"/>
+        <text x="100" y="14" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">:00</text>
+        <text x="100" y="80" text-anchor="middle" fill="#8b949e" font-size="9">NRL scraper</text>
+        <text x="100" y="92" text-anchor="middle" fill="#8b949e" font-size="9">(draw + team sheet)</text>
+
+        <!-- :05 BOM -->
+        <circle cx="250" cy="60" r="6" fill="#3fb950"/>
+        <line x1="250" y1="54" x2="250" y2="20" stroke="#3fb950" stroke-width="1"/>
+        <text x="250" y="14" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">:05</text>
+        <text x="250" y="80" text-anchor="middle" fill="#8b949e" font-size="9">BOM scraper</text>
+        <text x="250" y="92" text-anchor="middle" fill="#8b949e" font-size="9">(weather per venue)</text>
+
+        <!-- :10 Articles -->
+        <circle cx="420" cy="60" r="6" fill="#3fb950"/>
+        <line x1="420" y1="54" x2="420" y2="20" stroke="#3fb950" stroke-width="1"/>
+        <text x="420" y="14" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">:10</text>
+        <text x="420" y="80" text-anchor="middle" fill="#8b949e" font-size="9">Article scraper</text>
+        <text x="420" y="92" text-anchor="middle" fill="#8b949e" font-size="9">(RSS + Haiku extract)</text>
+
+        <!-- :20 Fantasy (future) -->
+        <circle cx="580" cy="60" r="6" fill="#484f58" stroke="#30363d" stroke-width="1.5"/>
+        <line x1="580" y1="54" x2="580" y2="20" stroke="#484f58" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="580" y="14" text-anchor="middle" fill="#484f58" font-size="10" font-weight="600">:20</text>
+        <text x="580" y="80" text-anchor="middle" fill="#484f58" font-size="9">Fantasy scraper</text>
+        <text x="580" y="92" text-anchor="middle" fill="#484f58" font-size="9">(V1.1 — auth needed)</text>
+
+        <!-- Now marker -->
+        <text x="30" y="110" fill="#484f58" font-size="9">Each invocation staggered to avoid rate-limit burst. All run Thu + Sat pre-game.</text>
+      </svg>
+    </div>
+  </div>
+
+  <footer>
+    NRL Predictor spike results &nbsp;|&nbsp; Generated 2026-05-12 &nbsp;|&nbsp; <code>python3 run_spikes.py</code>
+  </footer>
+
+</div>
+</body>
+</html>
