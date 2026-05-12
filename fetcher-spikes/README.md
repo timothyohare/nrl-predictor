@@ -36,16 +36,20 @@ After running, fill in this table:
 
 | Source | Status | Auth needed? | JSON or HTML? | Notes |
 |--------|--------|-------------|--------------|-------|
-| nrl.com draw API | 200 OK | No | JSON | `Cache-Control: public, max-age=5`. `matchCentreUrl` = full path e.g. `/draw/nrl-premiership/2026/round-12/raiders-v-dolphins/`. Kick-off time at `clock.kickOffTimeLong` (UTC ISO 8601, e.g. `2026-05-21T09:50:00Z`) — not a top-level field. |
-| nrl.com team sheet | Untested (real slug) | No | HTML (likely __NEXT_DATA__) | Team sheet URL = `https://www.nrl.com` + `matchCentreUrl`. Spike 0.1 must validate `__NEXT_DATA__` is present and map the player list JSON path. |
+| nrl.com draw API | 200 OK | No | JSON | `Cache-Control: public, max-age=5`. `matchCentreUrl` = `/draw/nrl-premiership/{year}/round-{N}/{home}-v-{away}/`. Kick-off: `clock.kickOffTimeLong` (UTC ISO 8601). Completed fixtures: `homeTeam.score` / `awayTeam.score` present when `matchState == "FullTime"`. |
+| nrl.com team sheet | 200 OK | No | HTML (q-data attr) | Page is a Quasar/Vue.js app. Full team sheet embedded in `q-data` JSON attr on `<div id="vue-match-centre">`. Path: `match.homeTeam.players[]` / `match.awayTeam.players[]`. Fields: `number`, `firstName`, `lastName`, `position`, `isOnField`, `playerId`. Pre-match has 22-player squad; post-match has 18 (actual team). Also contains `match.matchId` (numeric, e.g. `"20261111110"`), `matchState`, `startTime`. |
+| nrl.com results | 200 OK | No | JSON (via draw API) | No separate results endpoint. Filter draw API by `matchState == "FullTime"` — `homeTeam.score` and `awayTeam.score` are present. Confirmed: Broncos 30 – Storm 14 (2025 R27). |
 | nrl.com ladder | 200 OK | No | JSON | `/ladder/data?competition=111&season=YYYY`. Keys: `positions[]` (17 teams), each has `stats`, `teamNickname`, `movement`, `next`. `Cache-Control: public, max-age=5`. |
-| BOM REST API | 200 OK (daily) / 400 (hourly) | No | JSON | `api.weather.bom.gov.au`. Location search by lat/lon returns geohash. Daily forecast works (8 days). Hourly endpoint returns 400 — may require different geohash precision or is region-gated. |
-| BOM legacy feed | 404 | No | — | `reg.bom.gov.au/fwo/...` product URLs return 404. Do not use. |
-| Open-Meteo | 200 OK | No | JSON | Free, no key. 7-day hourly + daily. Provides `precipitation_probability`, `precipitation`, `windspeed_10m`. Best fallback for BOM hourly or non-AU venues (e.g. Las Vegas). |
-| Zero Tackle RSS | 200 OK | No | RSS/XML | `https://www.zerotackle.com/feed/` — 10 items, injury/team-list articles present. Article body is clean text via BeautifulSoup. |
-| The Roar RSS | 200 OK | No | RSS/XML | `https://www.theroar.com.au/feed/` — 6 items, mix of sports. Filter by NRL keywords. Feed appears less frequently updated than Zero Tackle. |
-| SuperCoach API | 200 (HTML body) | Likely yes | HTML redirect | All API endpoints (`/api/v3/nrl/players`, etc.) return `text/html` at ~4 KB — classic auth redirect. Needs Bearer token from browser devtools; store in Secrets Manager. |
-| NRL Fantasy API | 200 (HTML body) | Likely yes | HTML redirect | `fantasy.nrl.com/api/*` returns `text/html` at ~29 KB. Same pattern as SuperCoach. Requires auth. `nrl.com/stats/data` (Champion Data proxy) returns real JSON (200, ~275 KB) with `teamStats` and `playerStats` — use this instead. |
+| BOM REST API (daily) | 200 OK | No | JSON | 8-day daily forecast. Use location search (lat/lon → geohash) then `/forecasts/daily`. |
+| BOM REST API (hourly) | 200 OK | No | JSON | **Requires exactly 6-char geohash** (7-char returns 400). 73-hour window. Fields: `rain.chance` (%), `rain.amount.min/max` (mm), `wind.speed_kilometre`, `wind.gust_speed_kilometre`, `wind.direction`, `temp` (°C), `time` (UTC ISO 8601). |
+| BOM legacy feed | 404 | No | — | Dead. Do not use. |
+| Open-Meteo | 200 OK | No | JSON | Free, no key. 7-day hourly. Use for non-AU venues (Las Vegas) or as BOM fallback. |
+| Zero Tackle RSS | 200 OK | No | RSS/XML | 10 items/feed. Includes weekly team lists article and injury updates. Article body: clean text via BeautifulSoup. |
+| The Roar RSS | 200 OK | No | RSS/XML | 6 items, multi-sport. Filter by NRL keyword. Less frequently updated. |
+| nrl.com/stats/data | 200 OK | No | JSON | Leaderboard data only — `teamStats[].groups[].leaders[]` (team stat leaders) and `playerStats[].groups[].leaders[]` (player stat leaders). NOT per-match or head-to-head data. Useful for agent context ("Panthers lead in points scored"). |
+| SuperCoach API | Auth redirect | Yes | HTML | Returns `text/html` — classic login redirect. Defer to V1.1. |
+| NRL Fantasy API | Auth redirect | Yes | HTML | Same pattern. Defer to V1.1. |
+| Referee data | Not available | — | — | No structured source. Not in draw API, not in match page. Skip MVP — agent can use `web_search` if needed. |
 
 ## Key patterns to look for
 

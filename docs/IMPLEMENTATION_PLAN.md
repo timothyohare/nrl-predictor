@@ -37,12 +37,16 @@ Each task is a single checkbox. Work top to bottom. TDD cycle is explicit:
 *These open questions must be answered before writing any Lambda code.*
 *Spike scripts go in `fetcher-spikes/`. Update `fetcher-spikes/README.md` after each.*
 
-### 0.1 Team Sheet via `__NEXT_DATA__`
+### 0.1 Team Sheet — COMPLETE
 
-`matchCentreUrl` format confirmed: `/draw/nrl-premiership/{year}/round-{N}/{home}-v-{away}/`
-Kick-off time confirmed: `clock.kickOffTimeLong` (UTC ISO 8601). Team sheet page not yet validated.
-
-- [ ] **[SPIKE]** Fetch `https://www.nrl.com` + `matchCentreUrl` for a real round-12 match (e.g. `/draw/nrl-premiership/2026/round-12/raiders-v-dolphins/`).
+- [x] Page is a **Quasar/Vue.js** app (not Next.js — no `__NEXT_DATA__`).
+- [x] Full team sheet is embedded in the **`q-data` JSON attribute** on `<div id="vue-match-centre">` in the initial HTML — no JS execution needed.
+- [x] Path: `q-data → match.homeTeam.players[]` and `match.awayTeam.players[]`.
+- [x] Player fields: `number`, `firstName`, `lastName`, `position`, `isOnField` (true=starting 13, false=bench), `playerId`.
+- [x] Pre-match page: 22-player named squad. Post-match page: 18 players (actual team that played).
+- [x] Also in `q-data`: `match.matchId` (numeric string e.g. `"20261111110"`), `matchState`, `startTime` (kick-off UTC ISO 8601).
+- [x] Scores present in post-match: `match.homeTeam.score`, `match.awayTeam.score`.
+- [x] **Scraper approach**: fetch URL, BeautifulSoup, find `#vue-match-centre`, read `q-data` attr, `json.loads`.
   - Does it return 200?
   - Is `<script id="__NEXT_DATA__">` present in the HTML?
   - Parse the `__NEXT_DATA__` JSON. Find where the 1–17 player list lives (look for `homeTeam.players` or similar).
@@ -51,49 +55,37 @@ Kick-off time confirmed: `clock.kickOffTimeLong` (UTC ISO 8601). Team sheet page
 - [ ] **[SPIKE]** Test the same for a match that has already been played (should have actual lineup vs named squad).
 - [ ] Update `fetcher-spikes/README.md` and `fetcher-spikes/results.html` with findings.
 
-### 0.2 NRL Results / Final Scores API
+### 0.2 NRL Results / Final Scores API — COMPLETE
 
-Post-match scoring (Phase 4) requires fetching the final score after each match.
-This source has not been spiked at all.
+- [x] No dedicated results endpoint (`/results/data` returns 404).
+- [x] **Draw API is the source**: filter fixtures by `matchState == "FullTime"` — `homeTeam.score` and `awayTeam.score` appear in the fixture object. Confirmed: Broncos 30 – Storm 14 (2025 R27).
+- [x] `matchMode: "Post"` also indicates a completed match (belt-and-braces check).
+- [x] Round 11 of 2026 is still upcoming — always check `matchState` before reading scores.
 
-- [ ] **[SPIKE]** Test `https://www.nrl.com/draw/data?competition=111&season=2026&round=11` — do completed fixture objects contain a final score? Look for fields like `homeTeam.score`, `awayTeam.score`, `matchState: "FullTime"`.
-- [ ] **[SPIKE]** Test `https://www.nrl.com/draw/nrl-premiership/2026/{completed-slug}` — does `__NEXT_DATA__` contain the final score for completed matches?
-- [ ] **[SPIKE]** Check if there is a dedicated results endpoint: `https://www.nrl.com/results/data?competition=111&season=2026&round=11`.
-- [ ] Document the chosen approach and the JSON path to home/away final scores.
-- [ ] Update README + results.html.
+### 0.3 BOM Hourly Investigation — COMPLETE
 
-### 0.3 BOM Hourly Investigation
+- [x] **Fix**: BOM hourly requires exactly a **6-character geohash** (the location search returns 7 chars — truncate to 6 before calling hourly endpoint).
+- [x] 6-char geohash → 200, returns **73 hourly items** (~3 days).
+- [x] Key fields per hour: `rain.chance` (%), `rain.amount.min` / `rain.amount.max` (mm), `wind.speed_kilometre`, `wind.gust_speed_kilometre`, `wind.direction`, `temp` (°C), `time` (UTC ISO 8601), `is_night`.
+- [x] **Scraper approach**: location search (lat/lon) → take first 6 chars of returned geohash → `/forecasts/hourly` → select the item where `time` matches kick-off hour.
+- [x] Open-Meteo remains the fallback for non-AU venues and if BOM is down.
 
-BOM hourly returned 400 for both test venues. Daily (8-day) works fine.
-Open-Meteo is the current fallback but BOM hourly is preferable for AU venues.
+### 0.4 Head-to-Head / Historical Stats — COMPLETE
 
-- [ ] **[SPIKE]** Try BOM hourly with shortened geohash (5 chars instead of 7): `api.weather.bom.gov.au/v1/locations/{5-char-geohash}/forecasts/hourly`.
-- [ ] **[SPIKE]** Try the BOM 3-hourly endpoint if one exists: `...forecasts/3-hourly`.
-- [ ] **[SPIKE]** Check the BOM API docs at `api.weather.bom.gov.au` for any version or endpoint changes.
-- [ ] If BOM hourly cannot be fixed: document Open-Meteo as the definitive hourly source and close this spike.
-- [ ] Update README + results.html.
+- [x] `nrl.com/stats/data` is **leaderboard data**, not per-match or head-to-head history.
+- [x] Structure: `teamStats[{title, groups:[{statId, title, leaders:[{teamNickName, value, played}]}]}]` — stat leaders per category (Scoring, Possession, etc.).
+- [x] Same structure for `playerStats` — adds `firstName`, `lastName` fields.
+- [x] Useful for agent context (e.g. "Panthers lead the competition in points scored") but cannot produce head-to-head records.
+- [x] `/stats/` HTML page has no `__NEXT_DATA__`.
+- [x] **Decision**: head-to-head must be built from the draw API backfill (Phase 2.6). The `get_head_to_head` tool queries DynamoDB `results` table, aggregated from historical rounds.
 
-### 0.4 Head-to-Head / Historical Stats
+### 0.5 Referee Assignment Data — COMPLETE
 
-`nrl.com/stats/data` returns `teamStats` and `playerStats` (~275 KB JSON), but the
-internal structure was not explored. The agent tool `get_head_to_head()` depends on this.
-
-- [ ] **[SPIKE]** Parse the full JSON from `nrl.com/stats/data?season=2026`. Document top-level keys and shape of `teamStats[]` and `playerStats[]`.
-- [ ] **[SPIKE]** Determine if head-to-head (team A vs team B, last N years) is available in this response or requires a separate endpoint.
-- [ ] **[SPIKE]** Test `https://www.nrl.com/stats/data?season=2025` — is multi-season data available for building head-to-head tables?
-- [ ] **[SPIKE]** Check `https://www.nrl.com/stats/` HTML page for `__NEXT_DATA__` — may contain richer structured data.
-- [ ] Document what head-to-head data is available and what must be derived by aggregating historical round-by-round results.
-- [ ] Update README + results.html.
-
-### 0.5 Referee Assignment Data
-
-The working backwards doc lists referee tendencies as an input factor. No spike yet.
-
-- [ ] **[SPIKE]** Check `https://www.nrl.com/draw/data?competition=111&season=2026&round=12` — do fixture objects contain a referee field?
-- [ ] **[SPIKE]** Check the match `__NEXT_DATA__` page for referee information.
-- [ ] **[SPIKE]** Check `https://www.nrl.com/news/?tagKey=referees` — is there a structured referee assignment article each week?
-- [ ] If no structured source exists: document that referee data is out of scope for MVP and can be added via web_search tool if needed.
-- [ ] Update README + results.html.
+- [x] No referee field in draw API fixture objects.
+- [x] Match centre page (`#vue-match-centre q-data`) has no referee data.
+- [x] NRL news referee tag returns 500.
+- [x] Zero Tackle search returns injury/team-list articles — no structured referee appointment feed.
+- [x] **Decision**: referee data is **out of scope for MVP**. The agent's `web_search` tool can retrieve referee announcements on demand if needed. Add structured referee scraping in V1.1 if it proves impactful on accuracy.
 
 ---
 
@@ -184,14 +176,15 @@ The working backwards doc lists referee tendencies as an input factor. No spike 
 
 ### 2.3 NRL Team Sheet Scraper
 
-*Depends on completing Spike 0.1 first — do not start until `__NEXT_DATA__` JSON path is confirmed.*
+*Spike 0.1 complete. Page is a Quasar/Vue.js app — team sheet is in `q-data` attr on `#vue-match-centre`.*
 
 - [ ] **[TEST]** `tests/scrapers/test_scraper_team_sheet.py`:
-  - Create fixture file `tests/fixtures/nrl_team_sheet_next_data.json` — copy the relevant portion of `__NEXT_DATA__` from the spike.
-  - Assert `parse_team_sheet(next_data, team)` returns a `TeamSheet` dataclass with: `team_id`, `round`, `match_id`, `players: list[Player]` (each Player has `name`, `jersey_number`, `position`, `status: "starting"|"bench"|"reserve"`).
-  - Assert `parse_team_sheet` raises `TeamSheetNotFound` if the expected JSON path is absent.
-  - Assert `parse_team_sheet` raises `TeamSheetNotFound` if players list is empty.
-- [ ] **[CODE]** `scrapers/nrl/team_sheet.py` — implement `fetch_team_sheet_page(match_slug)` (HTTP GET + extract `__NEXT_DATA__`); implement `parse_team_sheet(next_data, team)`.
+  - Create fixture file `tests/fixtures/nrl_team_sheet_qdata.json` — copy the `q-data` JSON from the spike (Sharks v Bulldogs R11 2026).
+  - Assert `parse_team_sheet(q_data_dict)` returns a `TeamSheet` dataclass with: `match_id` (from `match.matchId`), `round`, `kick_off` (from `match.startTime`), `match_state`, `home_team: TeamSide`, `away_team: TeamSide`. Each `TeamSide` has `team_id`, `nick_name`, `score` (None if pre-match), `players: list[Player]`.
+  - Each `Player`: `jersey_number`, `first_name`, `last_name`, `position`, `is_starting` (from `isOnField`), `player_id`.
+  - Assert `parse_team_sheet` raises `TeamSheetNotFound` if `match` key is absent.
+  - Assert `parse_team_sheet` raises `TeamSheetNotFound` if both player lists are empty.
+- [ ] **[CODE]** `scrapers/nrl/team_sheet.py` — implement `fetch_team_sheet_page(match_centre_url: str) -> dict`: HTTP GET the full URL, BeautifulSoup, find `#vue-match-centre`, read `q-data` attr, `json.loads`. Implement `parse_team_sheet(q_data: dict) -> TeamSheet`.
 - [ ] **[REFACTOR]** `Player` and `TeamSheet` dataclasses into `scrapers/shared/models.py`.
 - [ ] **[TEST]** Assert `lambda_handler` writes parsed `TeamSheet` to DynamoDB `teams` table and raw HTML to S3; assert it handles `TeamSheetNotFound` gracefully (logs warning, does not raise).
 - [ ] **[CODE]** Add `lambda_handler`.
@@ -244,8 +237,9 @@ The working backwards doc lists referee tendencies as an input factor. No spike 
   - Assert it raises `WeatherDataUnavailable` if `target_date` is beyond the 7-day window.
   - Create fixture `tests/fixtures/bom_daily_response.json` — copy from spike output.
   - Assert `parse_bom_daily(data, target_date)` returns `WeatherForecast` (daily granularity — no hour field).
-  - Assert BOM geohash lookup: `get_geohash(lat, lon)` returns the geohash string from a mocked BOM location response.
-- [ ] **[CODE]** `scrapers/weather/weather.py` — implement `fetch_open_meteo(lat, lon, forecast_days=7)`, `parse_open_meteo`, `fetch_bom_daily(lat, lon)`, `parse_bom_daily`, `get_geohash(lat, lon)`.
+  - Assert BOM geohash lookup: `get_geohash(lat, lon)` returns the **6-character** geohash (location search returns 7 chars — must truncate to 6 for hourly endpoint). Assert truncation is applied.
+  - Create fixture `tests/fixtures/bom_hourly_response.json`. Assert `parse_bom_hourly(data, target_utc_time)` selects the correct hour slot and maps `rain.chance` → `rain_chance_pct`, `rain.amount.max` → `rain_mm`, `wind.speed_kilometre` → `wind_kmh`, `temp` → `temp_c`.
+- [ ] **[CODE]** `scrapers/weather/weather.py` — implement `fetch_open_meteo(lat, lon, forecast_days=7)`, `parse_open_meteo`, `fetch_bom_hourly(lat, lon)` (uses 6-char geohash), `parse_bom_hourly`, `fetch_bom_daily(lat, lon)`, `parse_bom_daily`, `get_geohash(lat, lon)` (truncates to 6 chars).
 - [ ] **[CODE]** `scrapers/weather/venues.py` — hardcoded dict mapping venue name → `(lat, lon)` for all NRL venues (including GIO Stadium, Suncorp, Accor, AAMI Park, BlueBet, McDonald Jones, PointsBet, etc).
 - [ ] **[REFACTOR]** `WeatherForecast` into `scrapers/shared/models.py`. Open-Meteo is primary; BOM daily is fallback. Encapsulate fallback logic in `get_forecast(venue, date, kickoff_hour)`.
 - [ ] **[TEST]** Assert `lambda_handler` calls `get_forecast` for each venue in the current round, writes results to DynamoDB and S3.
