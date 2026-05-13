@@ -1,0 +1,8 @@
+{
+  "data": [
+    {"time": "2026-05-16T08:00:00Z", "rain": {"chance": 40, "amount": {"min": 0.5, "max": 2.0}}, "wind": {"speed_kilometre": 22, "gust_speed_kilometre": 35, "direction": "SSE"}, "temp": 17, "is_night": false},
+    {"time": "2026-05-16T09:00:00Z", "rain": {"chance": 50, "amount": {"min": 1.0, "max": 3.0}}, "wind": {"speed_kilometre": 28, "gust_speed_kilometre": 42, "direction": "SSE"}, "temp": 18, "is_night": false},
+    {"time": "2026-05-16T10:00:00Z", "rain": {"chance": 60, "amount": {"min": 2.0, "max": 5.0}}, "wind": {"speed_kilometre": 30, "gust_speed_kilometre": 48, "direction": "S"}, "temp": 18, "is_night": false},
+    {"time": "2026-05-16T11:00:00Z", "rain": {"chance": 55, "amount": {"min": 1.5, "max": 4.0}}, "wind": {"speed_kilometre": 25, "gust_speed_kilometre": 40, "direction": "S"}, "temp": 19, "is_night": false}
+  ]
+}

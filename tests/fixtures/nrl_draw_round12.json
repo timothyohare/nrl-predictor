@@ -1,0 +1,39 @@
+{
+  "fixtures": [
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-12/panthers-v-broncos/",
+      "homeTeam": {"nickName": "Panthers", "teamId": "500014"},
+      "awayTeam": {"nickName": "Broncos", "teamId": "500002"},
+      "venue": {"name": "BlueBet Stadium"},
+      "roundNumber": 12,
+      "clock": {"kickOffTimeLong": "2026-05-16T09:50:00Z"},
+      "matchState": "Pre"
+    },
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-12/sharks-v-bulldogs/",
+      "homeTeam": {"nickName": "Sharks", "teamId": "500017"},
+      "awayTeam": {"nickName": "Bulldogs", "teamId": "500004"},
+      "venue": {"name": "PointsBet Stadium"},
+      "roundNumber": 12,
+      "clock": {"kickOffTimeLong": "2026-05-16T23:00:00Z"},
+      "matchState": "Pre"
+    },
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-12/storm-v-roosters/",
+      "homeTeam": {"nickName": "Storm", "teamId": "500010"},
+      "awayTeam": {"nickName": "Roosters", "teamId": "500015"},
+      "venue": {"name": "AAMI Park"},
+      "roundNumber": 12,
+      "clock": {},
+      "matchState": "Pre"
+    },
+    {
+      "homeTeam": {"nickName": "Titans", "teamId": "500019"},
+      "awayTeam": {"nickName": "Raiders", "teamId": "500013"},
+      "venue": {"name": "Cbus Super Stadium"},
+      "roundNumber": 12,
+      "clock": {},
+      "matchState": "Pre"
+    }
+  ]
+}

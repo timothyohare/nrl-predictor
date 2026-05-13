@@ -1,0 +1,44 @@
+{
+  "fixtures": [
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-11/panthers-v-warriors/",
+      "homeTeam": {"nickName": "Panthers", "teamId": "500014", "score": 28},
+      "awayTeam": {"nickName": "Warriors", "teamId": "500020", "score": 16},
+      "venue": {"name": "BlueBet Stadium"},
+      "roundNumber": 11,
+      "clock": {"kickOffTimeLong": "2026-05-09T09:50:00Z"},
+      "matchState": "FullTime",
+      "matchMode": "Post"
+    },
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-11/sharks-v-eels/",
+      "homeTeam": {"nickName": "Sharks", "teamId": "500017", "score": 22},
+      "awayTeam": {"nickName": "Eels", "teamId": "500007", "score": 12},
+      "venue": {"name": "PointsBet Stadium"},
+      "roundNumber": 11,
+      "clock": {"kickOffTimeLong": "2026-05-09T23:00:00Z"},
+      "matchState": "FullTime",
+      "matchMode": "Post"
+    },
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-11/broncos-v-storm/",
+      "homeTeam": {"nickName": "Broncos", "teamId": "500002", "score": 14},
+      "awayTeam": {"nickName": "Storm", "teamId": "500010", "score": 30},
+      "venue": {"name": "Suncorp Stadium"},
+      "roundNumber": 11,
+      "clock": {"kickOffTimeLong": "2026-05-10T09:50:00Z"},
+      "matchState": "FullTime",
+      "matchMode": "Post"
+    },
+    {
+      "matchCentreUrl": "/draw/nrl-premiership/2026/round-11/roosters-v-knights/",
+      "homeTeam": {"nickName": "Roosters", "teamId": "500015"},
+      "awayTeam": {"nickName": "Knights", "teamId": "500011"},
+      "venue": {"name": "Allianz Stadium"},
+      "roundNumber": 11,
+      "clock": {"kickOffTimeLong": "2026-05-11T09:50:00Z"},
+      "matchState": "Pre",
+      "matchMode": "Pre"
+    }
+  ]
+}

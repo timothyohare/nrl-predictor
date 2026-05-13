@@ -1,3 +1,36 @@
-venv/
-.venv/
+# Python
 __pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# CDK
+infra/.venv/
+infra/cdk.out/
+*.js.map
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# AWS
+.aws-sam/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Spikes venv (already exists)
+fetcher-spikes/venv/

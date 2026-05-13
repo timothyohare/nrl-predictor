@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Zero Tackle</title>
+    <link>https://www.zerotackle.com</link>
+    <item>
+      <title>Panthers Team List Round 12: Cleary named despite ankle concern</title>
+      <link>https://www.zerotackle.com/panthers-team-list-round-12/</link>
+      <pubDate>Fri, 15 May 2026 06:00:00 +0000</pubDate>
+      <description>Nathan Cleary has been named at halfback for the Panthers in Round 12 despite rolling his ankle in training.</description>
+    </item>
+    <item>
+      <title>Broncos injury update: Payne Haas to miss two weeks</title>
+      <link>https://www.zerotackle.com/broncos-injury-haas/</link>
+      <pubDate>Thu, 14 May 2026 10:00:00 +0000</pubDate>
+      <description>Broncos prop Payne Haas has been ruled out for two weeks with a calf strain sustained in Round 11.</description>
+    </item>
+    <item>
+      <title>AFL Grand Final preview</title>
+      <link>https://www.zerotackle.com/afl-grand-final/</link>
+      <pubDate>Thu, 14 May 2026 08:00:00 +0000</pubDate>
+      <description>This weekend sees the AFL Grand Final at the MCG.</description>
+    </item>
+    <item>
+      <title>Storm Team List: Cameron Munster returns from suspension</title>
+      <link>https://www.zerotackle.com/storm-team-list-round-12/</link>
+      <pubDate>Thu, 14 May 2026 09:00:00 +0000</pubDate>
+      <description>Melbourne Storm have named Cameron Munster to return from a one-week suspension in Round 12.</description>
+    </item>
+    <item>
+      <title>Very old NRL article</title>
+      <link>https://www.zerotackle.com/old-article/</link>
+      <pubDate>Mon, 04 May 2026 10:00:00 +0000</pubDate>
+      <description>This article is more than 48 hours old and should be filtered out.</description>
+    </item>
+  </channel>
+</rss>

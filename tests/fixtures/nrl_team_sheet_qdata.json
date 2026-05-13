@@ -1,0 +1,45 @@
+{
+  "match": {
+    "matchId": "20261111110",
+    "matchState": "Pre",
+    "startTime": "2026-05-16T09:50:00Z",
+    "roundNumber": 12,
+    "homeTeam": {
+      "teamId": "500017",
+      "nickName": "Sharks",
+      "score": null,
+      "players": [
+        {"number": 1, "firstName": "William", "lastName": "Kennedy", "position": "Fullback", "isOnField": true, "playerId": "P001"},
+        {"number": 2, "firstName": "Sione", "lastName": "Katoa", "position": "Wing", "isOnField": true, "playerId": "P002"},
+        {"number": 3, "firstName": "Jesse", "lastName": "Ramien", "position": "Centre", "isOnField": true, "playerId": "P003"},
+        {"number": 4, "firstName": "Kayal", "lastName": "Iro", "position": "Centre", "isOnField": true, "playerId": "P004"},
+        {"number": 5, "firstName": "Ronaldo", "lastName": "Mulitalo", "position": "Wing", "isOnField": true, "playerId": "P005"},
+        {"number": 6, "firstName": "Braydon", "lastName": "Trindall", "position": "Five-eighth", "isOnField": true, "playerId": "P006"},
+        {"number": 7, "firstName": "Nicho", "lastName": "Hynes", "position": "Halfback", "isOnField": true, "playerId": "P007"},
+        {"number": 8, "firstName": "Toby", "lastName": "Rudolf", "position": "Prop", "isOnField": true, "playerId": "P008"},
+        {"number": 9, "firstName": "Blayke", "lastName": "Brailey", "position": "Hooker", "isOnField": true, "playerId": "P009"},
+        {"number": 10, "firstName": "Dale", "lastName": "Finucane", "position": "Prop", "isOnField": true, "playerId": "P010"},
+        {"number": 11, "firstName": "Briton", "lastName": "Nikora", "position": "Second Row", "isOnField": true, "playerId": "P011"},
+        {"number": 12, "firstName": "Cameron", "lastName": "McInnes", "position": "Second Row", "isOnField": true, "playerId": "P012"},
+        {"number": 13, "firstName": "Teig", "lastName": "Wilton", "position": "Lock", "isOnField": true, "playerId": "P013"},
+        {"number": 14, "firstName": "Siosifa", "lastName": "Talakai", "position": "Interchange", "isOnField": false, "playerId": "P014"},
+        {"number": 15, "firstName": "Royce", "lastName": "Hunt", "position": "Interchange", "isOnField": false, "playerId": "P015"},
+        {"number": 16, "firstName": "Braden", "lastName": "Hamlin-Uele", "position": "Interchange", "isOnField": false, "playerId": "P016"},
+        {"number": 17, "firstName": "Braydon", "lastName": "Boney", "position": "Interchange", "isOnField": false, "playerId": "P017"}
+      ]
+    },
+    "awayTeam": {
+      "teamId": "500004",
+      "nickName": "Bulldogs",
+      "score": null,
+      "players": [
+        {"number": 1, "firstName": "Connor", "lastName": "Tracey", "position": "Fullback", "isOnField": true, "playerId": "P101"},
+        {"number": 7, "firstName": "Matt", "lastName": "Burton", "position": "Halfback", "isOnField": true, "playerId": "P107"},
+        {"number": 9, "firstName": "Reed", "lastName": "Mahoney", "position": "Hooker", "isOnField": true, "playerId": "P109"},
+        {"number": 13, "firstName": "Viliame", "lastName": "Kikau", "position": "Lock", "isOnField": true, "playerId": "P113"},
+        {"number": 14, "firstName": "Jacob", "lastName": "Preston", "position": "Interchange", "isOnField": false, "playerId": "P114"},
+        {"number": 15, "firstName": "Max", "lastName": "King", "position": "Interchange", "isOnField": false, "playerId": "P115"}
+      ]
+    }
+  }
+}
