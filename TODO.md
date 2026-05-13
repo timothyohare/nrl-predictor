@@ -4,21 +4,9 @@ Tasks that require manual action outside of code (AWS console, credentials, infr
 
 ---
 
-## AWS Secrets Manager — populate real API keys
+## ~~AWS Secrets Manager~~ DONE
 
-After `cdk deploy` created the secrets as empty placeholders, fill in the real values:
-
-```bash
-aws secretsmanager put-secret-value \
-  --secret-id nrl-predictor/anthropic-api-key \
-  --secret-string "sk-ant-..." \
-  --region ap-southeast-2
-
-aws secretsmanager put-secret-value \
-  --secret-id nrl-predictor/tavily-api-key \
-  --secret-string "tvly-..." \
-  --region ap-southeast-2
-```
+Both `nrl-predictor/anthropic-api-key` and `nrl-predictor/tavily-api-key` populated 2026-05-13.
 
 ---
 
@@ -35,19 +23,12 @@ Verify record count in DynamoDB console (~27 rounds × 8 matches × 2 seasons �
 
 ---
 
-## CDK — deploy the stack
+## ~~CDK~~ DONE — deployed 2026-05-13
 
-The CDK stack has been fully written (`infra/stack.py`) including all Lambdas, EventBridge rules,
-API Gateway, CloudWatch alarms, and SNS alerts. Deploy it:
-
-```bash
-cd infra
-source ../.venv/bin/activate
-cdk deploy --require-approval never
-```
-
-After deploy, note the API Gateway URL from the stack outputs and set it as the Amplify env var
-`API_GATEWAY_URL` (see Amplify section below).
+Stack outputs:
+- API endpoint: `https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
+- Agent Lambda ARN: `arn:aws:lambda:ap-southeast-2:810429055117:function:nrl-predictor-agent`
+- Raw S3 bucket: `nrl-predictor-raw-scrapes`
 
 ---
 
@@ -59,7 +40,9 @@ SSR for accuracy, and SSG for how-it-works.
 - Connect GitHub repo to AWS Amplify; configure build: `cd frontend && npm run build`
 - Add custom domain `nrl-predictor.ohare.id.au` in Amplify console
 - Add CNAME `nrl-predictor` → Amplify CloudFront domain in Route 53 (existing `ohare.id.au` hosted zone)
-- Set Amplify env vars: `NEXT_PUBLIC_API_BASE_URL`, `API_GATEWAY_URL`
+- Set Amplify env vars:
+  - `API_GATEWAY_URL=https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
+  - `NEXT_PUBLIC_API_BASE_URL=https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
 - Do NOT add `output: 'export'` to `next.config.js` — breaks SSR/ISR
 
 ---

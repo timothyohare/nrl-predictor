@@ -99,8 +99,8 @@ class NrlPredictorStack(cdk.Stack):
         )
 
         rate_limits_table = dynamodb.Table(
-            self, "RateLimits",
-            table_name="rate_limits",
+            self, "RateLimitsV2",
+            table_name="nrl-rate-limits",
             partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             time_to_live_attribute="ttl",
@@ -304,10 +304,6 @@ class NrlPredictorStack(cdk.Stack):
             anthropic_secret.grant_read(fn)
             tavily_secret.grant_read(fn)
 
-        scoring_fn.add_to_role_policy(iam.PolicyStatement(
-            actions=["lambda:InvokeFunction"],
-            resources=[scoring_fn.function_arn],
-        ))
         for tbl in (predictions_table, results_table, metrics_table):
             tbl.grant_read_write_data(scoring_fn)
 
