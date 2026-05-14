@@ -7,8 +7,9 @@ frontend:
     build:
       commands:
         - sh -c 'cd frontend && npm run build'
+        - bash scripts/build-amplify.sh
   artifacts:
-    baseDirectory: frontend/.next
+    baseDirectory: frontend/.amplify-hosting
     files:
       - '**/*'
   cache:
