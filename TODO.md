@@ -10,19 +10,6 @@ Both `nrl-predictor/anthropic-api-key` and `nrl-predictor/tavily-api-key` popula
 
 ---
 
-## Historical backfill — run once after deploying the results scraper Lambda
-
-Once the results scraper Lambda is deployed and the `results` DynamoDB table is live:
-
-```bash
-AWS_DEFAULT_REGION=ap-southeast-2 \
-  .venv/bin/python3 -m scrapers.nrl.backfill --seasons 2025 2026
-```
-
-Verify record count in DynamoDB console (~27 rounds × 8 matches × 2 seasons ≈ 430 records).
-
----
-
 ## ~~CDK~~ DONE — deployed 2026-05-13
 
 Stack outputs:
@@ -32,18 +19,54 @@ Stack outputs:
 
 ---
 
-## Amplify — set up front end hosting
+## ~~Amplify build~~ DONE — deployed 2026-05-13
 
-The Next.js frontend is in `frontend/`. It uses ISR (`revalidate=300`) for predictions,
-SSR for accuracy, and SSG for how-it-works.
+App ID: `dmazwh64vi4cy`  
+Amplify URL: `https://main.dmazwh64vi4cy.amplifyapp.com/`
 
-- Connect GitHub repo to AWS Amplify; configure build: `cd frontend && npm run build`
-- Add custom domain `nrl-predictor.ohare.id.au` in Amplify console
-- Add CNAME `nrl-predictor` → Amplify CloudFront domain in Route 53 (existing `ohare.id.au` hosted zone)
-- Set Amplify env vars:
-  - `API_GATEWAY_URL=https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
-  - `NEXT_PUBLIC_API_BASE_URL=https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
-- Do NOT add `output: 'export'` to `next.config.js` — breaks SSR/ISR
+Build works. Key lessons learned:
+- `amplify.yml` must use `appRoot: frontend` format (not `cd frontend &&`) to avoid rvm `cd` hook bug in Amplify's build environment.
+- Env vars set: `API_GATEWAY_URL` and `NEXT_PUBLIC_API_BASE_URL` both pointing to the API Gateway endpoint above.
+
+---
+
+## Amplify SSR fix — job 5 deploying (check status tomorrow)
+
+Root cause of 404: Amplify app was set to `platform: WEB` (static S3 hosting) instead of
+`platform: WEB_COMPUTE` (SSR). Fixed via CLI on 2026-05-13:
+
+```bash
+aws amplify update-app --app-id dmazwh64vi4cy --platform WEB_COMPUTE --region ap-southeast-2
+```
+
+A redeploy was triggered (job 5). Check its status:
+
+```bash
+aws amplify get-job --app-id dmazwh64vi4cy --branch-name main --job-id 5 \
+  --region ap-southeast-2 --query "job.summary.status"
+```
+
+Once job 5 is SUCCEED, verify both URLs respond with HTML (not S3 404):
+
+```bash
+curl -si https://main.dmazwh64vi4cy.amplifyapp.com/ | head -5
+curl -si https://nrl-predictor.ohare.id.au/ | head -5
+```
+
+Expected: `server: CloudFront` (not `server: AmazonS3`) and HTTP 200.
+
+---
+
+## Historical backfill — run once
+
+Once confirmed the site and API are working end-to-end, seed historical results:
+
+```bash
+AWS_DEFAULT_REGION=ap-southeast-2 \
+  .venv/bin/python3 -m scrapers.nrl.backfill --seasons 2025 2026
+```
+
+Expected: ~430 records (27 rounds × 8 matches × 2 seasons).
 
 ---
 
@@ -54,26 +77,11 @@ SSR for accuracy, and SSG for how-it-works.
 
 ---
 
-## Frontend — install dependencies and verify build
-
-```bash
-cd frontend
-npm install
-npm run build   # should pass with no type errors
-```
-
----
-
-## Node version
-
-Node is upgraded to latest LTS (done). Verify CDK no longer warns on run.
-
----
-
 ## Manual integration tests (run before launch)
 
-- Run agent end-to-end (no mocks) against live DynamoDB/S3 for one historical round with known outcomes
-- Simulate peak load: invoke 8 agent Lambdas in parallel, verify no throttling
-- Verify `curl https://nrl-predictor.ohare.id.au/predictions/12` returns prediction HTML (not loading shell)
-- Verify `robots.txt` accessible at the public URL
-- Submit sitemap to Google Search Console
+- Invoke draw scraper Lambda manually and verify records appear in `teams` DynamoDB table
+- Invoke agent Lambda for one match and verify prediction appears in `predictions` table
+- Hit `curl https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com/predictions/12` and confirm JSON response
+- Verify `https://nrl-predictor.ohare.id.au/predictions/12` renders predictions (not empty shell)
+- Verify `https://nrl-predictor.ohare.id.au/robots.txt` is accessible
+- Submit sitemap to Google Search Console once custom domain resolves

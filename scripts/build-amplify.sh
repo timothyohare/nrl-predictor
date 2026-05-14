@@ -28,23 +28,11 @@ cat > "$OUT/deploy-manifest.json" << 'MANIFEST'
   "routes": [
     {
       "path": "/_next/static/*",
-      "target": { "kind": "Static" },
-      "fallback": null
-    },
-    {
-      "path": "/robots.txt",
-      "target": { "kind": "Static" },
-      "fallback": null
-    },
-    {
-      "path": "/favicon.ico",
-      "target": { "kind": "Static" },
-      "fallback": null
+      "target": { "kind": "Static" }
     },
     {
       "path": "/*",
-      "target": { "kind": "Compute", "src": "default" },
-      "fallback": null
+      "target": { "kind": "Compute", "src": "default" }
     }
   ],
   "computeResources": [
@@ -53,8 +41,7 @@ cat > "$OUT/deploy-manifest.json" << 'MANIFEST'
       "runtime": "nodejs20.x",
       "entrypoint": "server.js"
     }
-  ],
-  "imageSettings": {}
+  ]
 }
 MANIFEST
 

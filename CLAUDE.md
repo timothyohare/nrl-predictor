@@ -44,9 +44,15 @@ Post-match: another EventBridge cron triggers the scoring Lambda, which writes t
 | `infra/` | AWS CDK (Python) — same language as everything else |
 | `fetcher-spikes/` | Throwaway scripts that probed each data source; findings recorded in `fetcher-spikes/README.md` |
 
+### Deployed resources (ap-southeast-2, account 810429055117)
+
+- API Gateway: `https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
+- Amplify app ID: `dmazwh64vi4cy` (URL: `https://main.dmazwh64vi4cy.amplifyapp.com/`)
+- Custom domain (pending DNS): `https://nrl-predictor.ohare.id.au/`
+
 ### DynamoDB tables
 
-`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `rate_limits` (PK: `ipAddress`, SK: `window`, TTL: `expiresAt`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`)
+`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`)
 
 ### Key scraping facts (from completed spikes)
 

@@ -90,16 +90,30 @@ npm run build   # verify no type errors before connecting Amplify
 #### Amplify hosting
 
 1. Go to AWS Amplify console → **New app → Host web app → GitHub**
-2. Select this repo; set the build command to `cd frontend && npm run build` and output directory to `frontend/.next`
+2. Select this repo — Amplify will detect `amplify.yml` at the repo root automatically
 3. Under **Environment variables**, add:
    - `API_GATEWAY_URL` → the `ApiEndpoint` output from step 4
    - `NEXT_PUBLIC_API_BASE_URL` → same value
 4. Deploy
 
+> **Critical:** After creating the app, verify it is set to `WEB_COMPUTE` platform (not `WEB`). The console may default to static hosting. Check with:
+> ```bash
+> aws amplify get-app --app-id <app-id> --region ap-southeast-2 --query "app.platform"
+> ```
+> If it returns `"WEB"`, fix it:
+> ```bash
+> aws amplify update-app --app-id <app-id> --platform WEB_COMPUTE --region ap-southeast-2
+> aws amplify start-job --app-id <app-id> --branch-name main --job-type RELEASE --region ap-southeast-2
+> ```
+
+> **Note:** `amplify.yml` uses `appRoot: frontend` (not `cd frontend &&` shell commands). The `cd` approach triggers an rvm shell hook bug in Amplify's build environment that breaks the build phase.
+
 #### Custom domain
 
 - In Amplify console: **Domain management → Add domain → `ohare.id.au`**, set subdomain to `nrl-predictor`
-- Amplify will add a CNAME record automatically if your Route 53 hosted zone is in the same account; otherwise add it manually
+- Amplify will provision an SSL cert and display a CNAME target (e.g. `xxxxxx.cloudfront.net`)
+- In Route 53 hosted zone `ohare.id.au`: add a CNAME record `nrl-predictor` → that CloudFront domain
+- SSL cert validation takes 5–30 min; the domain won't resolve until the cert is issued
 
 ### 7. Anthropic spend limit
 
