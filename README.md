@@ -73,7 +73,7 @@ Note the `ApiEndpoint` value from the stack outputs — you'll need it for Ampli
 After the stack is deployed and the `results` table is live, seed two seasons of historical match results:
 
 ```bash
-AWS_DEFAULT_REGION=ap-southeast-2 \
+RESULTS_TABLE=results RAW_BUCKET=nrl-predictor-raw-scrapes AWS_DEFAULT_REGION=ap-southeast-2 \
   .venv/bin/python3 -m scrapers.nrl.backfill --seasons 2025 2026
 ```
 
