@@ -135,9 +135,9 @@ Expect `"Next.js - SSR"`. If it says `"Web"`, same thing — delete and recreate
 
 ### 7. Anthropic spend limit
 
-In [console.anthropic.com](https://console.anthropic.com) → Settings → Billing → Usage limits:
-- Monthly hard cap: **$20 USD**
-- Email alert at: **$10 USD**
+In [console.anthropic.com](https://console.anthropic.com) → Settings → **Limits**:
+- Monthly hard cap: **$40 USD**
+- Email alert at: **$20 USD**
 
 ---
 
