@@ -34,6 +34,7 @@ def lambda_handler(event: dict, context) -> None:
         prediction = run_agent(match_id, match_context)
         prediction["matchId"] = match_id
         prediction["generatedAt"] = prediction.get("generated_at", generated_at)
+        prediction["roundNumber"] = match_context.get("round")
         prediction["staleness_flag"] = False
         prediction["status"] = "OK"
         table.put_item(Item=prediction)

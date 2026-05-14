@@ -178,8 +178,10 @@ def run_agent(match_id: str, match_context: dict, client=None) -> dict:
             # Final answer — extract the first text block
             raw_text = text_blocks[0].text if text_blocks else ""
             try:
-                # strip any markdown fences
-                clean = raw_text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+                # Extract JSON from a markdown code block if present, otherwise parse directly
+                import re as _re
+                fence_match = _re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_text, _re.DOTALL)
+                clean = fence_match.group(1) if fence_match else raw_text.strip()
                 prediction = json.loads(clean)
             except json.JSONDecodeError as e:
                 raise ValueError(f"Agent produced non-JSON output: {raw_text[:200]}") from e

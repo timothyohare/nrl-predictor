@@ -18,8 +18,8 @@ def validate_prediction(raw: dict) -> dict:
     if confidence not in CONFIDENCE_LEVELS:
         raise ValidationError(f"Invalid confidence: {confidence!r}")
     factors = raw.get("key_factors", [])
-    if not (2 <= len(factors) <= 4):
-        raise ValidationError(f"key_factors must have 2–4 items, got {len(factors)}")
+    if not (2 <= len(factors) <= 6):
+        raise ValidationError(f"key_factors must have 2–6 items, got {len(factors)}")
     return raw
 
 

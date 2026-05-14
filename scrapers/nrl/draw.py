@@ -26,12 +26,21 @@ def parse_draw(data: dict) -> list[Match]:
         # slug is the last path segment, e.g. "panthers-v-broncos"
         match_id = url.rstrip("/").rsplit("/", 1)[-1]
         kick_off = fixture.get("clock", {}).get("kickOffTimeLong") or None
+        # venue is a plain string in current API; guard against legacy dict form
+        venue_raw = fixture.get("venue", "")
+        venue = venue_raw if isinstance(venue_raw, str) else venue_raw.get("name", "")
+        # roundNumber removed from fixture; parse from roundTitle e.g. "Round 11"
+        round_title = fixture.get("roundTitle", "")
+        try:
+            round_number = int(round_title.split()[-1])
+        except (ValueError, IndexError):
+            round_number = 0
         matches.append(Match(
             match_id=match_id,
             home_team=fixture["homeTeam"]["nickName"],
             away_team=fixture["awayTeam"]["nickName"],
-            venue=fixture.get("venue", {}).get("name", ""),
-            round_number=fixture.get("roundNumber", 0),
+            venue=venue,
+            round_number=round_number,
             kick_off=kick_off,
             match_state=fixture.get("matchState", ""),
         ))
@@ -56,7 +65,9 @@ def lambda_handler(event: dict, context) -> None:
             for side, team in (("home", match.home_team), ("away", match.away_team)):
                 batch.put_item(Item={
                     "teamId": f"{match.match_id}#{side}",
-                    "round": str(round_number),
+                    # Use the actual round number parsed from the fixture, not the
+                    # event value (which may be "current")
+                    "round": str(match.round_number),
                     "matchId": match.match_id,
                     "team": team,
                     "venue": match.venue,

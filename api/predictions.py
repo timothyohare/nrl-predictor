@@ -16,8 +16,9 @@ def lambda_handler(event: dict, context) -> dict:
     table = boto3.resource("dynamodb").Table(os.environ["PREDICTIONS_TABLE"])
 
     response = table.scan(
-        FilterExpression="roundNumber = :r",
-        ExpressionAttributeValues={":r": round_number},
+        FilterExpression="roundNumber = :r AND #s = :ok",
+        ExpressionAttributeNames={"#s": "status"},
+        ExpressionAttributeValues={":r": round_number, ":ok": "OK"},
     )
     items = response.get("Items", [])
     # Only the most recent prediction per match
