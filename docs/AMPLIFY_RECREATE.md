@@ -25,13 +25,14 @@ The current app `dmazwh64vi4cy` is in inconsistent state — was created as stat
 - [x] `https://main.d60x8viwfcqtj.amplifyapp.com/` returns HTTP 200 with `x-powered-by: Next.js`
 - [x] Dynamic route `/predictions/12` SSR-renders correctly
 
-## 5. Reconnect custom domain
+## 5. Reconnect custom domain — DONE
 
-- [ ] In new Amplify app → Domain management → Add domain → `ohare.id.au` → subdomain `nrl-predictor`
-- [ ] Wait for Amplify to display the new CloudFront target CNAME
-- [ ] In Route 53 hosted zone `ohare.id.au`: update CNAME record `nrl-predictor` to point to the new CloudFront target
-- [ ] Wait for SSL cert validation (5–30 min)
-- [ ] `curl -si https://nrl-predictor.ohare.id.au/ | head -3` — expect `HTTP/2 200`
+- [x] In new Amplify app → Domain management → Add domain → `ohare.id.au` → subdomain `nrl-predictor`
+- [x] Amplify auto-updated the Route 53 CNAME (detects the hosted zone automatically — no manual DNS edit needed)
+- [x] SSL cert validated
+- [x] `https://nrl-predictor.ohare.id.au/` live with `HTTP/2 200`
+
+> **Note:** Amplify automatically updates Route 53 when the hosted zone is in the same AWS account. You don't need to manually update the CNAME — just add the domain in Amplify console and wait ~5–30 min.
 
 ---
 

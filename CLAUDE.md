@@ -47,8 +47,8 @@ Post-match: another EventBridge cron triggers the scoring Lambda, which writes t
 ### Deployed resources (ap-southeast-2, account 810429055117)
 
 - API Gateway: `https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
-- Amplify app ID: `dmazwh64vi4cy` (URL: `https://main.dmazwh64vi4cy.amplifyapp.com/`)
-- Custom domain (pending DNS): `https://nrl-predictor.ohare.id.au/`
+- Amplify app ID: `d60x8viwfcqtj` (URL: `https://main.d60x8viwfcqtj.amplifyapp.com/`)
+- Custom domain: `https://nrl-predictor.ohare.id.au/`
 
 ### DynamoDB tables
 

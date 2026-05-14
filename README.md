@@ -130,8 +130,7 @@ Expect `"Next.js - SSR"`. If it says `"Web"`, same thing — delete and recreate
 #### Custom domain
 
 - In Amplify console: **Domain management → Add domain → `ohare.id.au`**, set subdomain to `nrl-predictor`
-- Amplify will provision an SSL cert and display a CNAME target (e.g. `xxxxxx.cloudfront.net`)
-- In Route 53 hosted zone `ohare.id.au`: add a CNAME record `nrl-predictor` → that CloudFront domain
+- Amplify auto-updates Route 53 when the hosted zone is in the same AWS account — no manual DNS edit needed
 - SSL cert validation takes 5–30 min; the domain won't resolve until the cert is issued
 
 ### 7. Anthropic spend limit
