@@ -174,6 +174,28 @@ class NrlPredictorStack(cdk.Stack):
 
         _scraper_env = {**_common_env}
 
+        # ── Lambda Layer: pip dependencies ───────────────────────────────────
+        # Code.from_asset only zips source — it never runs pip. We use Docker
+        # bundling so the layer contains Linux-compatible wheels.
+        deps_layer = _lambda.LayerVersion(
+            self, "DepsLayer",
+            layer_version_name="nrl-predictor-deps",
+            compatible_runtimes=[LAMBDA_RUNTIME],
+            description="Third-party Python runtime dependencies",
+            code=_lambda.Code.from_asset(
+                REPO_ROOT,
+                exclude=_ASSET_EXCLUDE,
+                bundling=cdk.BundlingOptions(
+                    image=LAMBDA_RUNTIME.bundling_image,
+                    command=[
+                        "bash", "-c",
+                        "pip install requests beautifulsoup4 lxml anthropic langgraph tavily-python boto3"
+                        " --target /asset-output/python --no-cache-dir --quiet",
+                    ],
+                ),
+            ),
+        )
+
         # ── Lambda: scrapers ─────────────────────────────────────────────────
         scraper_code = _lambda.Code.from_asset(REPO_ROOT, exclude=_ASSET_EXCLUDE)
 
@@ -183,6 +205,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scrapers.nrl.draw.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(2),
             memory_size=512,
             environment=_scraper_env,
@@ -194,6 +217,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scrapers.nrl.team_sheet.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(3),
             memory_size=512,
             environment=_scraper_env,
@@ -205,6 +229,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scrapers.nrl.ladder.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(2),
             memory_size=512,
             environment=_scraper_env,
@@ -216,6 +241,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scrapers.nrl.results.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(2),
             memory_size=512,
             environment=_scraper_env,
@@ -227,6 +253,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scrapers.weather.lambda_handler.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(2),
             memory_size=512,
             environment=_scraper_env,
@@ -238,6 +265,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scrapers.articles.lambda_handler.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(3),
             memory_size=512,
             environment={
@@ -253,6 +281,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="agent.lambda_handler.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(5),
             memory_size=1024,
             environment={
@@ -270,6 +299,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="scoring.lambda_handler.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.minutes(2),
             memory_size=512,
             environment=_common_env,
@@ -282,6 +312,7 @@ class NrlPredictorStack(cdk.Stack):
             runtime=LAMBDA_RUNTIME,
             handler="api.router.lambda_handler",
             code=scraper_code,
+            layers=[deps_layer],
             timeout=cdk.Duration.seconds(10),
             memory_size=256,
             environment={
