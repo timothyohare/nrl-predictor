@@ -89,24 +89,43 @@ npm run build   # verify no type errors before connecting Amplify
 
 #### Amplify hosting
 
-1. Go to AWS Amplify console → **New app → Host web app → GitHub**
-2. Select this repo — Amplify will detect `amplify.yml` at the repo root automatically
-3. Under **Environment variables**, add:
-   - `API_GATEWAY_URL` → the `ApiEndpoint` output from step 4
-   - `NEXT_PUBLIC_API_BASE_URL` → same value
-4. Deploy
+> **Read this whole section before clicking anything.** Amplify Gen 1 decides framework and platform at app *creation time*. If it auto-detects the app as a static "Web" site (instead of Next.js SSR), patching the platform later via CLI does **not** fix it — the `framework` and `customRules` fields stay wrong and Amplify's Next.js adapter never runs. The fix is to delete and recreate, so it's worth getting this right the first time. The repo intentionally has **no `amplify.yml`** so Amplify auto-detects Next.js from `frontend/package.json`.
 
-> **Critical:** After creating the app, verify it is set to `WEB_COMPUTE` platform (not `WEB`). The console may default to static hosting. Check with:
-> ```bash
-> aws amplify get-app --app-id <app-id> --region ap-southeast-2 --query "app.platform"
-> ```
-> If it returns `"WEB"`, fix it:
-> ```bash
-> aws amplify update-app --app-id <app-id> --platform WEB_COMPUTE --region ap-southeast-2
-> aws amplify start-job --app-id <app-id> --branch-name main --job-type RELEASE --region ap-southeast-2
-> ```
+**Step-by-step (Amplify console):**
 
-> **Note:** `amplify.yml` uses `appRoot: frontend` (not `cd frontend &&` shell commands). The `cd` approach triggers an rvm shell hook bug in Amplify's build environment that breaks the build phase.
+1. **New app → Host web app → GitHub**, authorise the AWS Amplify GitHub App, and select repo + branch `main`.
+
+2. **Critical: configure as monorepo.** On the build settings page:
+   - Toggle **"My app is a monorepo"** ON
+   - Set **App root** to `frontend`
+   - Amplify will rescan and the **Framework** field at the top of the page should change to **"Next.js - SSR"** — *verify this before continuing*. If it still shows "Web", do not deploy — something is wrong with the detection and deploying anyway will lock you into a broken static app.
+
+3. **Add environment variables on the same page** (do not skip and add them later — if the first build runs without them, you'll be debugging mysterious 500s):
+   - `API_GATEWAY_URL` = the `ApiEndpoint` output from the CDK stack
+   - `NEXT_PUBLIC_API_BASE_URL` = same value
+
+4. Click **Save and deploy**. First build takes ~3 minutes.
+
+**Verify SSR is actually working** (don't skip this — a "successful" build can still deploy as a broken static shell):
+
+```bash
+APP_ID=<your-app-id>
+curl -si https://main.$APP_ID.amplifyapp.com/ | head -5
+```
+
+You want `HTTP/2 200`, `x-powered-by: Next.js`, and `server: CloudFront` (or no server header). If you see `server: AmazonS3` → Amplify deployed as static. Delete the app and start over with step 2 fixed.
+
+```bash
+aws amplify get-branch --app-id $APP_ID --branch-name main \
+  --region ap-southeast-2 --query "branch.framework"
+```
+
+Expect `"Next.js - SSR"`. If it says `"Web"`, same thing — delete and recreate.
+
+**Common mistakes that lock you into a broken app:**
+- Skipping the monorepo toggle on the build settings page (Amplify scans repo root, sees `pyproject.toml` instead of `package.json`, falls back to detecting it as a static site)
+- Forgetting env vars and adding them later (env var changes alone don't fix framework/platform misdetection)
+- Trying to fix a misdetected app via `aws amplify update-app --platform WEB_COMPUTE` — this only updates one of several fields that need to be consistent
 
 #### Custom domain
 

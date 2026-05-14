@@ -2,35 +2,28 @@
 
 The current app `dmazwh64vi4cy` is in inconsistent state — was created as static "Web" then patched to `WEB_COMPUTE`, but `framework: "Web"` and SPA `customRules` remain. Amplify's Next.js adapter never runs, so `deploy-manifest.json` never gets generated correctly. Recreating cleanly will fix this.
 
-## 1. Repo cleanup (Claude does this)
+## 1. Repo cleanup (Claude does this) — DONE
 
-- [ ] Delete `amplify.yml`
-- [ ] Delete `scripts/build-amplify.sh` (and `scripts/` if empty)
-- [ ] Remove `output: "standalone"` from `frontend/next.config.ts`
-- [ ] Commit and push
+- [x] Delete `amplify.yml`
+- [x] Delete `scripts/build-amplify.sh` (and `scripts/` if empty)
+- [x] Remove `output: "standalone"` from `frontend/next.config.ts`
+- [x] Commit and push (commit `bf4ab9d`)
 
-## 2. Delete the existing Amplify app (you do this)
+## 2. Delete the existing Amplify app (you do this) — DONE
 
-- [ ] In Amplify console → app `nrl-predictor` → App settings → General → **Delete app**
-- [ ] Confirm deletion
+- [x] App `dmazwh64vi4cy` deleted
 
-## 3. Create a fresh Amplify app (you do this)
+## 3. Create a fresh Amplify app (you do this) — DONE
 
-- [ ] Amplify console → **New app → Host web app → GitHub**
-- [ ] Select repo `timothyohare/nrl-predictor`, branch `main`
-- [ ] On the build settings page:
-  - [ ] Toggle on **"My app is a monorepo"** and set **App root** to `frontend`
-  - [ ] Verify Amplify shows framework as **Next.js - SSR** (not "Web"). If it doesn't, stop and tell me.
-  - [ ] Add environment variables:
-    - `API_GATEWAY_URL` = `https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
-    - `NEXT_PUBLIC_API_BASE_URL` = `https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com`
-- [ ] Click **Save and deploy**
+- [x] New app created with ID `d60x8viwfcqtj`
+- [x] Framework correctly detected as **Next.js - SSR**
+- [x] Env vars set
+- [x] Deploy succeeded on first try
 
-## 4. Verify the deployment
+## 4. Verify the deployment — DONE
 
-- [ ] Wait ~3 min for first build to complete
-- [ ] `curl -si https://main.<new-app-id>.amplifyapp.com/ | head -3` — expect `HTTP/2 200`, NOT `server: AmazonS3`
-- [ ] Open the URL in a browser, confirm the home page renders
+- [x] `https://main.d60x8viwfcqtj.amplifyapp.com/` returns HTTP 200 with `x-powered-by: Next.js`
+- [x] Dynamic route `/predictions/12` SSR-renders correctly
 
 ## 5. Reconnect custom domain
 

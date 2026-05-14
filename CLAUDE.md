@@ -95,3 +95,4 @@ Fixture JSON files go in `tests/fixtures/` and are copied from spike output.
 - The rate limiter (`api/rate_limit.py`) must **fail open** if DynamoDB is unavailable — never block legitimate traffic due to infrastructure issues.
 - Do not add `output: 'export'` to `next.config.js` — this breaks SSR/ISR and causes Googlebot to receive an empty shell.
 - AWS region: `ap-southeast-2` (Sydney).
+- **Do not add an `amplify.yml`** to the repo. The frontend is a Next.js SSR app in `frontend/` (monorepo). Amplify auto-detects this and runs its Next.js adapter only when there is no custom build spec. Adding `amplify.yml` bypasses the adapter, which means `deploy-manifest.json` doesn't get generated and builds fail at the deploy step. Setup details and the recreate procedure are in `docs/AMPLIFY_RECREATE.md`.
