@@ -29,12 +29,12 @@ def parse_draw(data: dict) -> list[Match]:
         # venue is a plain string in current API; guard against legacy dict form
         venue_raw = fixture.get("venue", "")
         venue = venue_raw if isinstance(venue_raw, str) else venue_raw.get("name", "")
-        # roundNumber removed from fixture; parse from roundTitle e.g. "Round 11"
-        round_title = fixture.get("roundTitle", "")
+        # Current API: roundTitle = "Round 11"; legacy fixture: roundNumber int
+        round_title = fixture.get("roundTitle") or ""
         try:
             round_number = int(round_title.split()[-1])
         except (ValueError, IndexError):
-            round_number = 0
+            round_number = fixture.get("roundNumber", 0)
         matches.append(Match(
             match_id=match_id,
             home_team=fixture["homeTeam"]["nickName"],

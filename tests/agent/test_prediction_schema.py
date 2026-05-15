@@ -37,7 +37,7 @@ def test_too_few_key_factors():
 
 
 def test_too_many_key_factors():
-    bad = {**_VALID, "key_factors": ["f1", "f2", "f3", "f4", "f5"]}
+    bad = {**_VALID, "key_factors": ["f1", "f2", "f3", "f4", "f5", "f6", "f7"]}
     with pytest.raises(ValidationError):
         validate_prediction(bad)
 
