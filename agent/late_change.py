@@ -1,4 +1,4 @@
-_HIGH_IMPACT_JERSEYS = {7, 8, 9, 10}
+_HIGH_IMPACT_JERSEYS = {1, 6, 7, 9}
 
 
 def is_high_impact_change(old_sheet: dict, new_sheet: dict) -> bool:
