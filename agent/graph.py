@@ -20,6 +20,7 @@ from agent.tools.ladder import get_ladder
 from agent.tools.recent_form import get_recent_form
 from agent.tools.team_sheet import get_team_sheet
 from agent.tools.weather import get_weather
+from agent.tools.fantasy_stats import get_fantasy_stats
 from agent.tools.web_search import web_search
 from scrapers.shared.constants import HAIKU_MODEL
 
@@ -96,6 +97,20 @@ _TOOL_DEFINITIONS = [
         },
     },
     {
+        "name": "get_fantasy_stats",
+        "description": (
+            "Returns NRL Fantasy availability and price-signal data for a team. "
+            "Includes confirmed unavailable players (injured/suspended/not-playing), "
+            "uncertain players, and playing players whose fantasy price has dropped "
+            ">5% from peak (early signal of undisclosed rest or injury)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"team": {"type": "string", "description": "Team nickname e.g. Panthers"}},
+            "required": ["team"],
+        },
+    },
+    {
         "name": "web_search",
         "description": "Live web search for breaking news not yet in the local corpus.",
         "input_schema": {
@@ -120,6 +135,8 @@ def _execute_tool(name: str, tool_input: dict) -> object:
         return get_weather(**tool_input)
     if name == "get_ladder":
         return get_ladder(**tool_input)
+    if name == "get_fantasy_stats":
+        return get_fantasy_stats(**tool_input)
     if name == "web_search":
         return web_search(**tool_input)
     raise ValueError(f"Unknown tool: {name}")
