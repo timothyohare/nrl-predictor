@@ -36,10 +36,10 @@ def test_too_few_key_factors():
         validate_prediction(bad)
 
 
-def test_too_many_key_factors():
-    bad = {**_VALID, "key_factors": ["f1", "f2", "f3", "f4", "f5", "f6", "f7"]}
-    with pytest.raises(ValidationError):
-        validate_prediction(bad)
+def test_too_many_key_factors_are_silently_capped():
+    over = {**_VALID, "key_factors": ["f1", "f2", "f3", "f4", "f5", "f6", "f7"]}
+    result = validate_prediction(over)
+    assert len(result["key_factors"]) == 6
 
 
 def test_validate_player_names_true_when_all_present():

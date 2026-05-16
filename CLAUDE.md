@@ -66,7 +66,7 @@ Post-match: another EventBridge cron triggers the scoring Lambda, which writes t
 ### Agent model selection
 
 - Standard rounds: `claude-haiku-4-5-20251001`
-- Finals / high-impact late changes (halfback, hooker, or starting prop jersey numbers 7, 9, 8, 10): `claude-sonnet-4-6`
+- Finals / high-impact late changes (spine positions — fullback 1, five-eighth 6, halfback 7, hooker 9): `claude-sonnet-4-6`
 - Overridable via `AGENT_MODEL` env var.
 
 ### Prediction output schema

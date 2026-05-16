@@ -24,9 +24,15 @@ def test_hooker_change_is_high_impact():
     assert is_high_impact_change(old, new) is True
 
 
-def test_prop_change_is_high_impact():
-    old = _sheet([_player(8, "OldProp")])
-    new = _sheet([_player(8, "NewProp")])
+def test_fullback_change_is_high_impact():
+    old = _sheet([_player(1, "OldFullback")])
+    new = _sheet([_player(1, "NewFullback")])
+    assert is_high_impact_change(old, new) is True
+
+
+def test_five_eighth_change_is_high_impact():
+    old = _sheet([_player(6, "OldFive")])
+    new = _sheet([_player(6, "NewFive")])
     assert is_high_impact_change(old, new) is True
 
 
