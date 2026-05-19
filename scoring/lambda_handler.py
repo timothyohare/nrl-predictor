@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import boto3
 
-from scoring.metrics import aggregate_round
+from scoring.metrics import aggregate_round, aggregate_season
 from scoring.scorer import score_prediction
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ def lambda_handler(event: dict, context) -> None:
         })
         logger.info("Scored %s: correct=%s margin_err=%s", match_id, scored.correct_pick, scored.predicted_margin_error)
         aggregate_round(round_number, season, results_table, metrics_table)
+        aggregate_season(season, results_table, metrics_table)
     except Exception as e:
         logger.error("Scoring failed for %s: %s", match_id, e, exc_info=True)
         raise

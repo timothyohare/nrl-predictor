@@ -56,3 +56,36 @@ def aggregate_round(round_number: int, season: int, results_table, metrics_table
         mean_margin_error=mean_margin,
         brier_score=brier,
     )
+
+
+def aggregate_season(season: int, results_table, metrics_table) -> None:
+    response = results_table.scan(
+        FilterExpression="season = :s",
+        ExpressionAttributeValues={":s": season},
+    )
+    items = response.get("Items", [])
+    total = len(items)
+    if total == 0:
+        return
+
+    correct = sum(1 for i in items if i.get("correct_pick"))
+    margin_errors = [int(i.get("predicted_margin_error", 0)) for i in items]
+    brier_components = [float(i.get("brier_component", 0)) for i in items]
+
+    pick_rate = correct / total
+    mean_margin = sum(margin_errors) / total
+    brier = sum(brier_components) / total
+
+    period = f"{season}-season"
+    for metric_name, value in [
+        ("pick_rate", pick_rate),
+        ("mean_margin_error", mean_margin),
+        ("brier_score", brier),
+    ]:
+        metrics_table.put_item(Item={
+            "period": period,
+            "metricName": metric_name,
+            "value": Decimal(str(round(value, 6))),
+            "correct_picks": correct,
+            "total": total,
+        })

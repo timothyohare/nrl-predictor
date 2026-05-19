@@ -1,4 +1,5 @@
-import { getPredictions } from "@/lib/api";
+import { redirect } from "next/navigation";
+import { getPredictions, currentRound } from "@/lib/api";
 import MatchCard from "@/components/MatchCard";
 import RoundSelector from "@/components/RoundSelector";
 
@@ -11,6 +12,9 @@ interface Props {
 export default async function PredictionsPage({ params }: Props) {
   const { round } = await params;
   const roundNum = parseInt(round, 10);
+  if (isNaN(roundNum)) {
+    redirect(`/predictions/${currentRound()}`);
+  }
   const predictions = await getPredictions(roundNum);
 
   return (
