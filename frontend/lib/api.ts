@@ -1,3 +1,12 @@
+export interface Retrospective {
+  verdict: string;
+  hit_factors: string[];
+  missed_factors: string[];
+  what_actually_happened: string;
+  lesson: string;
+  generated_at: string;
+}
+
 export interface Prediction {
   matchId: string;
   predicted_winner: string;
@@ -12,6 +21,8 @@ export interface Prediction {
   status: string;
   homeTeam?: string;
   awayTeam?: string;
+  prompt_version?: string;
+  retrospective?: Retrospective;
 }
 
 export interface AccuracyData {

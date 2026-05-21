@@ -134,6 +134,24 @@ class NrlPredictorStack(cdk.Stack):
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
 
+        retrospectives_table = dynamodb.Table(
+            self, "Retrospectives",
+            table_name="retrospectives",
+            partition_key=dynamodb.Attribute(name="matchId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="generatedAt", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
+        match_stats_table = dynamodb.Table(
+            self, "MatchStats",
+            table_name="match_stats",
+            partition_key=dynamodb.Attribute(name="matchId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="scraped_at", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
         # ── Secrets Manager ──────────────────────────────────────────────────
         anthropic_secret = secretsmanager.Secret(
             self, "AnthropicApiKey",
@@ -168,6 +186,8 @@ class NrlPredictorStack(cdk.Stack):
             "CLAUDE_USAGE_TABLE": claude_usage_table.table_name,
             "INJURIES_TABLE": injuries_table.table_name,
             "WEATHER_TABLE": weather_table.table_name,
+            "RETROSPECTIVES_TABLE": retrospectives_table.table_name,
+            "MATCH_STATS_TABLE": match_stats_table.table_name,
             "RAW_BUCKET": raw_bucket.bucket_name,
             "AWS_ACCOUNT": self.account,
         }
@@ -292,6 +312,24 @@ class NrlPredictorStack(cdk.Stack):
             },
         )
 
+        # ── Lambda: retrospective ────────────────────────────────────────────
+        # Defined before scoring_fn so we can pass its ARN into scoring's env
+        retrospective_fn = _lambda.Function(
+            self, "RetrospectiveLambda",
+            function_name="nrl-predictor-retrospective",
+            runtime=LAMBDA_RUNTIME,
+            handler="retrospective.lambda_handler.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.minutes(3),
+            memory_size=512,
+            environment={
+                **_common_env,
+                "ANTHROPIC_SECRET_ARN": anthropic_secret.secret_arn,
+                "TAVILY_SECRET_ARN": tavily_secret.secret_arn,
+            },
+        )
+
         # ── Lambda: scoring ───────────────────────────────────────────────────
         scoring_fn = _lambda.Function(
             self, "ScoringLambda",
@@ -302,7 +340,10 @@ class NrlPredictorStack(cdk.Stack):
             layers=[deps_layer],
             timeout=cdk.Duration.minutes(2),
             memory_size=512,
-            environment=_common_env,
+            environment={
+                **_common_env,
+                "RETROSPECTIVE_FUNCTION_ARN": retrospective_fn.function_arn,
+            },
         )
 
         # ── Lambda: API ───────────────────────────────────────────────────────
@@ -337,8 +378,18 @@ class NrlPredictorStack(cdk.Stack):
 
         for tbl in (predictions_table, results_table, metrics_table):
             tbl.grant_read_write_data(scoring_fn)
+        # scoring invokes retrospective asynchronously
+        retrospective_fn.grant_invoke(scoring_fn)
 
-        for tbl in (predictions_table, metrics_table, rate_limits_table):
+        # retrospective reads predictions + results, writes retrospectives + match_stats
+        for tbl in (predictions_table, results_table):
+            tbl.grant_read_data(retrospective_fn)
+        for tbl in (retrospectives_table, match_stats_table):
+            tbl.grant_read_write_data(retrospective_fn)
+        anthropic_secret.grant_read(retrospective_fn)
+        tavily_secret.grant_read(retrospective_fn)
+
+        for tbl in (predictions_table, metrics_table, rate_limits_table, retrospectives_table):
             tbl.grant_read_write_data(api_fn)
 
         anthropic_secret.grant_read(articles_fn)

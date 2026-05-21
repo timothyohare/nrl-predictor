@@ -28,7 +28,7 @@ NRL Predictor is a serverless event-driven system on AWS. The data pipeline flow
 EventBridge cron → Scraper Lambdas → DynamoDB + S3 → Agent Lambda (LangGraph) → predictions DynamoDB → API Lambda → Next.js front end
 ```
 
-Post-match: another EventBridge cron triggers the scoring Lambda, which writes to `results`, then the metrics Lambda aggregates into `metrics`.
+Post-match: scoring Lambda writes scored results + triggers retrospective Lambda (async). Scoring then aggregates into `metrics`. Retrospective Lambda does a web search for match stats, stores them in `match_stats`, calls Claude Sonnet to compare prediction vs outcome, and stores the analysis in `retrospectives`.
 
 ### Package structure
 
@@ -39,7 +39,8 @@ Post-match: another EventBridge cron triggers the scoring Lambda, which writes t
 | `scrapers/articles/` | RSS from Zero Tackle / The Roar; Haiku-based injury extraction |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
 | `agent/` | LangGraph ReAct graph (`graph.py`), 8 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
-| `scoring/` | `scorer.py` (Brier + margin error), `metrics.py` (round/season aggregation) |
+| `retrospective/` | Post-match retrospective: Tavily search + Claude Sonnet analysis of prediction vs result |
+| `scoring/` | `scorer.py` (Brier + margin error), `metrics.py` (round/season aggregation incl. confidence calibration + prompt versioning) |
 | `api/` | API Gateway Lambda handlers for front end |
 | `infra/` | AWS CDK (Python) — same language as everything else |
 | `fetcher-spikes/` | Throwaway scripts that probed each data source; findings recorded in `fetcher-spikes/README.md` |
@@ -52,7 +53,15 @@ Post-match: another EventBridge cron triggers the scoring Lambda, which writes t
 
 ### DynamoDB tables
 
-`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`)
+`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`) · `retrospectives` (PK: `matchId`, SK: `generatedAt`) · `match_stats` (PK: `matchId`, SK: `scraped_at`)
+
+### Prompt versioning
+
+The agent prompt version is tracked in `agent/prompt.py` as `PROMPT_VERSION`. Every prediction is stamped with this value. The scoring Lambda carries it through to the scored result. Metrics aggregation writes `pick_rate_prompt_v1_1` (etc.) to the `metrics` table so accuracy can be compared across prompt versions.
+
+To bump the version: update `PROMPT_VERSION` and add an entry to `PROMPT_CHANGELOG` in `agent/prompt.py`.
+
+Current version: `v1.1` — added explicit chain-of-thought assessment order (team sheets → form → H2H → home/away → weather → news → verdict).
 
 ### Key scraping facts (from completed spikes)
 
@@ -62,16 +71,28 @@ Post-match: another EventBridge cron triggers the scoring Lambda, which writes t
 - **Open-Meteo** is the weather fallback for non-AU venues and BOM outages.
 - SuperCoach/NRL Fantasy require auth — deferred to V1.1.
 - Referee data has no structured source — agent uses `web_search` on demand.
+- **Post-match stats** are currently fetched via Tavily web search in the retrospective Lambda and stored as text snippets in `match_stats`. A spike to parse the NRL match centre `q-data` post-match for structured data (try scorers, possession, tackles) is deferred to a future iteration.
 
 ### Agent model selection
 
 - Standard rounds: `claude-haiku-4-5-20251001`
 - Finals / high-impact late changes (spine positions — fullback 1, five-eighth 6, halfback 7, hooker 9): `claude-sonnet-4-6`
+- Retrospective analysis: `claude-sonnet-4-6`
 - Overridable via `AGENT_MODEL` env var.
 
 ### Prediction output schema
 
-`predicted_winner` (string) · `predicted_margin` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at`
+`predicted_winner` (string) · `predicted_margin` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at` · `prompt_version`
+
+### Retrospective output schema (stored in `retrospectives` table)
+
+`verdict` (1–2 sentences) · `hit_factors` (list) · `missed_factors` (list) · `what_actually_happened` (50–100 words) · `lesson` (one sentence) · `model_used` · `prompt_version` · `roundNumber` · `season`
+
+### Metrics calibration
+
+`metrics` table stores confidence calibration and prompt version pick rates for the season period:
+- `pick_rate_high_confidence`, `pick_rate_medium_confidence`, `pick_rate_low_confidence`
+- `pick_rate_prompt_v1_1` (one per prompt version, dots replaced with underscores)
 
 ## TDD workflow
 

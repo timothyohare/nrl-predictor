@@ -1,5 +1,6 @@
 import { getAccuracy } from "@/lib/api";
 import AccuracyCharts from "@/components/AccuracyCharts";
+import type { MetricRecord } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,14 @@ export default async function AccuracyPage() {
   const seasonPickRate = data?.season.find((m) => m.metricName === "pick_rate");
   const seasonBrier = data?.season.find((m) => m.metricName === "brier_score");
   const seasonMargin = data?.season.find((m) => m.metricName === "mean_margin_error");
+
+  const confidenceMetrics = data?.season.filter((m) =>
+    m.metricName.startsWith("pick_rate_") && m.metricName.endsWith("_confidence")
+  ) ?? [];
+
+  const promptVersionMetrics = data?.season.filter((m) =>
+    m.metricName.startsWith("pick_rate_prompt_")
+  ) ?? [];
 
   return (
     <div className="space-y-8">
@@ -52,6 +61,33 @@ export default async function AccuracyPage() {
 
           <AccuracyCharts rounds={data.rounds} />
 
+          {confidenceMetrics.length > 0 && (
+            <section className="bg-white rounded-xl border p-6 space-y-3">
+              <h2 className="font-semibold text-gray-700">Confidence Calibration</h2>
+              <p className="text-xs text-gray-500">Are higher-confidence picks actually more accurate?</p>
+              <CalibrationTable
+                rows={[
+                  { label: "HIGH", metric: confidenceMetrics.find((m) => m.metricName === "pick_rate_high_confidence") },
+                  { label: "MEDIUM", metric: confidenceMetrics.find((m) => m.metricName === "pick_rate_medium_confidence") },
+                  { label: "LOW", metric: confidenceMetrics.find((m) => m.metricName === "pick_rate_low_confidence") },
+                ].filter((r) => r.metric)}
+              />
+            </section>
+          )}
+
+          {promptVersionMetrics.length > 1 && (
+            <section className="bg-white rounded-xl border p-6 space-y-3">
+              <h2 className="font-semibold text-gray-700">Prompt Version Accuracy</h2>
+              <p className="text-xs text-gray-500">Did prompt changes improve prediction quality?</p>
+              <CalibrationTable
+                rows={promptVersionMetrics.map((m) => ({
+                  label: m.metricName.replace("pick_rate_prompt_", "").replace(/_/g, "."),
+                  metric: m,
+                }))}
+              />
+            </section>
+          )}
+
           <section className="bg-white rounded-xl border p-6 space-y-3">
             <h2 className="font-semibold text-gray-700">How we measure accuracy</h2>
             <ul className="text-sm text-gray-600 space-y-1.5">
@@ -79,5 +115,32 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
       <p className="text-4xl font-bold text-nrl-blue">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
+  );
+}
+
+function CalibrationTable({ rows }: { rows: { label: string; metric?: MetricRecord }[] }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-xs text-gray-500 border-b">
+          <th className="text-left pb-1 font-medium">Level</th>
+          <th className="text-right pb-1 font-medium">Picks</th>
+          <th className="text-right pb-1 font-medium">Correct</th>
+          <th className="text-right pb-1 font-medium">Pick rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ label, metric }) => (
+          <tr key={label} className="border-b last:border-0">
+            <td className="py-1.5 font-medium text-gray-700">{label}</td>
+            <td className="py-1.5 text-right text-gray-500">{metric?.total ?? "—"}</td>
+            <td className="py-1.5 text-right text-gray-500">{metric?.correct_picks ?? "—"}</td>
+            <td className="py-1.5 text-right font-semibold text-nrl-blue">
+              {metric ? `${(metric.value * 100).toFixed(1)}%` : "—"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

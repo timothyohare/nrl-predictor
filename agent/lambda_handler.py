@@ -6,6 +6,7 @@ import boto3
 
 from agent.budget import BudgetExceeded, check_budget
 from agent.graph import run_agent
+from agent.prompt import PROMPT_VERSION
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -37,6 +38,7 @@ def lambda_handler(event: dict, context) -> None:
         prediction["roundNumber"] = match_context.get("round")
         prediction["staleness_flag"] = False
         prediction["status"] = "OK"
+        prediction["prompt_version"] = PROMPT_VERSION
         table.put_item(Item=prediction)
         logger.info("Prediction written for %s", match_id)
     except Exception as e:

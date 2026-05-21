@@ -11,6 +11,8 @@ class ScoredResult:
     within_6_pts: bool
     within_12_pts: bool
     brier_component: float
+    confidence: str
+    prompt_version: str
 
 
 def score_prediction(match_id: str, results_table, predictions_table) -> ScoredResult:
@@ -35,6 +37,7 @@ def score_prediction(match_id: str, results_table, predictions_table) -> ScoredR
     predicted_winner = prediction["predicted_winner"]
     predicted_margin = int(prediction.get("predicted_margin", 0))
     confidence = prediction.get("confidence", "MEDIUM")
+    prompt_version = prediction.get("prompt_version", "unknown")
 
     correct = predicted_winner == actual_winner
     margin_error = abs(predicted_margin - actual_margin)
@@ -49,4 +52,6 @@ def score_prediction(match_id: str, results_table, predictions_table) -> ScoredR
         within_6_pts=margin_error <= 6,
         within_12_pts=margin_error <= 12,
         brier_component=round(brier, 6),
+        confidence=confidence,
+        prompt_version=prompt_version,
     )

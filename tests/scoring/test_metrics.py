@@ -39,6 +39,8 @@ def tables():
         results_tbl = ddb.Table(RESULTS_TABLE)
         metrics_tbl = ddb.Table(METRICS_TABLE)
         # seed 10 scored results for round 12: 7 correct, 3 wrong
+        # confidence: 4 HIGH (3 correct), 4 MEDIUM (3 correct), 2 LOW (1 correct)
+        confidences = ["HIGH", "HIGH", "HIGH", "HIGH", "MEDIUM", "MEDIUM", "MEDIUM", "MEDIUM", "LOW", "LOW"]
         for i in range(10):
             results_tbl.put_item(Item={
                 "matchId": f"match-{i}",
@@ -48,6 +50,8 @@ def tables():
                 "correct_pick": i < 7,
                 "predicted_margin_error": i % 5,
                 "brier_component": str(0.05 + i * 0.01),
+                "confidence": confidences[i],
+                "prompt_version": "v1.1",
                 "matchState": "FullTime",
             })
         yield results_tbl, metrics_tbl
@@ -95,3 +99,33 @@ def test_aggregate_season_writes_season_record(tables):
     assert item["Item"]["correct_picks"] == 10
     assert item["Item"]["total"] == 15
     assert float(item["Item"]["value"]) == pytest.approx(10 / 15)
+
+
+def test_aggregate_season_writes_confidence_calibration(tables):
+    results_tbl, metrics_tbl = tables
+    aggregate_season(season=2026, results_table=results_tbl, metrics_table=metrics_tbl)
+
+    # HIGH: i=0..3 → all 4 correct (i < 7 is True for all)
+    high = metrics_tbl.get_item(Key={"period": "2026-season", "metricName": "pick_rate_high_confidence"})
+    assert "Item" in high
+    assert high["Item"]["total"] == 4
+    assert high["Item"]["correct_picks"] == 4
+
+    # MEDIUM: i=4..7 → i=4,5,6 correct, i=7 wrong → 3 correct
+    medium = metrics_tbl.get_item(Key={"period": "2026-season", "metricName": "pick_rate_medium_confidence"})
+    assert medium["Item"]["total"] == 4
+    assert medium["Item"]["correct_picks"] == 3
+
+    # LOW: i=8,9 → both wrong (i >= 7) → 0 correct
+    low = metrics_tbl.get_item(Key={"period": "2026-season", "metricName": "pick_rate_low_confidence"})
+    assert low["Item"]["total"] == 2
+    assert low["Item"]["correct_picks"] == 0
+
+
+def test_aggregate_season_writes_prompt_version_calibration(tables):
+    results_tbl, metrics_tbl = tables
+    aggregate_season(season=2026, results_table=results_tbl, metrics_table=metrics_tbl)
+    pv = metrics_tbl.get_item(Key={"period": "2026-season", "metricName": "pick_rate_prompt_v1_1"})
+    assert "Item" in pv
+    assert pv["Item"]["total"] == 10
+    assert pv["Item"]["correct_picks"] == 7
