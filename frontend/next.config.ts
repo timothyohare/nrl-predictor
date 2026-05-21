@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   // CODEBUILD_RESOLVED_SOURCE_VERSION is set automatically by Amplify on every build.
   // Falls back to 'local' when running locally.
   env: {
-    GIT_SHA: (process.env.CODEBUILD_RESOLVED_SOURCE_VERSION || "local").slice(0, 7),
+    // AWS_COMMIT_ID is set automatically by Amplify on every build
+    GIT_SHA: (process.env.AWS_COMMIT_ID || process.env.CODEBUILD_RESOLVED_SOURCE_VERSION || "local").slice(0, 7),
   },
 };
 
