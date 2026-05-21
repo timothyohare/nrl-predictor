@@ -23,8 +23,10 @@ def parse_draw(data: dict) -> list[Match]:
         url = fixture.get("matchCentreUrl")
         if not url:
             continue
-        # slug is the last path segment, e.g. "panthers-v-broncos"
-        match_id = url.rstrip("/").rsplit("/", 1)[-1]
+        # URL format: /draw/nrl-premiership/{year}/round-{N}/{home}-v-{away}/
+        # Take the last two segments to get e.g. "round-11-panthers-v-broncos"
+        parts = url.rstrip("/").rsplit("/", 2)
+        match_id = f"{parts[-2]}-{parts[-1]}" if len(parts) >= 3 else parts[-1]
         kick_off = fixture.get("clock", {}).get("kickOffTimeLong") or None
         # venue is a plain string in current API; guard against legacy dict form
         venue_raw = fixture.get("venue", "")

@@ -20,6 +20,28 @@ pytest tests/agent/test_tool_get_team_sheet.py::test_returns_correct_team_sheet 
 
 Tests use `moto` to mock AWS (DynamoDB, S3, Secrets Manager) — no real AWS credentials are needed. CI sets dummy credentials via env vars; do the same locally if boto3 complains.
 
+## CDK deploy
+
+The CDK app lives in `infra/` and is written in Python. `aws-cdk-lib` is **not** in the main project venv — it must be installed separately:
+
+```bash
+# One-time setup (system-level, needed because infra/ has no venv of its own)
+pip3 install aws-cdk-lib constructs --break-system-packages
+
+# Deploy from the infra/ directory
+cd infra
+AWS_DEFAULT_REGION=ap-southeast-2 cdk deploy --require-approval never
+```
+
+The CDK Docker bundling step (for the deps Lambda layer) requires Docker to be running. The deploy takes ~2 minutes. Stack outputs are printed at the end — API endpoint and Agent Lambda ARN are stable and match what's in `CLAUDE.md`.
+
+To preview changes without deploying:
+
+```bash
+cd infra
+AWS_DEFAULT_REGION=ap-southeast-2 cdk diff
+```
+
 ## Architecture
 
 NRL Predictor is a serverless event-driven system on AWS. The data pipeline flows:

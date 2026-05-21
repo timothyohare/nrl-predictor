@@ -23,7 +23,7 @@ def test_parse_draw_returns_match_objects(draw_data):
 def test_parse_draw_correct_field_mapping(draw_data):
     matches = parse_draw(draw_data)
     first = matches[0]
-    assert first.match_id == "panthers-v-broncos"
+    assert first.match_id == "round-12-panthers-v-broncos"
     assert first.home_team == "Panthers"
     assert first.away_team == "Broncos"
     assert first.venue == "BlueBet Stadium"

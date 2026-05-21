@@ -27,7 +27,11 @@ def parse_results(data: dict) -> list[MatchResult]:
         away_score = away.get("score", 0) or 0
         winner = home["nickName"] if home_score >= away_score else away["nickName"]
         url = fixture.get("matchCentreUrl", "")
-        match_id = url.rstrip("/").rsplit("/", 1)[-1] if url else ""
+        if url:
+            parts = url.rstrip("/").rsplit("/", 2)
+            match_id = f"{parts[-2]}-{parts[-1]}" if len(parts) >= 3 else parts[-1]
+        else:
+            match_id = ""
         results.append(MatchResult(
             match_id=match_id,
             home_team=home["nickName"],
