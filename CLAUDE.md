@@ -20,6 +20,41 @@ pytest tests/agent/test_tool_get_team_sheet.py::test_returns_correct_team_sheet 
 
 Tests use `moto` to mock AWS (DynamoDB, S3, Secrets Manager) — no real AWS credentials are needed. CI sets dummy credentials via env vars; do the same locally if boto3 complains.
 
+## Post-round operations
+
+After a round completes, run these steps in order:
+
+### 1. Scrape results
+
+Writes the final scores into the `results` DynamoDB table:
+
+```bash
+aws lambda invoke \
+  --function-name nrl-predictor-results-scraper \
+  --payload '{"season": 2026, "round": 11}' \
+  --cli-binary-format raw-in-base64-out \
+  --region ap-southeast-2 \
+  /dev/null
+```
+
+Change `round` to the completed round number.
+
+### 2. Score predictions and trigger retrospectives
+
+Reads matchIds from the `predictions` table, invokes the scoring Lambda for each match (which then async-triggers the retrospective Lambda):
+
+```bash
+# Preview without invoking anything
+AWS_DEFAULT_REGION=ap-southeast-2 python3 scripts/score_round.py --round 11 --season 2026 --dry-run
+
+# Run for real
+AWS_DEFAULT_REGION=ap-southeast-2 python3 scripts/score_round.py --round 11 --season 2026
+```
+
+Retrospective analyses appear in the predictions API response (under `retrospective`) ~30–60 seconds after scoring completes.
+
+---
+
 ## CDK deploy
 
 The CDK app lives in `infra/` and is written in Python. `aws-cdk-lib` is **not** in the main project venv — it must be installed separately:

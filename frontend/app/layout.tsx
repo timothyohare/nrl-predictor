@@ -20,8 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
-        <footer className="border-t text-center text-xs text-gray-400 py-4">
-          Predictions are for entertainment. Always do your own research.
+        <footer className="border-t text-center text-xs text-gray-400 py-4 space-y-1">
+          <p>Predictions are for entertainment. Always do your own research.</p>
+          <p className="text-gray-300">build {process.env.GIT_SHA}</p>
         </footer>
       </body>
     </html>

@@ -3,8 +3,8 @@
 Invoke the scoring Lambda for all matches in a given round.
 
 Usage:
-    python scripts/score_round.py --round 11 --season 2026
-    python scripts/score_round.py --round 11 --season 2026 --dry-run
+    python3 scripts/score_round.py --round 11 --season 2026
+    python3 scripts/score_round.py --round 11 --season 2026 --dry-run
 
 Reads matchIds from the predictions table, then invokes nrl-predictor-scoring
 for each. The scoring Lambda auto-triggers the retrospective Lambda after scoring.
