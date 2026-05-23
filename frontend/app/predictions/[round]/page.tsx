@@ -20,14 +20,14 @@ export default async function PredictionsPage({ params }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-nrl-blue">
-          {roundNum <= 27 ? `Round ${roundNum}` : "Finals"} Predictions
+        <h1 className="font-display text-3xl text-nrl-blue tracking-wide">
+          {roundNum <= 27 ? `ROUND ${roundNum}` : "FINALS"} <span className="text-nrl-gold">PREDICTIONS</span>
         </h1>
         <RoundSelector current={roundNum} />
       </div>
 
       {predictions.length === 0 ? (
-        <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
+        <div className="bg-nrl-paper rounded-xl border-2 border-gray-200 p-8 text-center text-gray-400">
           <p className="text-lg">No predictions yet for Round {roundNum}.</p>
           <p className="text-sm mt-1">Check back after team sheets are published Thursday night.</p>
         </div>

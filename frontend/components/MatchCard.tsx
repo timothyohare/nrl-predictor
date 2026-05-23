@@ -2,12 +2,21 @@
 
 import { useState } from "react";
 import type { Prediction, Retrospective } from "@/lib/api";
+import { teamColor } from "@/lib/teamColors";
 
 const CONFIDENCE_STYLES: Record<string, string> = {
-  HIGH: "bg-green-100 text-green-800",
-  MEDIUM: "bg-yellow-100 text-yellow-800",
-  LOW: "bg-red-100 text-red-800",
+  HIGH: "bg-green-600 text-white",
+  MEDIUM: "bg-yellow-400 text-yellow-900",
+  LOW: "bg-red-500 text-white",
 };
+
+// matchIds may be either old-format ("panthers-v-broncos") or
+// new round-qualified format ("round-12-panthers-v-broncos")
+function splitMatchId(matchId: string): [string, string] {
+  const cleaned = matchId.replace(/^round-\d+-/, "");
+  const [home, away] = cleaned.split("-v-");
+  return [home ?? "", away ?? ""];
+}
 
 function staleness(generated_at: string): string {
   const diffMs = Date.now() - new Date(generated_at).getTime();
@@ -59,11 +68,14 @@ function RetrospectivePanel({ retro }: { retro: Retrospective }) {
 export default function MatchCard({ prediction }: { prediction: Prediction }) {
   const [expanded, setExpanded] = useState(false);
   const [retroExpanded, setRetroExpanded] = useState(false);
-  const matchSlug = prediction.matchId;
-  const [homeSlug, awaySlug] = matchSlug.split("-v-");
+  const [homeSlug, awaySlug] = splitMatchId(prediction.matchId);
 
   const homeTeam = prediction.homeTeam || homeSlug?.replace(/-/g, " ") || "Home";
   const awayTeam = prediction.awayTeam || awaySlug?.replace(/-/g, " ") || "Away";
+  const homeColor = teamColor(homeSlug);
+  const awayColor = teamColor(awaySlug);
+  const winnerSlug = prediction.predicted_winner?.toLowerCase().replace(/\s+/g, "-");
+  const winnerColor = teamColor(winnerSlug || homeSlug);
 
   if (prediction.status === "FAILED") {
     return (
@@ -77,7 +89,10 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
   }
 
   return (
-    <div className={`bg-nrl-paper rounded-xl border p-5 space-y-3 ${prediction.staleness_flag ? "border-yellow-300" : "border-gray-200"}`}>
+    <div
+      className={`bg-nrl-paper rounded-xl border-2 p-5 space-y-3 border-l-[6px] ${prediction.staleness_flag ? "border-yellow-300" : "border-gray-200"}`}
+      style={{ borderLeftColor: winnerColor }}
+    >
       {prediction.staleness_flag && (
         <div className="text-xs bg-yellow-50 text-yellow-700 rounded px-2 py-1 inline-block">
           Prediction may be stale — budget limit reached
@@ -85,19 +100,25 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
       )}
 
       <div className="flex justify-between items-start gap-2">
-        <h3 className="font-semibold text-gray-700 capitalize text-sm">
-          {homeTeam} <span className="text-gray-400">vs</span> {awayTeam}
+        <h3 className="font-semibold text-gray-700 capitalize text-sm flex items-center gap-1.5 flex-wrap">
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: homeColor }} />
+          {homeTeam}
+          <span className="text-gray-400 font-normal">vs</span>
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: awayColor }} />
+          {awayTeam}
         </h3>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${CONFIDENCE_STYLES[prediction.confidence]}`}>
+        <span className={`font-display text-[10px] tracking-wider px-2 py-1 rounded ${CONFIDENCE_STYLES[prediction.confidence]} shrink-0`}>
           {prediction.confidence}
         </span>
       </div>
 
       <div>
-        <p className="text-xl font-bold text-nrl-blue">{prediction.predicted_winner}</p>
-        {prediction.predicted_margin > 0 && (
-          <p className="text-sm text-gray-500">by {prediction.predicted_margin} pts</p>
-        )}
+        <p className="font-display text-2xl leading-none" style={{ color: winnerColor }}>
+          {prediction.predicted_winner}
+          {prediction.predicted_margin > 0 && (
+            <span className="text-gray-700"> BY {prediction.predicted_margin}</span>
+          )}
+        </p>
       </div>
 
       <ul className="space-y-1">
