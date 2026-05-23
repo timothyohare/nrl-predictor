@@ -82,10 +82,14 @@ AWS_DEFAULT_REGION=ap-southeast-2 cdk diff
 NRL Predictor is a serverless event-driven system on AWS. The data pipeline flows:
 
 ```
-EventBridge cron → Scraper Lambdas → DynamoDB + S3 → Agent Lambda (LangGraph) → predictions DynamoDB → API Lambda → Next.js front end
+EventBridge cron → Orchestrator Lambda → (draw + team-sheet scrape inline)
+                                       → fan-out: Agent Lambda per match (8s stagger)
+                                       → predictions DynamoDB → API Lambda → Next.js front end
 ```
 
-Post-match: scoring Lambda writes scored results + triggers retrospective Lambda (async). Scoring then aggregates into `metrics`. Retrospective Lambda does a web search for match stats, stores them in `match_stats`, calls Claude Sonnet to compare prediction vs outcome, and stores the analysis in `retrospectives`.
+Standalone scrapers (`ladder`, `articles`, `weather`, `results`) run on their own EventBridge schedules. The orchestrator owns the per-match fan-out — agent, draw, and team-sheet Lambdas are still callable directly for backfill/debugging, but the production path is always through the orchestrator.
+
+Post-match: scoring Lambda writes scored results + triggers retrospective Lambda (async). Scoring then aggregates into `metrics`. Retrospective Lambda does a web search for match stats, stores them in `match_stats`, calls Claude Sonnet to compare prediction vs outcome, and stores the analysis in `retrospectives`. The API Lambda joins predictions ⨝ results ⨝ retrospectives by `matchId` so each frontend prediction carries the actual score and any post-match analysis.
 
 ### Package structure
 
@@ -96,9 +100,11 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 | `scrapers/articles/` | RSS from Zero Tackle / The Roar; Haiku-based injury extraction |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
 | `agent/` | LangGraph ReAct graph (`graph.py`), 8 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
+| `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then async-invokes the agent per match (staggered to respect Anthropic rate limit) |
 | `retrospective/` | Post-match retrospective: Tavily search + Claude Sonnet analysis of prediction vs result |
 | `scoring/` | `scorer.py` (Brier + margin error), `metrics.py` (round/season aggregation incl. confidence calibration + prompt versioning) |
-| `api/` | API Gateway Lambda handlers for front end |
+| `api/` | API Gateway Lambda handlers — joins predictions ⨝ results ⨝ retrospectives by matchId for the front end |
+| `frontend/` | Next.js 15 SSR app on Amplify. Tailwind + custom Tailwind palette (`nrl-blue`/`gold`/`cream`/`paper`/`red`), Bungee (display) + Nunito (body) via `next/font/google`, team-color accents per match card from `frontend/lib/teamColors.ts`. **Requires `postcss.config.mjs`** for Tailwind to be processed — Next won't pick up Tailwind from `tailwind.config.ts` alone. |
 | `infra/` | AWS CDK (Python) — same language as everything else |
 | `fetcher-spikes/` | Throwaway scripts that probed each data source; findings recorded in `fetcher-spikes/README.md` |
 
@@ -137,9 +143,17 @@ Current version: `v1.1` — added explicit chain-of-thought assessment order (te
 - Retrospective analysis: `claude-sonnet-4-6`
 - Overridable via `AGENT_MODEL` env var.
 
+### matchId format
+
+Round-qualified: `round-{N}-{home-slug}-v-{away-slug}` (e.g. `round-12-panthers-v-broncos`). Produced by `scrapers/nrl/draw.py` from the NRL `matchCentreUrl`. Pre-2026-05 predictions used unqualified IDs (`panthers-v-broncos`); both formats coexist in the `predictions` table — the frontend's `splitMatchId` strips the `round-N-` prefix when present.
+
 ### Prediction output schema
 
 `predicted_winner` (string) · `predicted_margin` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at` · `prompt_version`
+
+The `/predictions/{round}` API additionally joins each prediction with:
+- `result` (when match is scored): `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }`
+- `retrospective` (when generated): see schema below
 
 ### Retrospective output schema (stored in `retrospectives` table)
 
@@ -171,6 +185,8 @@ Fixture JSON files go in `tests/fixtures/` and are copied from spike output.
 - Every DynamoDB write must include a `scraped_at` timestamp.
 - The agent's budget check runs at the start of `lambda_handler` — if over budget, serve the cached prediction with `staleness_flag: true` rather than calling Claude.
 - The rate limiter (`api/rate_limit.py`) must **fail open** if DynamoDB is unavailable — never block legitimate traffic due to infrastructure issues.
+- **Anthropic account rate limit: 50,000 input tokens/minute** on Haiku 4.5. The orchestrator staggers agent invokes by 8s (configurable via `AGENT_INVOKE_STAGGER_SECONDS` env on `nrl-predictor-orchestrator`) to stay under this. Any new batch that calls Claude (scoring backfills, multi-match retrospectives, etc.) needs the same treatment.
 - Do not add `output: 'export'` to `next.config.js` — this breaks SSR/ISR and causes Googlebot to receive an empty shell.
+- **Do not delete `frontend/postcss.config.mjs`.** Without it, Tailwind directives in `globals.css` pass through unprocessed and the entire site renders as unstyled HTML (this was the production state until 2026-05-23 — easy to miss because the build succeeds).
 - AWS region: `ap-southeast-2` (Sydney).
 - **Do not add an `amplify.yml`** to the repo. The frontend is a Next.js SSR app in `frontend/` (monorepo). Amplify auto-detects this and runs its Next.js adapter only when there is no custom build spec. Adding `amplify.yml` bypasses the adapter, which means `deploy-manifest.json` doesn't get generated and builds fail at the deploy step. Setup details and the recreate procedure are in `docs/AMPLIFY_RECREATE.md`.

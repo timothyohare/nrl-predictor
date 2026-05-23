@@ -2,19 +2,36 @@
 
 AI-powered predictions for every NRL match. Scrapes official team sheets, runs Claude to produce a written prediction with confidence level and key factors, and publishes results on a Next.js frontend.
 
+Live at **https://nrl-predictor.ohare.id.au/**.
+
 ## Architecture
 
 ```
 EventBridge cron
-  → Scraper Lambdas (draw, team sheet, ladder, results, weather, articles)
-  → DynamoDB + S3
-  → Agent Lambda (Anthropic Claude, ReAct loop)
-  → predictions DynamoDB
-  → API Gateway
-  → Next.js frontend (Amplify)
+  → Orchestrator Lambda
+      ├─ scrapes draw                              (writes teams)
+      ├─ scrapes team sheets inline (per match)    (writes teams)
+      └─ async-invokes Agent Lambda per match      (8s stagger ↓ rate limit)
+            └─ Anthropic Claude, ReAct loop
+               → predictions DynamoDB
+                  → API Gateway (joins predictions + results + retrospectives)
+                     → Next.js frontend (Amplify)
 ```
 
-Post-match: another cron triggers the scoring Lambda, which writes to `results`, then the metrics Lambda aggregates into `metrics`.
+Standalone scrapers (`ladder`, `articles`, `weather`, `results`) are wired to their own EventBridge schedules. The agent Lambda still exists and is callable ad-hoc per match for backfill — the orchestrator just orchestrates the per-match fan-out.
+
+Post-match: `scripts/score_round.py` invokes the scoring Lambda per matchId; scoring writes to `results`, aggregates into `metrics`, and async-triggers the retrospective Lambda.
+
+---
+
+## Quick reference
+
+| Want to … | Do this |
+|---|---|
+| Check which commit is deployed | `git log --oneline -1` (build SHA shown in the site footer) |
+| Trigger a round of predictions now | See [Invoking the orchestrator](#invoking-the-orchestrator-manually-for-backfill--catch-up) below |
+| Verify the API | `curl https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com/predictions/12` |
+| Score a completed round | See [CLAUDE.md → Post-round operations](CLAUDE.md#post-round-operations) |
 
 ---
 
@@ -179,9 +196,11 @@ export AWS_DEFAULT_REGION=ap-southeast-2
 | Table | Purpose |
 |-------|---------|
 | `predictions` | Agent output, one item per match per generation |
-| `teams` | Team sheets keyed by `{matchId}#{home\|away}` |
-| `results` | Scored match results |
-| `metrics` | Aggregated round/season accuracy |
+| `teams` | Draw rows keyed by `{matchId}#{home\|away}` + team-sheet rows keyed by NRL numeric matchId |
+| `results` | Scored match results (two rows per match — raw scrape + scored) |
+| `metrics` | Aggregated round/season accuracy + per-prompt-version + per-confidence pick rates |
+| `retrospectives` | Post-match Claude analysis comparing prediction vs outcome |
+| `match_stats` | Tavily search snippets used as input to the retrospective |
 | `nrl-rate-limits` | API rate limiting (ephemeral, TTL-based) |
 | `claude_usage` | Monthly token spend tracking |
 | `injuries` | Extracted injury mentions from articles |
@@ -191,15 +210,18 @@ export AWS_DEFAULT_REGION=ap-southeast-2
 
 ## EventBridge schedule
 
-| Rule | UTC time | Action |
-|------|----------|--------|
-| Wednesday | 08:00 | Draw scraper |
-| Thursday | 12:00 | Draw + ladder |
-| Friday | 04:00 | Team sheets + articles |
-| Friday | 12:00 | Team sheets + weather + articles + agent |
-| Friday | 23:00 | Team sheets + weather + articles + agent (re-run) |
+All times converted to AEST for readability. AEDT = UTC+11 (summer), AEST = UTC+10 (winter).
 
-All crons are in UTC. AEST = UTC+10, AEDT = UTC+11.
+| Rule | AEST | Targets |
+|------|------|---------|
+| Wednesday | 18:00 | Draw scraper |
+| Thursday | 17:00 | Ladder + articles + weather + **orchestrator** (predictions before Thu 6pm games) |
+| Friday | 14:00 | Articles refresh |
+| Friday | 17:00 | Articles + weather + **orchestrator** (predictions before Fri 6pm games) |
+| Friday | 22:00 | Articles + weather + **orchestrator** (re-run for late Fri / weekend games) |
+| Saturday | 09:00 | Articles + weather + **orchestrator** (refresh for Sat / Sun games) |
+
+The orchestrator scrapes the draw, scrapes team sheets inline, and async-invokes the agent once per match (8-second stagger between invokes to stay under the Anthropic 50K input-tokens/minute rate limit).
 
 ---
 
@@ -215,23 +237,40 @@ Amplify rebuilds automatically on every push to `main`.
 
 ---
 
-## Invoking a Lambda manually (for testing)
+## Invoking the orchestrator manually (for backfill / catch-up)
+
+The orchestrator is the normal path to generate a round's predictions. Use it when a scheduled run misses, or when you want predictions earlier than the cron fires.
 
 ```bash
-# Trigger the draw scraper
+AWS_DEFAULT_REGION=ap-southeast-2 aws lambda invoke \
+  --function-name nrl-predictor-orchestrator \
+  --payload '{"season": 2026, "round": 12}' \
+  --cli-binary-format raw-in-base64-out \
+  /tmp/orch_out.json && cat /tmp/orch_out.json
+```
+
+Returns `{"round": N, "matches": K, "agent_triggered": [...matchIds]}`. The orchestrator itself completes in 3–5 min (draw + team-sheet scrapes inline). Each async agent invocation then takes ~30–60s; predictions land in the `predictions` table progressively.
+
+Use `"round": "current"` to let the NRL API decide which round is in progress.
+
+### Invoking a single Lambda directly
+
+```bash
+# Just the draw scraper (writes to teams table)
 aws lambda invoke \
   --function-name nrl-predictor-draw-scraper \
-  --payload '{"season": 2026}' \
-  --region ap-southeast-2 \
-  /tmp/response.json && cat /tmp/response.json
-
-# Trigger the agent for a specific match
-aws lambda invoke \
-  --function-name nrl-predictor-agent \
-  --payload '{"matchId": "broncos-v-raiders", "round": 12, "season": 2026}' \
+  --payload '{"season": 2026, "round": 12}' \
   --cli-binary-format raw-in-base64-out \
   --region ap-southeast-2 \
-  /tmp/response.json && cat /tmp/response.json
+  /tmp/response.json
+
+# Just the agent for one match — matchId is round-qualified, e.g. round-12-broncos-v-raiders
+aws lambda invoke \
+  --function-name nrl-predictor-agent \
+  --payload '{"matchId": "round-12-broncos-v-raiders", "round": 12}' \
+  --cli-binary-format raw-in-base64-out \
+  --region ap-southeast-2 \
+  /tmp/response.json
 ```
 
 ---
@@ -246,4 +285,4 @@ curl $API/predictions/12
 curl $API/accuracy
 ```
 
-A
+Each prediction in the response carries a `result` field once the match has been scored — `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }` — which the front end uses to render the actual score next to the prediction.
