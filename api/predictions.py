@@ -16,6 +16,7 @@ def lambda_handler(event: dict, context) -> dict:
     ddb = boto3.resource("dynamodb")
     pred_table = ddb.Table(os.environ["PREDICTIONS_TABLE"])
     retro_table_name = os.environ.get("RETROSPECTIVES_TABLE")
+    results_table_name = os.environ.get("RESULTS_TABLE")
 
     response = pred_table.scan(
         FilterExpression="roundNumber = :r AND #s = :ok",
@@ -53,6 +54,24 @@ def lambda_handler(event: dict, context) -> dict:
         except Exception:
             pass  # retrospective is non-critical
 
+    # Fetch results and join by matchId — take the most recent scored row
+    # per match. The scoring lambda's row is what carries roundNumber, so
+    # filtering on roundNumber naturally excludes the raw scrape rows.
+    result_by_match: dict[str, dict] = {}
+    if results_table_name:
+        try:
+            results_table = ddb.Table(results_table_name)
+            res_resp = results_table.scan(
+                FilterExpression="roundNumber = :r",
+                ExpressionAttributeValues={":r": round_number},
+            )
+            for item in res_resp.get("Items", []):
+                mid = item["matchId"]
+                if mid not in result_by_match or item["scoredAt"] > result_by_match[mid]["scoredAt"]:
+                    result_by_match[mid] = item
+        except Exception:
+            pass  # result join is non-critical
+
     predictions = sorted(by_match.values(), key=lambda x: x["matchId"])
     for pred in predictions:
         retro = retro_by_match.get(pred["matchId"])
@@ -64,6 +83,16 @@ def lambda_handler(event: dict, context) -> dict:
                 "what_actually_happened": retro.get("what_actually_happened", ""),
                 "lesson": retro.get("lesson", ""),
                 "generated_at": retro.get("generatedAt", ""),
+            }
+        result = result_by_match.get(pred["matchId"])
+        if result:
+            pred["result"] = {
+                "winner": result.get("winner", ""),
+                "homeTeam": result.get("homeTeam", ""),
+                "awayTeam": result.get("awayTeam", ""),
+                "homeScore": result.get("homeScore", 0),
+                "awayScore": result.get("awayScore", 0),
+                "margin": result.get("margin", 0),
             }
 
     return {

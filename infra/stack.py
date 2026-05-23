@@ -417,6 +417,8 @@ class NrlPredictorStack(cdk.Stack):
 
         for tbl in (predictions_table, metrics_table, rate_limits_table, retrospectives_table):
             tbl.grant_read_write_data(api_fn)
+        # API joins results onto predictions to show actual scores
+        results_table.grant_read_data(api_fn)
 
         anthropic_secret.grant_read(articles_fn)
 

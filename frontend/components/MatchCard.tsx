@@ -112,13 +112,43 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
         </span>
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <p className="font-display text-2xl leading-none" style={{ color: winnerColor }}>
           {prediction.predicted_winner}
           {prediction.predicted_margin > 0 && (
             <span className="text-gray-700"> BY {prediction.predicted_margin}</span>
           )}
         </p>
+        {prediction.result && (() => {
+          const r = prediction.result;
+          const actualWinnerColor = teamColor(r.winner.toLowerCase().replace(/\s+/g, "-"));
+          const winnerCorrect = r.winner === prediction.predicted_winner;
+          const marginError = Math.abs(prediction.predicted_margin - r.margin);
+          const marginWithin6 = winnerCorrect && marginError <= 6;
+          return (
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <p className="font-display text-xl leading-none" style={{ color: actualWinnerColor }}>
+                {r.homeTeam.toUpperCase()} <span className="text-gray-800">{r.homeScore}</span>
+                <span className="text-gray-400 mx-1">—</span>
+                {r.awayTeam.toUpperCase()} <span className="text-gray-800">{r.awayScore}</span>
+              </p>
+              <span
+                title={winnerCorrect ? "Correct winner" : "Wrong winner"}
+                className={`text-xs font-bold ${winnerCorrect ? "text-green-600" : "text-red-500"}`}
+              >
+                {winnerCorrect ? "✓ winner" : "✗ winner"}
+              </span>
+              {winnerCorrect && (
+                <span
+                  title={marginWithin6 ? "Within 6 pts" : `Off by ${marginError} pts`}
+                  className={`text-xs font-bold ${marginWithin6 ? "text-green-600" : "text-gray-400"}`}
+                >
+                  {marginWithin6 ? "✓ margin" : `✗ margin (±${marginError})`}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <ul className="space-y-1">

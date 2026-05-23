@@ -7,6 +7,15 @@ export interface Retrospective {
   generated_at: string;
 }
 
+export interface MatchResult {
+  winner: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  margin: number;
+}
+
 export interface Prediction {
   matchId: string;
   predicted_winner: string;
@@ -23,6 +32,7 @@ export interface Prediction {
   awayTeam?: string;
   prompt_version?: string;
   retrospective?: Retrospective;
+  result?: MatchResult;
 }
 
 export interface AccuracyData {
