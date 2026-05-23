@@ -21,6 +21,8 @@ def aws_env(monkeypatch):
     monkeypatch.setenv("TEAMS_TABLE", "teams")
     monkeypatch.setenv("RAW_BUCKET", "test-bucket")
     monkeypatch.setenv("AGENT_FUNCTION_NAME", "nrl-predictor-agent")
+    # Disable the rate-limit stagger so tests run instantly
+    monkeypatch.setenv("AGENT_INVOKE_STAGGER_SECONDS", "0")
 
 
 @pytest.fixture
@@ -90,6 +92,29 @@ def test_orchestrator_continues_when_team_sheet_unavailable(
 
     # All matches still trigger agent invocations
     assert len(result["agent_triggered"]) == 3
+
+
+def test_orchestrator_staggers_agent_invocations(ddb_and_s3, draw_data, monkeypatch):
+    """Anthropic enforces 50K input tokens/min; firing all agent invokes at once
+    blows past that. The orchestrator sleeps between invokes when the stagger
+    env var is set."""
+    monkeypatch.setenv("TEAMS_TABLE", "teams")
+    monkeypatch.setenv("RAW_BUCKET", "test-bucket")
+    monkeypatch.setenv("AGENT_FUNCTION_NAME", "nrl-predictor-agent")
+    monkeypatch.setenv("AGENT_INVOKE_STAGGER_SECONDS", "8")
+
+    from orchestrator.lambda_handler import lambda_handler
+
+    sleep_mock = MagicMock()
+    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
+         patch("orchestrator.lambda_handler.boto3.client"), \
+         patch("orchestrator.lambda_handler.time.sleep", sleep_mock):
+        lambda_handler({"season": 2026, "round": 12}, {})
+
+    # 3 invocations → 2 sleeps (no sleep before the first one)
+    assert sleep_mock.call_count == 2
+    assert sleep_mock.call_args_list[0].args == (8.0,)
 
 
 def test_orchestrator_writes_teams_entries_to_dynamo(aws_env, ddb_and_s3, draw_data):

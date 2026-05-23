@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from datetime import datetime, timezone
 
 import boto3
@@ -88,10 +89,15 @@ def lambda_handler(event: dict, context) -> dict:
         except Exception as e:
             logger.error("Team sheet scrape failed for %s: %s", match.match_id, e, exc_info=True)
 
-    # 4. Fan out: invoke agent async per match
+    # 4. Fan out: invoke agent async per match, staggered to stay under the
+    # Anthropic 50K input-tokens/minute rate limit. Each agent run uses
+    # roughly 8-12K input tokens, so 8s between starts keeps us well below.
+    stagger_s = float(os.environ.get("AGENT_INVOKE_STAGGER_SECONDS", "8"))
     lambda_client = boto3.client("lambda")
     agent_triggered: list[str] = []
-    for match in matches:
+    for i, match in enumerate(matches):
+        if i > 0 and stagger_s > 0:
+            time.sleep(stagger_s)
         try:
             lambda_client.invoke(
                 FunctionName=agent_fn_name,
