@@ -445,21 +445,34 @@ class NrlPredictorStack(cdk.Stack):
             targets=[targets.LambdaFunction(draw_fn, event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}))],
         )
 
-        # Thursday 12:00 UTC (22:00 AEST) — ladder refresh
+        # Thursday 07:00 UTC (17:00 AEST) — ladder refresh + orchestrator
+        # so predictions are ready before any Thursday-night 6pm AEST game.
         thu_rule = events.Rule(
             self, "ThuRule",
             rule_name="nrl-scraper-thursday",
-            schedule=events.Schedule.cron(minute="0", hour="12", week_day="THU"),
+            schedule=events.Schedule.cron(minute="0", hour="7", week_day="THU"),
         )
         thu_rule.add_target(targets.LambdaFunction(ladder_fn, event=events.RuleTargetInput.from_object({"season": 2026})))
+        thu_rule.add_target(targets.LambdaFunction(articles_fn))
+        thu_rule.add_target(targets.LambdaFunction(weather_fn))
+        thu_rule.add_target(targets.LambdaFunction(
+            orchestrator_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
 
-        # Friday 04:00 UTC (14:00 AEST) — articles refresh
+        # Friday 07:00 UTC (17:00 AEST) — orchestrator refresh so predictions
+        # are ready before any Friday 6pm AEST game.
         fri_pm_rule = events.Rule(
             self, "FriPmRule",
             rule_name="nrl-scraper-friday-pm",
-            schedule=events.Schedule.cron(minute="0", hour="4", week_day="FRI"),
+            schedule=events.Schedule.cron(minute="0", hour="7", week_day="FRI"),
         )
         fri_pm_rule.add_target(targets.LambdaFunction(articles_fn))
+        fri_pm_rule.add_target(targets.LambdaFunction(weather_fn))
+        fri_pm_rule.add_target(targets.LambdaFunction(
+            orchestrator_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
 
         # Friday 12:00 UTC (22:00 AEST) — orchestrator fans out per-match work
         # (draw + team sheets + agent) then weather + articles for refresh.
