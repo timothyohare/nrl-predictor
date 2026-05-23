@@ -17,9 +17,9 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-10">
-      <section className="text-center space-y-5 py-8">
-        <h1 className="font-display text-5xl sm:text-6xl text-nrl-blue leading-tight">
-          NRL <span className="text-nrl-gold">PREDICTOR</span>
+      <section className="relative overflow-hidden bg-nrl-cream bg-footy-pattern rounded-2xl border-2 border-nrl-blue text-center space-y-5 py-12 px-6">
+        <h1 className="font-display text-5xl sm:text-6xl text-nrl-blue leading-tight relative">
+          NRL <span className="text-nrl-gold drop-shadow-[2px_2px_0_#003087]">PREDICTOR</span>
         </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           AI-powered predictions for every NRL match. Updated automatically when team sheets drop.
@@ -53,14 +53,17 @@ export default async function HomePage() {
 
       <section className="grid md:grid-cols-3 gap-6">
         {[
-          { icon: "📋", title: "Team Sheets", body: "Read official 17s the moment they're published Thursday and Friday nights." },
-          { icon: "🧠", title: "AI Reasoning", body: "Claude analyses form, injuries, weather, and head-to-head records to write out its reasoning." },
-          { icon: "📊", title: "Honest Record", body: "Every pick is tracked. We publish our accuracy every round, even when we're wrong." },
-        ].map(({ icon, title, body }) => (
-          <div key={title} className="bg-white rounded-xl border p-6 space-y-2">
-            <div className="text-3xl">{icon}</div>
-            <h3 className="font-semibold text-gray-800">{title}</h3>
-            <p className="text-sm text-gray-600">{body}</p>
+          { icon: "📋", title: "Team Sheets", body: "Read official 17s the moment they're published Thursday and Friday nights.", stripe: "bg-nrl-blue" },
+          { icon: "🧠", title: "AI Reasoning", body: "Claude analyses form, injuries, weather, and head-to-head records to write out its reasoning.", stripe: "bg-nrl-gold" },
+          { icon: "📊", title: "Honest Record", body: "Every pick is tracked. We publish our accuracy every round, even when we're wrong.", stripe: "bg-nrl-red" },
+        ].map(({ icon, title, body, stripe }) => (
+          <div key={title} className="bg-nrl-paper rounded-xl border-2 border-gray-200 overflow-hidden">
+            <div className={`h-1.5 ${stripe}`} />
+            <div className="p-6 space-y-2">
+              <div className="text-3xl">{icon}</div>
+              <h3 className="font-display tracking-wide text-gray-800">{title}</h3>
+              <p className="text-sm text-gray-600">{body}</p>
+            </div>
           </div>
         ))}
       </section>

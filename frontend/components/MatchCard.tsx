@@ -67,7 +67,7 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
 
   if (prediction.status === "FAILED") {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-nrl-paper rounded-xl border border-gray-200 p-5">
         <div className="flex justify-between items-start">
           <h3 className="font-semibold text-gray-700 capitalize">{homeTeam} vs {awayTeam}</h3>
         </div>
@@ -77,7 +77,7 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
   }
 
   return (
-    <div className={`bg-white rounded-xl border p-5 space-y-3 ${prediction.staleness_flag ? "border-yellow-300" : "border-gray-200"}`}>
+    <div className={`bg-nrl-paper rounded-xl border p-5 space-y-3 ${prediction.staleness_flag ? "border-yellow-300" : "border-gray-200"}`}>
       {prediction.staleness_flag && (
         <div className="text-xs bg-yellow-50 text-yellow-700 rounded px-2 py-1 inline-block">
           Prediction may be stale — budget limit reached

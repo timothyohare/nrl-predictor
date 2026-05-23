@@ -9,7 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        nrl: { blue: "#003087", gold: "#FFD700" },
+        nrl: {
+          blue: "#003087",
+          gold: "#FFD700",
+          cream: "#FFF8E7",
+          paper: "#FFFDF7",
+          red: "#E63946",
+        },
       },
       fontFamily: {
         sans: ["var(--font-body)", ...defaultTheme.fontFamily.sans],

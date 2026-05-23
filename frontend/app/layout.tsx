@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${bungee.variable} ${nunito.variable}`}>
       <body className="bg-gray-50 text-gray-900 min-h-screen font-sans">
-        <header className="bg-nrl-blue text-white px-4 py-3 flex items-center gap-6">
+        <header className="bg-nrl-blue text-white px-4 py-3 flex items-center gap-6 border-b-4 border-nrl-gold">
           <a href="/" className="hover:opacity-90 transition-opacity">
             <Logo />
           </a>
