@@ -17,7 +17,7 @@ export default function Logo({ size = 36 }: { size?: number }) {
           <line x1="7" y1="-3.5" x2="7" y2="3.5" stroke="#003087" strokeWidth="2.2" strokeLinecap="round" />
         </g>
       </svg>
-      <span className="font-bold text-lg tracking-tight leading-none">
+      <span className="font-display text-xl tracking-wide leading-none">
         NRL <span className="text-nrl-gold">PREDICTOR</span>
       </span>
     </div>

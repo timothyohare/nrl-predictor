@@ -1,6 +1,20 @@
 import type { Metadata } from "next";
+import { Bungee, Nunito } from "next/font/google";
 import Logo from "@/components/Logo";
 import "./globals.css";
+
+const bungee = Bungee({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-display",
+  display: "swap",
+});
+
+const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "NRL Predictor — AI-Powered Match Predictions",
@@ -10,8 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-50 text-gray-900 min-h-screen">
+    <html lang="en" className={`${bungee.variable} ${nunito.variable}`}>
+      <body className="bg-gray-50 text-gray-900 min-h-screen font-sans">
         <header className="bg-nrl-blue text-white px-4 py-3 flex items-center gap-6">
           <a href="/" className="hover:opacity-90 transition-opacity">
             <Logo />
