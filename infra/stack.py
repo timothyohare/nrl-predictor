@@ -312,6 +312,26 @@ class NrlPredictorStack(cdk.Stack):
             },
         )
 
+        # ── Lambda: orchestrator ─────────────────────────────────────────────
+        # Fans out per-match work: scrapes draw + team sheets inline, then
+        # invokes agent_fn async per match. EventBridge calls this on Friday/
+        # Saturday/Thursday windows (per-match Lambdas can still be invoked
+        # ad-hoc for backfill/debugging).
+        orchestrator_fn = _lambda.Function(
+            self, "OrchestratorLambda",
+            function_name="nrl-predictor-orchestrator",
+            runtime=LAMBDA_RUNTIME,
+            handler="orchestrator.lambda_handler.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.minutes(10),
+            memory_size=512,
+            environment={
+                **_scraper_env,
+                "AGENT_FUNCTION_NAME": agent_fn.function_name,
+            },
+        )
+
         # ── Lambda: retrospective ────────────────────────────────────────────
         # Defined before scoring_fn so we can pass its ARN into scoring's env
         retrospective_fn = _lambda.Function(
@@ -368,6 +388,12 @@ class NrlPredictorStack(cdk.Stack):
             results_table.grant_read_write_data(fn)
             raw_bucket.grant_read_write(fn)
 
+        # Orchestrator: reads/writes teams + s3 (same as the scraper lambdas
+        # whose work it inlines) and invokes the agent
+        teams_table.grant_read_write_data(orchestrator_fn)
+        raw_bucket.grant_read_write(orchestrator_fn)
+        agent_fn.grant_invoke(orchestrator_fn)
+
         for fn in (agent_fn,):
             for tbl in (predictions_table, teams_table, results_table, metrics_table,
                         claude_usage_table, injuries_table, weather_table):
@@ -419,45 +445,48 @@ class NrlPredictorStack(cdk.Stack):
             targets=[targets.LambdaFunction(draw_fn, event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}))],
         )
 
-        # Thursday 12:00 UTC (22:00 AEST) — draw + team sheet + ladder + articles
+        # Thursday 12:00 UTC (22:00 AEST) — ladder refresh
         thu_rule = events.Rule(
             self, "ThuRule",
             rule_name="nrl-scraper-thursday",
             schedule=events.Schedule.cron(minute="0", hour="12", week_day="THU"),
         )
-        thu_rule.add_target(targets.LambdaFunction(draw_fn, event=events.RuleTargetInput.from_object({"season": 2026})))
         thu_rule.add_target(targets.LambdaFunction(ladder_fn, event=events.RuleTargetInput.from_object({"season": 2026})))
 
-        # Friday 04:00 UTC (14:00 AEST) — team sheet + articles
+        # Friday 04:00 UTC (14:00 AEST) — articles refresh
         fri_pm_rule = events.Rule(
             self, "FriPmRule",
             rule_name="nrl-scraper-friday-pm",
             schedule=events.Schedule.cron(minute="0", hour="4", week_day="FRI"),
         )
-        fri_pm_rule.add_target(targets.LambdaFunction(team_sheet_fn))
         fri_pm_rule.add_target(targets.LambdaFunction(articles_fn))
 
-        # Friday 12:00 UTC (22:00 AEST) — team sheet + weather + articles + agent
+        # Friday 12:00 UTC (22:00 AEST) — orchestrator fans out per-match work
+        # (draw + team sheets + agent) then weather + articles for refresh.
         fri_night_rule = events.Rule(
             self, "FriNightRule",
             rule_name="nrl-scraper-friday-night",
             schedule=events.Schedule.cron(minute="0", hour="12", week_day="FRI"),
         )
-        fri_night_rule.add_target(targets.LambdaFunction(team_sheet_fn))
+        fri_night_rule.add_target(targets.LambdaFunction(
+            orchestrator_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
         fri_night_rule.add_target(targets.LambdaFunction(weather_fn))
         fri_night_rule.add_target(targets.LambdaFunction(articles_fn))
-        fri_night_rule.add_target(targets.LambdaFunction(agent_fn))
 
-        # Saturday 23:00 UTC Friday (09:00 AEST Sat) — team sheet + weather + articles + agent re-run
+        # Saturday 23:00 UTC Friday (09:00 AEST Sat) — orchestrator re-run
         sat_am_rule = events.Rule(
             self, "SatAmRule",
             rule_name="nrl-scraper-saturday-am",
             schedule=events.Schedule.cron(minute="0", hour="23", week_day="FRI"),
         )
-        sat_am_rule.add_target(targets.LambdaFunction(team_sheet_fn))
+        sat_am_rule.add_target(targets.LambdaFunction(
+            orchestrator_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
         sat_am_rule.add_target(targets.LambdaFunction(weather_fn))
         sat_am_rule.add_target(targets.LambdaFunction(articles_fn))
-        sat_am_rule.add_target(targets.LambdaFunction(agent_fn))
 
         # ── CloudWatch Alarms ─────────────────────────────────────────────────
         for fn, name in [

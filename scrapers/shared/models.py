@@ -10,6 +10,7 @@ class Match:
     round_number: int
     kick_off: str | None
     match_state: str
+    match_centre_url: str = ""
 
 
 @dataclass

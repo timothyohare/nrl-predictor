@@ -45,6 +45,7 @@ def parse_draw(data: dict) -> list[Match]:
             round_number=round_number,
             kick_off=kick_off,
             match_state=fixture.get("matchState", ""),
+            match_centre_url=url,
         ))
     return matches
 
@@ -75,5 +76,6 @@ def lambda_handler(event: dict, context) -> None:
                     "venue": match.venue,
                     "kickOff": match.kick_off or "",
                     "matchState": match.match_state,
+                    "matchCentreUrl": match.match_centre_url,
                     "scraped_at": scraped_at,
                 })
