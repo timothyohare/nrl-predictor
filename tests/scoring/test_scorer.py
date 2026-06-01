@@ -16,6 +16,7 @@ def _seed_prediction(table, winner="Panthers", margin=10, confidence="HIGH"):
         "predicted_winner": winner,
         "predicted_margin": margin,
         "confidence": confidence,
+        "status": "OK",
     })
 
 
@@ -100,3 +101,20 @@ def test_brier_high_confidence(tables):
     result = score_prediction(MATCH_ID, results_tbl, pred_tbl)
     # HIGH = p=0.85, correct=1 → (0.85-1)^2 = 0.0225
     assert result.brier_component == pytest.approx(0.0225)
+
+
+def test_skips_failed_prediction_uses_latest_ok(tables):
+    """Scorer must skip FAILED records and use the most recent OK prediction."""
+    pred_tbl, results_tbl = tables
+    # Seed an OK prediction first
+    _seed_prediction(pred_tbl, winner="Panthers", confidence="HIGH")
+    # Seed a later FAILED record (no predicted_winner)
+    pred_tbl.put_item(Item={
+        "matchId": MATCH_ID,
+        "generatedAt": "2026-05-16T08:00:00Z",  # later than OK above
+        "status": "FAILED",
+        "error": "Agent produced non-JSON output",
+    })
+    _seed_result(results_tbl, home_score=24, away_score=18)
+    result = score_prediction(MATCH_ID, results_tbl, pred_tbl)
+    assert result.correct_pick is True

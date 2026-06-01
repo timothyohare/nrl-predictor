@@ -28,9 +28,11 @@ def score_prediction(match_id: str, results_table, predictions_table) -> ScoredR
         KeyConditionExpression="matchId = :m",
         ExpressionAttributeValues={":m": match_id},
         ScanIndexForward=False,
-        Limit=1,
     )
-    prediction = pred_resp["Items"][0]
+    ok_preds = [p for p in pred_resp["Items"] if p.get("status") == "OK"]
+    if not ok_preds:
+        raise ValueError(f"No OK prediction found for {match_id}")
+    prediction = ok_preds[0]
 
     actual_winner = result["winner"]
     actual_margin = int(result["margin"])

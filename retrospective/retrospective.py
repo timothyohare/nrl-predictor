@@ -110,7 +110,13 @@ def generate_retrospective(
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
-    parsed = json.loads(response.content[0].text.strip())
+    text_block = next((b for b in response.content if getattr(b, "type", None) == "text"), None)
+    if text_block is None:
+        raise ValueError(f"No text block in Claude response for {match_id}")
+    raw = text_block.text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```", 2)[1].lstrip("json").strip()
+    parsed = json.loads(raw)
 
     generated_at = datetime.now(timezone.utc).isoformat()
     item = {
