@@ -31,7 +31,7 @@ Post-match: `scripts/score_round.py` invokes the scoring Lambda per matchId; sco
 | Check which commit is deployed | `git log --oneline -1` (build SHA shown in the site footer) |
 | Trigger a round of predictions now | See [Invoking the orchestrator](#invoking-the-orchestrator-manually-for-backfill--catch-up) below |
 | Verify the API | `curl https://2jjj64x7ih.execute-api.ap-southeast-2.amazonaws.com/predictions/12` |
-| Score a completed round | See [CLAUDE.md → Post-round operations](CLAUDE.md#post-round-operations) |
+| Score a completed round | See [Scoring a completed round](#scoring-a-completed-round) below |
 
 ---
 
@@ -272,6 +272,35 @@ aws lambda invoke \
   --region ap-southeast-2 \
   /tmp/response.json
 ```
+
+---
+
+## Scoring a completed round
+
+After a round finishes, scrape the results and then invoke the scoring Lambda for each match:
+
+### 1. Scrape results
+
+```bash
+aws lambda invoke \
+  --function-name nrl-predictor-results-scraper \
+  --payload '{"season": 2026, "round": 12}' \
+  --cli-binary-format raw-in-base64-out \
+  --region ap-southeast-2 \
+  /dev/null
+```
+
+### 2. Score predictions and trigger retrospectives
+
+```bash
+# Preview (no invocations)
+AWS_DEFAULT_REGION=ap-southeast-2 python3 scripts/score_round.py --round 12 --season 2026 --dry-run
+
+# Run for real
+AWS_DEFAULT_REGION=ap-southeast-2 python3 scripts/score_round.py --round 12 --season 2026
+```
+
+The scoring Lambda writes scored results to `results`, aggregates accuracy into `metrics`, and async-triggers the retrospective Lambda for each match. Retrospectives appear in the API response (under `retrospective`) ~30–60 seconds after scoring completes.
 
 ---
 

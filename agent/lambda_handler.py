@@ -7,6 +7,7 @@ import boto3
 from agent.budget import BudgetExceeded, check_budget
 from agent.graph import run_agent
 from agent.prompt import PROMPT_VERSION
+from agent.tools.lessons import get_lessons
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -14,10 +15,23 @@ logger.setLevel(logging.INFO)
 
 def lambda_handler(event: dict, context) -> None:
     match_id = event["matchId"]
+    # Fetch recent lessons from retrospectives to inject into the prompt
+    season = event.get("season", datetime.now(timezone.utc).year)
+    lessons = []
+    retro_table_name = os.environ.get("RETROSPECTIVES_TABLE")
+    if retro_table_name:
+        try:
+            retro_table = boto3.resource("dynamodb").Table(retro_table_name)
+            lessons = get_lessons(season=season, limit=5, table=retro_table)
+            logger.info("Injecting %d lessons into prompt for %s", len(lessons), match_id)
+        except Exception:
+            logger.warning("Failed to fetch lessons for %s", match_id, exc_info=True)
+
     match_context = {
         "round": event.get("round"),
         "is_finals": event.get("is_finals", False),
         "is_high_impact_change": event.get("is_high_impact_change", False),
+        "lessons": lessons,
     }
     table_name = os.environ["PREDICTIONS_TABLE"]
     budget_usd = float(os.environ.get("MONTHLY_BUDGET_USD", "18"))

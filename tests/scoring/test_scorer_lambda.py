@@ -46,6 +46,7 @@ def tables():
             "predicted_winner": "Panthers",
             "predicted_margin": 10,
             "confidence": "HIGH",
+            "status": "OK",
             "roundNumber": 12,
             "season": 2026,
         })

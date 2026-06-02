@@ -398,6 +398,7 @@ class NrlPredictorStack(cdk.Stack):
             for tbl in (predictions_table, teams_table, results_table, metrics_table,
                         claude_usage_table, injuries_table, weather_table):
                 tbl.grant_read_write_data(fn)
+            retrospectives_table.grant_read_data(fn)
             raw_bucket.grant_read(fn)
             anthropic_secret.grant_read(fn)
             tavily_secret.grant_read(fn)

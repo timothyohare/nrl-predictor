@@ -21,6 +21,7 @@ from agent.tools.recent_form import get_recent_form
 from agent.tools.team_sheet import get_team_sheet
 from agent.tools.weather import get_weather
 from agent.tools.fantasy_stats import get_fantasy_stats
+from agent.tools.lessons import get_lessons
 from agent.tools.web_search import web_search
 from scrapers.shared.constants import HAIKU_MODEL
 
@@ -119,6 +120,22 @@ _TOOL_DEFINITIONS = [
             "required": ["query"],
         },
     },
+    {
+        "name": "get_lessons",
+        "description": (
+            "Returns lessons learned from post-match retrospectives. "
+            "Use to check what past predictions got wrong for a team or matchup type."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "season": {"type": "integer"},
+                "team": {"type": "string", "description": "Team slug to filter by, e.g. 'panthers'"},
+                "limit": {"type": "integer", "default": 10},
+            },
+            "required": ["season"],
+        },
+    },
 ]
 
 
@@ -139,6 +156,8 @@ def _execute_tool(name: str, tool_input: dict) -> object:
         return get_fantasy_stats(**tool_input)
     if name == "web_search":
         return web_search(**tool_input)
+    if name == "get_lessons":
+        return get_lessons(**tool_input)
     raise ValueError(f"Unknown tool: {name}")
 
 
@@ -161,7 +180,7 @@ def run_agent(match_id: str, match_context: dict, client=None) -> dict:
         api_key = secret["SecretString"]
         client = anthropic.Anthropic(api_key=api_key)
 
-    system = build_system_prompt()
+    system = build_system_prompt(lessons=match_context.get("lessons"))
     messages = [
         {
             "role": "user",
