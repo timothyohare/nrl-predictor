@@ -102,6 +102,7 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 | `scrapers/articles/` | RSS from Zero Tackle / The Roar; Haiku-based injury extraction |
 | `scrapers/odds/` | Betting market odds from the-odds-api.com — comparison only, never agent input |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
+| `tournament/` | Prompt tournament: `variant_runner.py` (run agent with variant prompt), `variant_scorer.py` (score variants vs results), `orchestrator_lambda.py` (fan-out to workers), `worker_lambda.py` (per-variant), `scorer_lambda.py`, `seed_variants.py` (seed initial 8 variants) |
 | `agent/` | LangGraph ReAct graph (`graph.py`), 8 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
 | `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then async-invokes the agent per match (staggered to respect Anthropic rate limit) |
 | `retrospective/` | Post-match retrospective: Tavily search + Claude Sonnet analysis of prediction vs result |
@@ -119,7 +120,7 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 
 ### DynamoDB tables
 
-`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`) · `retrospectives` (PK: `matchId`, SK: `generatedAt`) · `match_stats` (PK: `matchId`, SK: `scraped_at`) · `odds` (PK: `matchId`, SK: `scrapedAt`)
+`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`) · `retrospectives` (PK: `matchId`, SK: `generatedAt`) · `match_stats` (PK: `matchId`, SK: `scraped_at`) · `odds` (PK: `matchId`, SK: `scrapedAt`) · `prompt_variants` (PK: `variantId`, SK: `version`) · `simulation_predictions` (PK: `pk` = `matchId#variantId`, SK: `generatedAt`) · `variant_metrics` (PK: `variantId`, SK: `period`)
 
 ### Prompt versioning
 

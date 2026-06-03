@@ -76,7 +76,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 9: Prompt Tournament
 
-**Status:** Not started
+**Status:** Done (MVP — 8 variants, 3 Lambdas, leaderboard page)
 **Plan:** [plans/03-prompt-tournament.md](plans/03-prompt-tournament.md)
 **Summary:** Run 20-50 prompt variants per match. Score all variants after results. Promote the best-performing prompt after statistical significance (~6 rounds). Hyperparameter sweep over prompt space.
 **Effort:** High — new tables, tournament runner, scoring pipeline, dashboard

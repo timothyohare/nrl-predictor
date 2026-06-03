@@ -161,6 +161,34 @@ class NrlPredictorStack(cdk.Stack):
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
 
+        # Tournament tables
+        prompt_variants_table = dynamodb.Table(
+            self, "PromptVariants",
+            table_name="prompt_variants",
+            partition_key=dynamodb.Attribute(name="variantId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="version", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
+        simulation_predictions_table = dynamodb.Table(
+            self, "SimulationPredictions",
+            table_name="simulation_predictions",
+            partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="generatedAt", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
+        variant_metrics_table = dynamodb.Table(
+            self, "VariantMetrics",
+            table_name="variant_metrics",
+            partition_key=dynamodb.Attribute(name="variantId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="period", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
         # ── Secrets Manager ──────────────────────────────────────────────────
         anthropic_secret = secretsmanager.Secret(
             self, "AnthropicApiKey",
@@ -204,6 +232,9 @@ class NrlPredictorStack(cdk.Stack):
             "RETROSPECTIVES_TABLE": retrospectives_table.table_name,
             "MATCH_STATS_TABLE": match_stats_table.table_name,
             "ODDS_TABLE": odds_table.table_name,
+            "PROMPT_VARIANTS_TABLE": prompt_variants_table.table_name,
+            "SIMULATION_PREDICTIONS_TABLE": simulation_predictions_table.table_name,
+            "VARIANT_METRICS_TABLE": variant_metrics_table.table_name,
             "RAW_BUCKET": raw_bucket.bucket_name,
             "AWS_ACCOUNT": self.account,
         }
@@ -397,6 +428,53 @@ class NrlPredictorStack(cdk.Stack):
             },
         )
 
+        # ── Lambda: tournament worker (per-variant) ───────────────────────────
+        tournament_worker_fn = _lambda.Function(
+            self, "TournamentWorkerLambda",
+            function_name="nrl-predictor-tournament-worker",
+            runtime=LAMBDA_RUNTIME,
+            handler="tournament.worker_lambda.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            # Longest worker: variant 7 at offset 84s + 7*96s = 756s ≈ 13 min
+            timeout=cdk.Duration.minutes(15),
+            memory_size=512,
+            environment={
+                **_common_env,
+            },
+        )
+
+        # ── Lambda: tournament orchestrator ───────────────────────────────────
+        tournament_orchestrator_fn = _lambda.Function(
+            self, "TournamentOrchestratorLambda",
+            function_name="nrl-predictor-tournament-orchestrator",
+            runtime=LAMBDA_RUNTIME,
+            handler="tournament.orchestrator_lambda.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.minutes(2),
+            memory_size=256,
+            environment={
+                **_common_env,
+                "TOURNAMENT_WORKER_FUNCTION_ARN": tournament_worker_fn.function_arn,
+            },
+        )
+
+        # ── Lambda: tournament scorer ─────────────────────────────────────────
+        tournament_scorer_fn = _lambda.Function(
+            self, "TournamentScorerLambda",
+            function_name="nrl-predictor-tournament-scorer",
+            runtime=LAMBDA_RUNTIME,
+            handler="tournament.scorer_lambda.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.minutes(5),
+            memory_size=256,
+            environment={
+                **_common_env,
+            },
+        )
+
         # ── Lambda: API ───────────────────────────────────────────────────────
         api_fn = _lambda.Function(
             self, "ApiLambda",
@@ -451,11 +529,32 @@ class NrlPredictorStack(cdk.Stack):
         anthropic_secret.grant_read(retrospective_fn)
         tavily_secret.grant_read(retrospective_fn)
 
+        # Tournament worker: same access as agent (calls Claude with tools)
+        for tbl in (teams_table, results_table, claude_usage_table, injuries_table, weather_table,
+                    retrospectives_table):
+            tbl.grant_read_data(tournament_worker_fn)
+        prompt_variants_table.grant_read_data(tournament_worker_fn)
+        simulation_predictions_table.grant_read_write_data(tournament_worker_fn)
+        anthropic_secret.grant_read(tournament_worker_fn)
+        tavily_secret.grant_read(tournament_worker_fn)
+        raw_bucket.grant_read(tournament_worker_fn)
+
+        # Tournament orchestrator: reads variants, invokes workers
+        prompt_variants_table.grant_read_data(tournament_orchestrator_fn)
+        tournament_worker_fn.grant_invoke(tournament_orchestrator_fn)
+
+        # Tournament scorer: reads sim predictions + results, writes metrics
+        simulation_predictions_table.grant_read_data(tournament_scorer_fn)
+        results_table.grant_read_data(tournament_scorer_fn)
+        variant_metrics_table.grant_read_write_data(tournament_scorer_fn)
+
         for tbl in (predictions_table, metrics_table, rate_limits_table, retrospectives_table):
             tbl.grant_read_write_data(api_fn)
         # API joins results + odds onto predictions
         results_table.grant_read_data(api_fn)
         odds_table.grant_read_data(api_fn)
+        # API serves tournament leaderboard
+        variant_metrics_table.grant_read_data(api_fn)
 
         anthropic_secret.grant_read(articles_fn)
 
@@ -474,6 +573,7 @@ class NrlPredictorStack(cdk.Stack):
         api.add_routes(path="/predictions/{round}", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
         api.add_routes(path="/accuracy", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
         api.add_routes(path="/health", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
+        api.add_routes(path="/tournament/leaderboard", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
 
         # ── EventBridge schedules (UTC cron) ──────────────────────────────────
         # Tuesday 06:30 UTC (16:30 AEST) — early predictions after team lists drop
@@ -541,7 +641,7 @@ class NrlPredictorStack(cdk.Stack):
         fri_night_rule.add_target(targets.LambdaFunction(weather_fn))
         fri_night_rule.add_target(targets.LambdaFunction(articles_fn))
 
-        # Saturday 23:00 UTC Friday (09:00 AEST Sat) — orchestrator re-run
+        # Saturday 23:00 UTC Friday (09:00 AEST Sat) — orchestrator re-run + tournament
         sat_am_rule = events.Rule(
             self, "SatAmRule",
             rule_name="nrl-scraper-saturday-am",
@@ -553,6 +653,28 @@ class NrlPredictorStack(cdk.Stack):
         ))
         sat_am_rule.add_target(targets.LambdaFunction(weather_fn))
         sat_am_rule.add_target(targets.LambdaFunction(articles_fn))
+        # Tournament runs 30 min after main orchestrator to avoid concurrent rate limit pressure
+        # (use a separate rule at :30 for the offset)
+        events.Rule(
+            self, "TournamentOrchestratorRule",
+            rule_name="nrl-tournament-saturday-am",
+            schedule=events.Schedule.cron(minute="30", hour="23", week_day="FRI"),
+            targets=[targets.LambdaFunction(
+                tournament_orchestrator_fn,
+                event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+            )],
+        )
+
+        # Sunday 06:00 UTC (16:00 AEST) — score tournament variants after weekend results
+        events.Rule(
+            self, "TournamentScorerRule",
+            rule_name="nrl-tournament-scorer-sunday",
+            schedule=events.Schedule.cron(minute="0", hour="6", week_day="SUN"),
+            targets=[targets.LambdaFunction(
+                tournament_scorer_fn,
+                event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+            )],
+        )
 
         # ── CloudWatch Alarms ─────────────────────────────────────────────────
         for fn, name in [

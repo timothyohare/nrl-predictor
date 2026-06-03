@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="flex gap-4 text-sm ml-auto sm:ml-0">
             <a href="/predictions/current" className="hover:text-nrl-gold transition-colors">Predictions</a>
             <a href="/accuracy" className="hover:text-nrl-gold transition-colors">Accuracy</a>
+            <a href="/tournament" className="hover:text-nrl-gold transition-colors">Tournament</a>
             <a href="/how-it-works" className="hover:text-nrl-gold transition-colors">How it works</a>
           </nav>
         </header>

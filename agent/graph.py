@@ -244,7 +244,8 @@ def _serialise(obj) -> str:
         return str(obj)
 
 
-def run_agent(match_id: str, match_context: dict, client=None) -> dict:
+def run_agent(match_id: str, match_context: dict, client=None,
+              system_prompt: str | None = None) -> dict:
     model = select_model(match_context)
 
     if client is None:
@@ -256,7 +257,9 @@ def run_agent(match_id: str, match_context: dict, client=None) -> dict:
         api_key = secret["SecretString"]
         client = anthropic.Anthropic(api_key=api_key)
 
-    system = build_system_prompt(lessons=match_context.get("lessons"))
+    system = system_prompt if system_prompt is not None else build_system_prompt(
+        lessons=match_context.get("lessons")
+    )
     messages = [
         {
             "role": "user",

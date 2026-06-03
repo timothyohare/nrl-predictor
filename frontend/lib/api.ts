@@ -60,6 +60,21 @@ export interface MetricRecord {
   total?: number;
 }
 
+export interface VariantResult {
+  variantId: string;
+  pick_rate: number;
+  correct_picks: number;
+  total_picks: number;
+  avg_margin_error: number;
+  brier_score: number;
+  rounds_active: number;
+}
+
+export interface TournamentLeaderboard {
+  season: number;
+  leaderboard: VariantResult[];
+}
+
 const API_BASE = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 export async function getPredictions(round: number): Promise<Prediction[]> {
@@ -72,6 +87,13 @@ export async function getPredictions(round: number): Promise<Prediction[]> {
 export async function getAccuracy(): Promise<AccuracyData> {
   const res = await fetch(`${API_BASE}/accuracy`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch accuracy: ${res.status}`);
+  return res.json();
+}
+
+export async function getTournamentLeaderboard(season?: number): Promise<TournamentLeaderboard | null> {
+  const qs = season ? `?season=${season}` : "";
+  const res = await fetch(`${API_BASE}/tournament/leaderboard${qs}`, { next: { revalidate: 3600 } });
+  if (!res.ok) return null;
   return res.json();
 }
 
