@@ -15,7 +15,7 @@ Compare our AI predictions against betting market odds to find outliers — matc
 - Endpoint: `GET /v4/sports/rugbyleague_nrl/odds`
 - Returns: head-to-head (moneyline) and spreads (line/margin) from multiple bookmakers
 - API key stored in Secrets Manager: `nrl-predictor/odds-api-key`
-
+I've added a free tier API key to .env
 Alternative: direct scrape of Sportsbet/TAB odds pages (more fragile, no API key needed).
 
 ## New AWS Resources

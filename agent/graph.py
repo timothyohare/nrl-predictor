@@ -53,7 +53,7 @@ _TOOL_DEFINITIONS = [
     },
     {
         "name": "get_recent_form",
-        "description": "Returns the last n match results for a team.",
+        "description": "Returns the last n match results for a team with momentum analysis: weighted win rate, momentum direction (rising/falling/stable), current streak, and weighted scoring trends.",
         "input_schema": {
             "type": "object",
             "properties": {

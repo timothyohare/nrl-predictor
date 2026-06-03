@@ -38,16 +38,24 @@ def ddb_table():
 
 
 def test_returns_recent_form(ddb_table):
-    results = get_recent_form("Panthers", n=5, table=ddb_table)
-    assert len(results) == 5
+    result = get_recent_form("Panthers", n=5, table=ddb_table)
+    assert len(result["results"]) == 5
 
 
 def test_returns_fewer_than_n_if_not_enough(ddb_table):
-    results = get_recent_form("Storm", n=5, table=ddb_table)
-    assert results == []
+    result = get_recent_form("Storm", n=5, table=ddb_table)
+    assert result["results"] == []
 
 
 def test_results_sorted_descending(ddb_table):
-    results = get_recent_form("Panthers", n=6, table=ddb_table)
-    dates = [r["scoredAt"] for r in results]
+    result = get_recent_form("Panthers", n=6, table=ddb_table)
+    dates = [r["scoredAt"] for r in result["results"]]
     assert dates == sorted(dates, reverse=True)
+
+
+def test_includes_momentum(ddb_table):
+    result = get_recent_form("Panthers", n=6, table=ddb_table)
+    assert "momentum" in result
+    assert result["momentum"]["weighted_win_rate"] == 1.0
+    assert result["momentum"]["streak"] == "W6"
+    assert result["momentum"]["momentum_direction"] == "stable"

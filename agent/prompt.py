@@ -25,7 +25,7 @@ LESSONS FROM RECENT RETROSPECTIVES — these are mistakes or insights from your 
 Your task is to produce a structured match prediction. Work through the evidence in this order:
 
 1. TEAM SHEET QUALITY — Retrieve both team sheets. Identify any spine absences (fullback 1, five-eighth 6, halfback 7, hooker 9) and their likely impact. Note interchanges and positional shifts.
-2. RECENT FORM — Assess each team's last 4-6 games: winning streak, points scored and conceded, any momentum shift.
+2. RECENT FORM — Assess each team's momentum using the weighted form data. Pay attention to momentum direction (rising/falling/stable) and the weighted win rate rather than raw win count. A team on a 3-game winning streak after earlier losses is more dangerous than their season record suggests.
 3. HEAD-TO-HEAD — Check the recent H2H record at this venue and overall. Note any psychological edge.
 4. HOME/AWAY ADVANTAGE — Quantify home ground advantage for this venue. Note travel distance for the away side.
 5. WEATHER — Check the forecast. Flag if rain (>60% chance or >5mm), wind (>30 km/h), or extreme heat may favour one style of play.
