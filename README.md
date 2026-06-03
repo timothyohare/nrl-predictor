@@ -268,6 +268,7 @@ AWS_DEFAULT_REGION=ap-southeast-2 aws lambda invoke \
   --function-name nrl-predictor-orchestrator \
   --payload '{"season": 2026, "round": 12}' \
   --cli-binary-format raw-in-base64-out \
+  --cli-read-timeout 600 \
   /tmp/orch_out.json && cat /tmp/orch_out.json
 ```
 

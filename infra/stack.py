@@ -391,6 +391,7 @@ class NrlPredictorStack(cdk.Stack):
             environment={
                 **_scraper_env,
                 "AGENT_FUNCTION_NAME": agent_fn.function_name,
+                "AGENT_INVOKE_STAGGER_SECONDS": "15",
             },
         )
 
