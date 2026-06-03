@@ -18,7 +18,9 @@ EventBridge cron
                      → Next.js frontend (Amplify)
 ```
 
-Standalone scrapers (`ladder`, `articles`, `weather`, `results`) are wired to their own EventBridge schedules. The agent Lambda still exists and is callable ad-hoc per match for backfill — the orchestrator just orchestrates the per-match fan-out.
+Standalone scrapers (`ladder`, `articles`, `weather`, `results`, `odds`) are wired to their own EventBridge schedules. The agent Lambda still exists and is callable ad-hoc per match for backfill — the orchestrator just orchestrates the per-match fan-out.
+
+A prompt tournament runs 8 prompt variants in parallel per match. The tournament scorer runs Sunday evening to compare variant accuracy and find the best prompt configuration.
 
 Post-match: `scripts/score_round.py` invokes the scoring Lambda per matchId; scoring writes to `results`, aggregates into `metrics`, and async-triggers the retrospective Lambda.
 
@@ -71,9 +73,14 @@ aws secretsmanager put-secret-value \
   --secret-id nrl-predictor/tavily-api-key \
   --secret-string "tvly-..." \
   --region ap-southeast-2
+
+aws secretsmanager put-secret-value \
+  --secret-id nrl-predictor/odds-api-key \
+  --secret-string "..." \
+  --region ap-southeast-2
 ```
 
-Get the Anthropic key from [console.anthropic.com](https://console.anthropic.com) and the Tavily key from [app.tavily.com](https://app.tavily.com).
+Get the Anthropic key from [console.anthropic.com](https://console.anthropic.com), the Tavily key from [app.tavily.com](https://app.tavily.com), and the odds API key from [the-odds-api.com](https://the-odds-api.com).
 
 ### 4. Deploy the CDK stack
 
@@ -96,7 +103,15 @@ RESULTS_TABLE=results RAW_BUCKET=nrl-predictor-raw-scrapes AWS_DEFAULT_REGION=ap
 
 Expected: ~430 records (27 rounds × 8 matches × 2 seasons).
 
-### 6. Front end
+### 6. Seed prompt tournament variants
+
+```bash
+AWS_DEFAULT_REGION=ap-southeast-2 python3 -m tournament.seed_variants
+```
+
+Seeds 8 prompt variants (baseline + 7 experimental) into the `prompt_variants` table for the prompt tournament.
+
+### 7. Front end
 
 ```bash
 cd frontend
@@ -150,7 +165,7 @@ Expect `"Next.js - SSR"`. If it says `"Web"`, same thing — delete and recreate
 - Amplify auto-updates Route 53 when the hosted zone is in the same AWS account — no manual DNS edit needed
 - SSL cert validation takes 5–30 min; the domain won't resolve until the cert is issued
 
-### 7. Anthropic spend limit
+### 8. Anthropic spend limit
 
 In [console.anthropic.com](https://console.anthropic.com) → Settings → **Limits**:
 - Monthly hard cap: **$40 USD**
@@ -205,6 +220,10 @@ export AWS_DEFAULT_REGION=ap-southeast-2
 | `claude_usage` | Monthly token spend tracking |
 | `injuries` | Extracted injury mentions from articles |
 | `weather` | Cached weather forecasts |
+| `odds` | Betting market odds from the-odds-api.com (comparison only, never agent input) |
+| `prompt_variants` | Tournament prompt variants (8 seeded) |
+| `simulation_predictions` | Tournament variant predictions per match |
+| `variant_metrics` | Tournament variant accuracy metrics |
 
 ---
 
@@ -220,8 +239,11 @@ All times converted to AEST for readability. AEDT = UTC+11 (summer), AEST = UTC+
 | Friday | 17:00 | Articles + weather + **orchestrator** (update before Fri 6pm games) |
 | Friday | 22:00 | Articles + weather + **orchestrator** (re-run for late Fri / weekend games) |
 | Saturday | 09:00 | Articles + weather + **orchestrator** (refresh for Sat / Sun games) |
+| Sunday | 20:00 | **Tournament scorer** (score variant predictions after weekend results) |
 
 The orchestrator scrapes the draw, scrapes team sheets inline, and async-invokes the agent once per match (8-second stagger between invokes to stay under the Anthropic 50K input-tokens/minute rate limit).
+
+The odds scraper and tournament orchestrator also run alongside the main orchestrator on Tuesday/Thursday/Friday schedules.
 
 ---
 
@@ -314,4 +336,4 @@ curl $API/predictions/12
 curl $API/accuracy
 ```
 
-Each prediction in the response carries a `result` field once the match has been scored — `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }` — which the front end uses to render the actual score next to the prediction.
+Each prediction in the response carries a `result` field once the match has been scored — `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }` — which the front end uses to render the actual score next to the prediction. An `odds` field is joined when market data is available, with an `is_outlier` flag when the prediction disagrees with the market.

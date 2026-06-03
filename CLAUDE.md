@@ -91,7 +91,7 @@ Standalone scrapers (`ladder`, `articles`, `weather`, `results`) run on their ow
 
 Predictions run multiple times per week: first on Tuesday after team lists drop (~4pm AEST), then updated Thursday/Friday/Saturday as new data arrives (late changes, injury news, weather). Each run generates a new prediction row; the API serves the most recent OK prediction per match. The `generation` field tracks which run produced each prediction (1 = Tuesday early, 2+ = updates).
 
-Post-match: scoring Lambda writes scored results + triggers retrospective Lambda (async). Scoring then aggregates into `metrics`. Retrospective Lambda does a web search for match stats, stores them in `match_stats`, calls Claude Sonnet to compare prediction vs outcome, and stores the analysis in `retrospectives`. The API Lambda joins predictions ⨝ results ⨝ retrospectives by `matchId` so each frontend prediction carries the actual score and any post-match analysis.
+Post-match: scoring Lambda writes scored results + triggers retrospective Lambda (async). Scoring then aggregates into `metrics`. Retrospective Lambda does a web search for match stats, stores them in `match_stats`, calls Claude Sonnet to compare prediction vs outcome, and stores the analysis in `retrospectives`. The API Lambda joins predictions ⨝ results ⨝ retrospectives ⨝ odds by `matchId` so each frontend prediction carries the actual score, post-match analysis, and market comparison (with outlier flag when prediction disagrees with the market).
 
 ### Package structure
 
@@ -103,11 +103,11 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 | `scrapers/odds/` | Betting market odds from the-odds-api.com — comparison only, never agent input |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
 | `tournament/` | Prompt tournament: `variant_runner.py` (run agent with variant prompt), `variant_scorer.py` (score variants vs results), `orchestrator_lambda.py` (fan-out to workers), `worker_lambda.py` (per-variant), `scorer_lambda.py`, `seed_variants.py` (seed initial 8 variants) |
-| `agent/` | LangGraph ReAct graph (`graph.py`), 8 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
+| `agent/` | LangGraph ReAct graph (`graph.py`), 14 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
 | `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then async-invokes the agent per match (staggered to respect Anthropic rate limit) |
 | `retrospective/` | Post-match retrospective: Tavily search + Claude Sonnet analysis of prediction vs result |
 | `scoring/` | `scorer.py` (Brier + margin error), `metrics.py` (round/season aggregation incl. confidence calibration + prompt versioning) |
-| `api/` | API Gateway Lambda handlers — joins predictions ⨝ results ⨝ retrospectives by matchId for the front end |
+| `api/` | API Gateway Lambda handlers — joins predictions ⨝ results ⨝ retrospectives ⨝ odds by matchId for the front end |
 | `frontend/` | Next.js 15 SSR app on Amplify. Tailwind + custom Tailwind palette (`nrl-blue`/`gold`/`cream`/`paper`/`red`), Bungee (display) + Nunito (body) via `next/font/google`, team-color accents per match card from `frontend/lib/teamColors.ts`. **Requires `postcss.config.mjs`** for Tailwind to be processed — Next won't pick up Tailwind from `tailwind.config.ts` alone. |
 | `infra/` | AWS CDK (Python) — same language as everything else |
 | `fetcher-spikes/` | Throwaway scripts that probed each data source; findings recorded in `fetcher-spikes/README.md` |
@@ -128,7 +128,7 @@ The agent prompt version is tracked in `agent/prompt.py` as `PROMPT_VERSION`. Ev
 
 To bump the version: update `PROMPT_VERSION` and add an entry to `PROMPT_CHANGELOG` in `agent/prompt.py`.
 
-Current version: `v1.1` — added explicit chain-of-thought assessment order (team sheets → form → H2H → home/away → weather → news → verdict).
+Current version: `v1.2` — injected retrospective lessons into system prompt; added coaching matchup, trap game detection, spine synergy, and venue profile tools; expanded chain-of-thought to 8 steps (team sheets + synergy → form + momentum → H2H + coaching → home/away → venue + weather → news → trap game → verdict).
 
 ### Key scraping facts (from completed spikes)
 
@@ -158,10 +158,23 @@ Round-qualified: `round-{N}-{home-slug}-v-{away-slug}` (e.g. `round-12-panthers-
 The `/predictions/{round}` API additionally joins each prediction with:
 - `result` (when match is scored): `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }`
 - `retrospective` (when generated): see schema below
+- `odds` (when scraped): `{ market_favourite, market_margin, home_odds, away_odds, implied_home_prob, implied_away_prob }`
+- `is_outlier` (boolean): true when prediction disagrees with market on winner or margin differs by >6pts
 
 ### Retrospective output schema (stored in `retrospectives` table)
 
 `verdict` (1–2 sentences) · `hit_factors` (list) · `missed_factors` (list) · `what_actually_happened` (50–100 words) · `lesson` (one sentence) · `model_used` · `prompt_version` · `roundNumber` · `season`
+
+### Prompt tournament
+
+The prompt tournament (`tournament/`) runs 8 prompt variants in parallel against each match to find the most accurate prompt configuration. Variants are seeded via `python3 -m tournament.seed_variants` into the `prompt_variants` table.
+
+- **Orchestrator** (`tournament/orchestrator_lambda.py`): fans out to worker Lambdas per variant per match
+- **Worker** (`tournament/worker_lambda.py`): runs the agent with a variant prompt, writes to `simulation_predictions`
+- **Scorer** (`tournament/scorer_lambda.py`): scores variant predictions against results, writes to `variant_metrics`
+- Schedule: tournament orchestrator runs alongside the main orchestrator; scorer runs Sunday 20:00 AEST
+
+Variants test dimensions: home advantage weighting, form vs H2H balance, confidence calibration, margin conservatism, and upset detection aggressiveness.
 
 ### Metrics calibration
 

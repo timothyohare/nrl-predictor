@@ -8,7 +8,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7A: Early-Week Predictions
 
-**Status:** Not started
+**Status:** Done
 **Plan:** [plans/01-early-week-predictions.md](plans/01-early-week-predictions.md)
 **Summary:** Run predictions Tuesday after team lists drop, update Thursday/Friday. Enables tipping comp use.
 **Effort:** Small — one EventBridge rule + minor frontend change
@@ -16,7 +16,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7B: Momentum Decay Weighting
 
-**Status:** Done (e51766c)
+**Status:** Done
 **Plan:** [plans/06-momentum-decay-weighting.md](plans/06-momentum-decay-weighting.md)
 **Summary:** Replace flat "last 6 games" with exponential decay weighting. Captures momentum direction — a team on a 3-game win streak after 3 losses looks very different from the reverse.
 **Effort:** Small — pure computation on existing data, no new tables or APIs
