@@ -665,11 +665,13 @@ class NrlPredictorStack(cdk.Stack):
             )],
         )
 
-        # Sunday 06:00 UTC (16:00 AEST) — score tournament variants after weekend results
+        # Sunday 22:00 UTC (Monday 08:00 AEST) — score tournament variants after weekend results.
+        # Sunday 6pm AEST game ends ~8pm AEST (10:00 UTC); 22:00 UTC gives buffer for
+        # results scraper + scoring lambda to complete before the tournament scorer reads results.
         events.Rule(
             self, "TournamentScorerRule",
             rule_name="nrl-tournament-scorer-sunday",
-            schedule=events.Schedule.cron(minute="0", hour="6", week_day="SUN"),
+            schedule=events.Schedule.cron(minute="0", hour="22", week_day="SUN"),
             targets=[targets.LambdaFunction(
                 tournament_scorer_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
