@@ -16,6 +16,15 @@ export interface MatchResult {
   margin: number;
 }
 
+export interface Odds {
+  market_favourite: string;
+  market_margin: number;
+  home_odds: number;
+  away_odds: number;
+  implied_home_prob: number;
+  implied_away_prob: number;
+}
+
 export interface Prediction {
   matchId: string;
   predicted_winner: string;
@@ -34,6 +43,8 @@ export interface Prediction {
   generation?: number;
   retrospective?: Retrospective;
   result?: MatchResult;
+  odds?: Odds;
+  is_outlier?: boolean;
 }
 
 export interface AccuracyData {

@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 from decimal import Decimal
+import logging
 
 import boto3
+
+from scoring.odds_accuracy import score_market
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -141,3 +146,41 @@ def aggregate_season(season: int, results_table, metrics_table) -> None:
             f"pick_rate_prompt_{safe_pv}",
             pv_correct / pv_total, pv_correct, pv_total,
         )
+
+
+def aggregate_market_season(season: int, odds_table, results_table, metrics_table) -> None:
+    """Compute and persist betting market accuracy for the season."""
+    odds_resp = odds_table.scan(
+        FilterExpression="season = :s",
+        ExpressionAttributeValues={":s": season},
+    )
+    odds_items = odds_resp.get("Items", [])
+    # Deduplicate: most recent scraped odds per match
+    by_match: dict[str, dict] = {}
+    for item in odds_items:
+        mid = item["matchId"]
+        if mid not in by_match or item.get("scrapedAt", "") > by_match[mid].get("scrapedAt", ""):
+            by_match[mid] = item
+
+    if not by_match:
+        return
+
+    scored = []
+    for match_id in by_match:
+        try:
+            scored.append(score_market(match_id, odds_table, results_table))
+        except Exception:
+            pass  # match not yet played or result missing
+
+    total = len(scored)
+    if total == 0:
+        return
+
+    correct = sum(1 for s in scored if s.correct_pick)
+    margin_errors = [s.predicted_margin_error for s in scored]
+    brier_components = [s.brier_component for s in scored]
+
+    period = f"{season}-season"
+    _write_metric(metrics_table, period, "market_pick_rate", correct / total, correct, total)
+    _write_metric(metrics_table, period, "market_mean_margin_error", sum(margin_errors) / total)
+    _write_metric(metrics_table, period, "market_brier_score", sum(brier_components) / total)

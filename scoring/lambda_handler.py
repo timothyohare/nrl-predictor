@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import boto3
 
-from scoring.metrics import aggregate_round, aggregate_season
+from scoring.metrics import aggregate_round, aggregate_season, aggregate_market_season
 from scoring.scorer import score_prediction
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,8 @@ def lambda_handler(event: dict, context) -> None:
     pred_table = ddb.Table(os.environ["PREDICTIONS_TABLE"])
     results_table = ddb.Table(os.environ["RESULTS_TABLE"])
     metrics_table = ddb.Table(os.environ["METRICS_TABLE"])
+    odds_table_name = os.environ.get("ODDS_TABLE")
+    odds_table = ddb.Table(odds_table_name) if odds_table_name else None
     scored_at = datetime.now(timezone.utc).isoformat()
 
     try:
@@ -64,6 +66,11 @@ def lambda_handler(event: dict, context) -> None:
         )
         aggregate_round(round_number, season, results_table, metrics_table)
         aggregate_season(season, results_table, metrics_table)
+        if odds_table:
+            try:
+                aggregate_market_season(season, odds_table, results_table, metrics_table)
+            except Exception as e:
+                logger.warning("Market accuracy aggregation failed: %s", e)
 
         # Trigger retrospective asynchronously — failure here must not affect scoring
         _invoke_retrospective(match_id, round_number, season)

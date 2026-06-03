@@ -16,7 +16,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7B: Momentum Decay Weighting
 
-**Status:** Not started
+**Status:** Done (e51766c)
 **Plan:** [plans/06-momentum-decay-weighting.md](plans/06-momentum-decay-weighting.md)
 **Summary:** Replace flat "last 6 games" with exponential decay weighting. Captures momentum direction — a team on a 3-game win streak after 3 losses looks very different from the reverse.
 **Effort:** Small — pure computation on existing data, no new tables or APIs
@@ -28,7 +28,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7C: Venue-Specific Models
 
-**Status:** Not started
+**Status:** Done (451b26a)
 **Plan:** [plans/05-venue-specific-models.md](plans/05-venue-specific-models.md)
 **Summary:** Venue profiles with historical home win rate, avg scores, weather impact notes, surface/roof info. Replace generic "check weather" with venue-aware analysis.
 **Effort:** Medium — new table, seed script, new tool
@@ -36,7 +36,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7D: Coaching Matchup Analysis
 
-**Status:** Not started
+**Status:** Done (451b26a)
 **Plan:** [plans/07-coaching-matchup-analysis.md](plans/07-coaching-matchup-analysis.md)
 **Summary:** Coach-vs-coach records filtered to current tenures. A team's H2H under a different coach is misleading. Static coach map + compute from existing results.
 **Effort:** Medium — new tool, static data map
@@ -44,7 +44,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7E: Trap Game Detection
 
-**Status:** Not started
+**Status:** Done (451b26a)
 **Plan:** [plans/08-trap-game-detection.md](plans/08-trap-game-detection.md)
 **Summary:** Schedule context analysis: sandwich games, emotional letdowns, dead rubbers, short turnarounds, revenge games. Composite trap score (0-5) flags upset-prone matches.
 **Effort:** Medium — new tool computing from existing draw/results data
@@ -52,7 +52,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 7F: Player Combination Synergy
 
-**Status:** Not started
+**Status:** Done (451b26a)
 **Plan:** [plans/09-player-combination-synergy.md](plans/09-player-combination-synergy.md)
 **Summary:** Track how many games each team's spine (1-6-7-9) have played together. Flag new combinations with <5 games as a hidden vulnerability. Combination experience > individual quality.
 **Effort:** Medium — new tool, historical team sheet analysis
@@ -64,7 +64,7 @@ Execution order reflects dependencies, effort, and value. Each item has a detail
 
 ### Phase 8: Betting Market Comparison
 
-**Status:** Not started
+**Status:** Done
 **Plan:** [plans/02-betting-market-comparison.md](plans/02-betting-market-comparison.md)
 **Summary:** Scrape odds independently (NOT as agent input). Track market accuracy alongside prediction accuracy. Flag outliers where our pick disagrees with the market.
 **Effort:** High — new scraper, new table, new API endpoint, frontend component

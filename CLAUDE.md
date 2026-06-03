@@ -100,6 +100,7 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 | `scrapers/nrl/` | Fetch draw, team sheets, ladder, results from nrl.com |
 | `scrapers/weather/` | BOM hourly (primary) + Open-Meteo (fallback) |
 | `scrapers/articles/` | RSS from Zero Tackle / The Roar; Haiku-based injury extraction |
+| `scrapers/odds/` | Betting market odds from the-odds-api.com — comparison only, never agent input |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
 | `agent/` | LangGraph ReAct graph (`graph.py`), 8 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
 | `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then async-invokes the agent per match (staggered to respect Anthropic rate limit) |
@@ -118,7 +119,7 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 
 ### DynamoDB tables
 
-`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`) · `retrospectives` (PK: `matchId`, SK: `generatedAt`) · `match_stats` (PK: `matchId`, SK: `scraped_at`)
+`predictions` (PK: `matchId`, SK: `generatedAt`) · `teams` (PK: `teamId`, SK: `round`) · `results` (PK: `matchId`, SK: `scoredAt`) · `metrics` (PK: `period`, SK: `metricName`) · `nrl-rate-limits` (PK: `pk`, TTL: `ttl`) · `claude_usage` (PK: `yearMonth`, SK: `invokedAt`) · `injuries` (PK: `pk`, SK: `sk`) · `weather` (PK: `pk`, SK: `sk`) · `retrospectives` (PK: `matchId`, SK: `generatedAt`) · `match_stats` (PK: `matchId`, SK: `scraped_at`) · `odds` (PK: `matchId`, SK: `scrapedAt`)
 
 ### Prompt versioning
 
@@ -163,9 +164,10 @@ The `/predictions/{round}` API additionally joins each prediction with:
 
 ### Metrics calibration
 
-`metrics` table stores confidence calibration and prompt version pick rates for the season period:
+`metrics` table stores confidence calibration, prompt version pick rates, and market accuracy for the season period:
 - `pick_rate_high_confidence`, `pick_rate_medium_confidence`, `pick_rate_low_confidence`
 - `pick_rate_prompt_v1_1` (one per prompt version, dots replaced with underscores)
+- `market_pick_rate`, `market_mean_margin_error`, `market_brier_score` — betting market accuracy (written by `scoring/metrics.py::aggregate_market_season`)
 
 ## TDD workflow
 
@@ -182,6 +184,7 @@ Fixture JSON files go in `tests/fixtures/` and are copied from spike output.
 
 ## Important constraints
 
+- **Betting market odds (`scrapers/odds/`) are for comparison only — NEVER pass odds data as input to the prediction agent.** The predictions must remain independent so the AI vs market accuracy comparison is meaningful. Odds are stored in the `odds` table and joined onto the API response post-prediction.
 - All scraper requests must include a browser `User-Agent` and a random 1.5–3.0 s delay between requests.
 - Table names and bucket names must be read from env vars, never hardcoded in Lambda handlers.
 - Every DynamoDB write must include a `scraped_at` timestamp.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Prediction, Retrospective } from "@/lib/api";
+import type { Prediction, Retrospective, Odds } from "@/lib/api";
 import { teamColor } from "@/lib/teamColors";
 
 const CONFIDENCE_STYLES: Record<string, string> = {
@@ -24,6 +24,48 @@ function staleness(generated_at: string): string {
   if (hours < 1) return "Updated just now";
   if (hours < 24) return `Updated ${hours}h ago`;
   return `Updated ${Math.floor(hours / 24)}d ago`;
+}
+
+function OddsPanel({ odds, homeTeam, awayTeam, isOutlier }: {
+  odds: Odds;
+  homeTeam: string;
+  awayTeam: string;
+  isOutlier?: boolean;
+}) {
+  const homeProb = Math.round(odds.implied_home_prob * 100);
+  const awayProb = Math.round(odds.implied_away_prob * 100);
+  return (
+    <div className="border-t pt-3 mt-1 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Market odds</p>
+        {isOutlier && (
+          <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+            Disagrees with market
+          </span>
+        )}
+      </div>
+      <div className="flex gap-4 text-xs text-gray-600">
+        <span>
+          <span className="text-gray-400">Fav: </span>
+          <span className="font-medium">{odds.market_favourite}</span>
+          {odds.market_margin > 0 && (
+            <span className="text-gray-400 ml-1">by {odds.market_margin}</span>
+          )}
+        </span>
+        <span className="text-gray-300">|</span>
+        <span className="capitalize">{homeTeam} {odds.home_odds.toFixed(2)}</span>
+        <span className="capitalize">{awayTeam} {odds.away_odds.toFixed(2)}</span>
+      </div>
+      <div className="flex gap-1 items-center text-xs text-gray-400">
+        <span className="capitalize">{homeTeam}</span>
+        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden mx-1">
+          <div className="h-full bg-blue-400 rounded-full" style={{ width: `${homeProb}%` }} />
+        </div>
+        <span className="capitalize">{awayTeam}</span>
+        <span className="ml-1 text-gray-300">{homeProb}% / {awayProb}%</span>
+      </div>
+    </div>
+  );
 }
 
 function RetrospectivePanel({ retro }: { retro: Retrospective }) {
@@ -158,6 +200,15 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
           </li>
         ))}
       </ul>
+
+      {prediction.odds && (
+        <OddsPanel
+          odds={prediction.odds}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          isOutlier={prediction.is_outlier}
+        />
+      )}
 
       <div className="flex gap-3">
         <button
