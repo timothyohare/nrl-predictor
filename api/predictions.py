@@ -72,6 +72,23 @@ def lambda_handler(event: dict, context) -> dict:
         except Exception:
             pass  # result join is non-critical
 
+    # Fetch odds and join by matchId
+    odds_by_match: dict[str, dict] = {}
+    odds_table_name = os.environ.get("ODDS_TABLE")
+    if odds_table_name:
+        try:
+            odds_table = ddb.Table(odds_table_name)
+            odds_resp = odds_table.scan(
+                FilterExpression="roundNumber = :r",
+                ExpressionAttributeValues={":r": round_number},
+            )
+            for item in odds_resp.get("Items", []):
+                mid = item["matchId"]
+                if mid not in odds_by_match or item.get("scrapedAt", "") > odds_by_match[mid].get("scrapedAt", ""):
+                    odds_by_match[mid] = item
+        except Exception:
+            pass  # odds are non-critical
+
     predictions = sorted(by_match.values(), key=lambda x: x["matchId"])
     for pred in predictions:
         retro = retro_by_match.get(pred["matchId"])
@@ -94,6 +111,25 @@ def lambda_handler(event: dict, context) -> dict:
                 "awayScore": result.get("awayScore", 0),
                 "margin": result.get("margin", 0),
             }
+        odds = odds_by_match.get(pred["matchId"])
+        if odds:
+            pred["odds"] = {
+                "market_favourite": odds.get("market_favourite", ""),
+                "market_margin": float(odds.get("market_margin", 0)),
+                "home_odds": float(odds.get("home_odds", 0)),
+                "away_odds": float(odds.get("away_odds", 0)),
+                "implied_home_prob": float(odds.get("implied_home_prob", 0)),
+                "implied_away_prob": float(odds.get("implied_away_prob", 0)),
+            }
+            # Outlier: prediction disagrees with market on winner or margin differs by >6
+            pred_winner = pred.get("predicted_winner", "")
+            market_fav = odds.get("market_favourite", "")
+            pred_margin = int(pred.get("predicted_margin", 0))
+            market_margin = float(odds.get("market_margin", 0))
+            pred["is_outlier"] = (
+                pred_winner != market_fav
+                or abs(pred_margin - market_margin) > 6
+            )
 
     return {
         "statusCode": 200,

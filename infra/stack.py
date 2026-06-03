@@ -152,6 +152,15 @@ class NrlPredictorStack(cdk.Stack):
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
 
+        odds_table = dynamodb.Table(
+            self, "Odds",
+            table_name="odds",
+            partition_key=dynamodb.Attribute(name="matchId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="scrapedAt", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
         # ── Secrets Manager ──────────────────────────────────────────────────
         anthropic_secret = secretsmanager.Secret(
             self, "AnthropicApiKey",
@@ -172,6 +181,12 @@ class NrlPredictorStack(cdk.Stack):
             secret_string_value=cdk.SecretValue.unsafe_plain_text("PENDING"),
         )
 
+        odds_secret = secretsmanager.Secret(
+            self, "OddsApiKey",
+            secret_name="nrl-predictor/odds-api-key",
+            description="the-odds-api.com API key for betting market comparison",
+        )
+
         # ── Alerting SNS ─────────────────────────────────────────────────────
         alert_topic = sns.Topic(self, "AlertTopic", topic_name="nrl-predictor-alerts")
         alert_topic.add_subscription(sns_subs.EmailSubscription("timohare@gmail.com"))
@@ -188,6 +203,7 @@ class NrlPredictorStack(cdk.Stack):
             "WEATHER_TABLE": weather_table.table_name,
             "RETROSPECTIVES_TABLE": retrospectives_table.table_name,
             "MATCH_STATS_TABLE": match_stats_table.table_name,
+            "ODDS_TABLE": odds_table.table_name,
             "RAW_BUCKET": raw_bucket.bucket_name,
             "AWS_ACCOUNT": self.account,
         }
@@ -294,6 +310,21 @@ class NrlPredictorStack(cdk.Stack):
             },
         )
 
+        odds_fn = _lambda.Function(
+            self, "OddsScraper",
+            function_name="nrl-predictor-odds-scraper",
+            runtime=LAMBDA_RUNTIME,
+            handler="scrapers.odds.lambda_handler.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.minutes(2),
+            memory_size=256,
+            environment={
+                **_scraper_env,
+                "ODDS_API_KEY_SECRET_ARN": odds_secret.secret_arn,
+            },
+        )
+
         # ── Lambda: agent ─────────────────────────────────────────────────────
         agent_fn = _lambda.Function(
             self, "AgentLambda",
@@ -383,10 +414,14 @@ class NrlPredictorStack(cdk.Stack):
         )
 
         # ── IAM grants ───────────────────────────────────────────────────────
-        for fn in (draw_fn, team_sheet_fn, ladder_fn, results_fn, weather_fn, articles_fn):
+        for fn in (draw_fn, team_sheet_fn, ladder_fn, results_fn, weather_fn, articles_fn, odds_fn):
             teams_table.grant_read_write_data(fn)
             results_table.grant_read_write_data(fn)
             raw_bucket.grant_read_write(fn)
+
+        # Odds scraper: write odds table, read secrets
+        odds_table.grant_read_write_data(odds_fn)
+        odds_secret.grant_read(odds_fn)
 
         # Orchestrator: reads/writes teams + s3 (same as the scraper lambdas
         # whose work it inlines) and invokes the agent
@@ -418,8 +453,9 @@ class NrlPredictorStack(cdk.Stack):
 
         for tbl in (predictions_table, metrics_table, rate_limits_table, retrospectives_table):
             tbl.grant_read_write_data(api_fn)
-        # API joins results onto predictions to show actual scores
+        # API joins results + odds onto predictions
         results_table.grant_read_data(api_fn)
+        odds_table.grant_read_data(api_fn)
 
         anthropic_secret.grant_read(articles_fn)
 
