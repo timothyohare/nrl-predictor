@@ -53,6 +53,15 @@ def lambda_handler(event: dict, context) -> None:
         prediction["staleness_flag"] = False
         prediction["status"] = "OK"
         prediction["prompt_version"] = PROMPT_VERSION
+        # Track which generation this is (1 = first prediction, 2 = update, etc.)
+        existing = table.query(
+            KeyConditionExpression="matchId = :m",
+            FilterExpression="#s = :ok",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":m": match_id, ":ok": "OK"},
+            Select="COUNT",
+        )
+        prediction["generation"] = existing.get("Count", 0) + 1
         table.put_item(Item=prediction)
         logger.info("Prediction written for %s", match_id)
     except Exception as e:

@@ -89,6 +89,8 @@ EventBridge cron → Orchestrator Lambda → (draw + team-sheet scrape inline)
 
 Standalone scrapers (`ladder`, `articles`, `weather`, `results`) run on their own EventBridge schedules. The orchestrator owns the per-match fan-out — agent, draw, and team-sheet Lambdas are still callable directly for backfill/debugging, but the production path is always through the orchestrator.
 
+Predictions run multiple times per week: first on Tuesday after team lists drop (~4pm AEST), then updated Thursday/Friday/Saturday as new data arrives (late changes, injury news, weather). Each run generates a new prediction row; the API serves the most recent OK prediction per match. The `generation` field tracks which run produced each prediction (1 = Tuesday early, 2+ = updates).
+
 Post-match: scoring Lambda writes scored results + triggers retrospective Lambda (async). Scoring then aggregates into `metrics`. Retrospective Lambda does a web search for match stats, stores them in `match_stats`, calls Claude Sonnet to compare prediction vs outcome, and stores the analysis in `retrospectives`. The API Lambda joins predictions ⨝ results ⨝ retrospectives by `matchId` so each frontend prediction carries the actual score and any post-match analysis.
 
 ### Package structure
@@ -149,7 +151,7 @@ Round-qualified: `round-{N}-{home-slug}-v-{away-slug}` (e.g. `round-12-panthers-
 
 ### Prediction output schema
 
-`predicted_winner` (string) · `predicted_margin` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at` · `prompt_version`
+`predicted_winner` (string) · `predicted_margin` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at` · `prompt_version` · `generation` (int — 1 = first prediction, 2+ = update from later run)
 
 The `/predictions/{round}` API additionally joins each prediction with:
 - `result` (when match is scored): `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }`

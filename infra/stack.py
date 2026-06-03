@@ -440,6 +440,20 @@ class NrlPredictorStack(cdk.Stack):
         api.add_routes(path="/health", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
 
         # ── EventBridge schedules (UTC cron) ──────────────────────────────────
+        # Tuesday 06:30 UTC (16:30 AEST) — early predictions after team lists drop
+        tue_rule = events.Rule(
+            self, "TueRule",
+            rule_name="nrl-scraper-tuesday",
+            schedule=events.Schedule.cron(minute="30", hour="6", week_day="TUE"),
+        )
+        tue_rule.add_target(targets.LambdaFunction(draw_fn, event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"})))
+        tue_rule.add_target(targets.LambdaFunction(articles_fn))
+        tue_rule.add_target(targets.LambdaFunction(weather_fn))
+        tue_rule.add_target(targets.LambdaFunction(
+            orchestrator_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
+
         # Wednesday 08:00 UTC (18:00 AEST) — draw scraper
         events.Rule(
             self, "WedDrawRule",

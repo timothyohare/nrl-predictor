@@ -184,7 +184,12 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
         <RetrospectivePanel retro={prediction.retrospective} />
       )}
 
-      <p className="text-xs text-gray-400">{staleness(prediction.generated_at)}</p>
+      <p className="text-xs text-gray-400">
+        {staleness(prediction.generated_at)}
+        {prediction.generation && prediction.generation > 1 && (
+          <span className="ml-1.5 text-blue-400">(update #{prediction.generation})</span>
+        )}
+      </p>
     </div>
   );
 }

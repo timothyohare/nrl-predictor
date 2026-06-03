@@ -67,6 +67,21 @@ def test_lambda_handler_writes_prediction(aws_env, ddb_tables):
     result = table.scan()
     assert result["Count"] == 1
     assert result["Items"][0]["predicted_winner"] == "Panthers"
+    assert result["Items"][0]["generation"] == 1
+
+
+def test_lambda_handler_increments_generation(aws_env, ddb_tables):
+    from agent.lambda_handler import lambda_handler
+    pred_1 = {**_VALID_PREDICTION, "generated_at": "2026-05-15T10:00:00Z"}
+    pred_2 = {**_VALID_PREDICTION, "generated_at": "2026-05-16T10:00:00Z"}
+    with patch("agent.lambda_handler.run_agent", side_effect=[pred_1, pred_2]), \
+         patch("agent.lambda_handler.check_budget"):
+        lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
+        lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
+    table = ddb_tables.Table(PRED_TABLE)
+    items = sorted(table.scan()["Items"], key=lambda x: x["generatedAt"])
+    assert items[0]["generation"] == 1
+    assert items[1]["generation"] == 2
 
 
 def test_lambda_handler_serves_cached_on_budget_exceeded(aws_env, ddb_tables):

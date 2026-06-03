@@ -214,10 +214,10 @@ All times converted to AEST for readability. AEDT = UTC+11 (summer), AEST = UTC+
 
 | Rule | AEST | Targets |
 |------|------|---------|
+| Tuesday | 16:30 | Draw + articles + weather + **orchestrator** (early predictions after team lists) |
 | Wednesday | 18:00 | Draw scraper |
-| Thursday | 17:00 | Ladder + articles + weather + **orchestrator** (predictions before Thu 6pm games) |
-| Friday | 14:00 | Articles refresh |
-| Friday | 17:00 | Articles + weather + **orchestrator** (predictions before Fri 6pm games) |
+| Thursday | 17:00 | Ladder + articles + weather + **orchestrator** (update predictions before Thu 6pm games) |
+| Friday | 17:00 | Articles + weather + **orchestrator** (update before Fri 6pm games) |
 | Friday | 22:00 | Articles + weather + **orchestrator** (re-run for late Fri / weekend games) |
 | Saturday | 09:00 | Articles + weather + **orchestrator** (refresh for Sat / Sun games) |
 

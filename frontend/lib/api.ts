@@ -31,6 +31,7 @@ export interface Prediction {
   homeTeam?: string;
   awayTeam?: string;
   prompt_version?: string;
+  generation?: number;
   retrospective?: Retrospective;
   result?: MatchResult;
 }
