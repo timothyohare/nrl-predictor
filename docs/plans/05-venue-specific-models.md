@@ -116,6 +116,7 @@ The current agent treats all venues the same — it checks weather generically. 
 ## Risks
 
 - **Venue name instability:** NRL venues change sponsor names frequently. Need a stable slug system with aliases.
+- ABC Australia Sport network may have stable names for venues.
 - **Small sample sizes:** Some venues host <10 games/season. Rolling 2-season window helps but stats will be noisy for smaller grounds.
 - **Venue reassignment:** Teams occasionally play "home" games at neutral venues (Magic Round, Country Week). Need to handle these correctly.
 

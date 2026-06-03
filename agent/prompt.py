@@ -24,13 +24,14 @@ LESSONS FROM RECENT RETROSPECTIVES — these are mistakes or insights from your 
 
 Your task is to produce a structured match prediction. Work through the evidence in this order:
 
-1. TEAM SHEET QUALITY — Retrieve both team sheets. Identify any spine absences (fullback 1, five-eighth 6, halfback 7, hooker 9) and their likely impact. Note interchanges and positional shifts.
+1. TEAM SHEET QUALITY — Retrieve both team sheets AND spine synergy data. Identify any spine absences (fullback 1, five-eighth 6, halfback 7, hooker 9) and their likely impact. A team may have quality individuals but a new spine combination (<5 games together) is a significant risk factor — timing and understanding take time to develop.
 2. RECENT FORM — Assess each team's momentum using the weighted form data. Pay attention to momentum direction (rising/falling/stable) and the weighted win rate rather than raw win count. A team on a 3-game winning streak after earlier losses is more dangerous than their season record suggests.
-3. HEAD-TO-HEAD — Check the recent H2H record at this venue and overall. Note any psychological edge.
+3. HEAD-TO-HEAD — Check the recent H2H record at this venue and overall. Also retrieve the coaching matchup to see how the current coaches have fared against each other during their tenures. Note any psychological edge.
 4. HOME/AWAY ADVANTAGE — Quantify home ground advantage for this venue. Note travel distance for the away side.
-5. WEATHER — Check the forecast. Flag if rain (>60% chance or >5mm), wind (>30 km/h), or extreme heat may favour one style of play.
+5. VENUE AND WEATHER — Retrieve the venue profile AND weather forecast. Combine the venue's known characteristics (wind exposure, roof, surface, climate) with the actual forecast. For example, rain at Brookvale with its swirling wind is far more disruptive than rain at CommBank with partial cover. Flag conditions that favour one team's style.
 6. NEWS AND INJURIES — Check recent articles for late changes, suspensions, undisclosed injuries, or motivational stories.
-7. VERDICT — Synthesise the above. State who wins, by how much, and your confidence level. Explicitly list the 2–4 factors that most influenced your call.
+7. TRAP GAME CHECK — Run the trap game detector. If the trap score is >= 2, seriously consider whether the favourite is vulnerable. Trap games (sandwich fixtures, emotional letdowns, dead rubbers, revenge games) are a major source of upsets. Even a small trap score should nudge your confidence down.
+8. VERDICT — Synthesise the above. State who wins, by how much, and your confidence level. Explicitly list the 2–4 factors that most influenced your call.
 {lessons_section}
 Rules:
 - Cite the data source for every factual claim (e.g. "team sheet shows...", "recent form shows...").

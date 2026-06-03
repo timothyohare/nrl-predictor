@@ -14,6 +14,7 @@ from agent.budget import record_usage
 from agent.model_selection import select_model
 from agent.prompt import build_system_prompt
 from agent.schema import validate_prediction
+from agent.tools.coaching_matchup import get_coaching_matchup
 from agent.tools.head_to_head import get_head_to_head
 from agent.tools.injury_list import get_injury_list
 from agent.tools.ladder import get_ladder
@@ -22,6 +23,9 @@ from agent.tools.team_sheet import get_team_sheet
 from agent.tools.weather import get_weather
 from agent.tools.fantasy_stats import get_fantasy_stats
 from agent.tools.lessons import get_lessons
+from agent.tools.venue_profile import get_venue_profile
+from agent.tools.spine_synergy import get_spine_synergy
+from agent.tools.trap_game import detect_trap_game
 from agent.tools.web_search import web_search
 from scrapers.shared.constants import HAIKU_MODEL
 
@@ -121,6 +125,36 @@ _TOOL_DEFINITIONS = [
         },
     },
     {
+        "name": "get_coaching_matchup",
+        "description": (
+            "Returns the head-to-head record between the current coaches of two teams. "
+            "Only counts games during both coaches' tenures — ignores results under different coaches."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "team_a": {"type": "string", "description": "Team nickname, e.g. 'Panthers'"},
+                "team_b": {"type": "string", "description": "Team nickname, e.g. 'Storm'"},
+            },
+            "required": ["team_a", "team_b"],
+        },
+    },
+    {
+        "name": "get_venue_profile",
+        "description": (
+            "Returns venue profile including roof type, surface, capacity, city, "
+            "and weather impact notes specific to this ground. Use to understand "
+            "how the venue affects match conditions."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "venue": {"type": "string", "description": "Venue name, e.g. 'Suncorp Stadium'"},
+            },
+            "required": ["venue"],
+        },
+    },
+    {
         "name": "get_lessons",
         "description": (
             "Returns lessons learned from post-match retrospectives. "
@@ -134,6 +168,40 @@ _TOOL_DEFINITIONS = [
                 "limit": {"type": "integer", "default": 10},
             },
             "required": ["season"],
+        },
+    },
+    {
+        "name": "detect_trap_game",
+        "description": (
+            "Analyses schedule context to detect trap game conditions: sandwich games "
+            "between tough opponents, emotional letdowns after big wins, dead rubbers, "
+            "and revenge games. Returns a trap score (0-5) with explanations."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "match_id": {"type": "string"},
+                "round_number": {"type": "integer"},
+                "season": {"type": "integer"},
+                "home_team": {"type": "string", "description": "Home team nickname"},
+                "away_team": {"type": "string", "description": "Away team nickname"},
+            },
+            "required": ["match_id", "round_number", "season", "home_team", "away_team"],
+        },
+    },
+    {
+        "name": "get_spine_synergy",
+        "description": (
+            "Analyses how many games each team's spine (fullback 1, five-eighth 6, halfback 7, hooker 9) "
+            "have played together this season. Flags new combinations with <5 games together as a vulnerability."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "match_id": {"type": "string"},
+                "round_number": {"type": "integer"},
+            },
+            "required": ["match_id", "round_number"],
         },
     },
 ]
@@ -154,10 +222,18 @@ def _execute_tool(name: str, tool_input: dict) -> object:
         return get_ladder(**tool_input)
     if name == "get_fantasy_stats":
         return get_fantasy_stats(**tool_input)
+    if name == "get_venue_profile":
+        return get_venue_profile(**tool_input)
     if name == "web_search":
         return web_search(**tool_input)
     if name == "get_lessons":
         return get_lessons(**tool_input)
+    if name == "get_coaching_matchup":
+        return get_coaching_matchup(**tool_input)
+    if name == "detect_trap_game":
+        return detect_trap_game(**tool_input)
+    if name == "get_spine_synergy":
+        return get_spine_synergy(**tool_input)
     raise ValueError(f"Unknown tool: {name}")
 
 
