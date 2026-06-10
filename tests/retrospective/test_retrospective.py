@@ -145,6 +145,29 @@ def test_skips_if_retrospective_already_exists():
     assert result["verdict"] == "Already done"
 
 
+def test_skips_when_no_ok_prediction():
+    """A trailing FAILED prediction row (no predicted_winner) must not crash the
+    retrospective — the OK-status filter returns no items, so we skip gracefully."""
+    pred_tbl = MagicMock()
+    pred_tbl.query.return_value = {"Items": []}  # filter excluded the FAILED row
+    retro_tbl = _make_retrospectives_table()
+    mock_client = MagicMock()
+
+    result = generate_retrospective(
+        match_id=MATCH_ID,
+        round_number=11,
+        season=2026,
+        predictions_table=pred_tbl,
+        results_table=MagicMock(),
+        retrospectives_table=retro_tbl,
+        match_stats_table=MagicMock(),
+        anthropic_client=mock_client,
+    )
+
+    mock_client.messages.create.assert_not_called()
+    assert result == {}
+
+
 def test_thinking_block_before_text_block():
     """claude-sonnet-4-6 may return a thinking block at content[0] with empty .text;
     the actual JSON is in the text block further along in content[]."""

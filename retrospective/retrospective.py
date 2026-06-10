@@ -43,12 +43,20 @@ def generate_retrospective(
         logger.info("Retrospective already exists for %s, skipping", match_id)
         return existing["Items"][0]
 
+    # Most recent prediction with status OK — later runs can leave a trailing
+    # FAILED row that lacks predicted_winner, so we must skip non-OK rows
+    # (mirrors the API/scorer selection). No Limit: a DynamoDB FilterExpression
+    # is applied after the row limit, so Limit=1 would drop OK rows.
     pred_resp = predictions_table.query(
         KeyConditionExpression="matchId = :m",
-        ExpressionAttributeValues={":m": match_id},
+        FilterExpression="#s = :ok",
+        ExpressionAttributeNames={"#s": "status"},
+        ExpressionAttributeValues={":m": match_id, ":ok": "OK"},
         ScanIndexForward=False,
-        Limit=1,
     )
+    if not pred_resp.get("Items"):
+        logger.warning("No OK prediction for %s, skipping retrospective", match_id)
+        return {}
     prediction = pred_resp["Items"][0]
 
     result_resp = results_table.query(
