@@ -55,6 +55,47 @@ Retrospective analyses appear in the predictions API response (under `retrospect
 
 ---
 
+## Known issues & planned improvements
+
+### Agent occasionally emits prose instead of prediction JSON
+
+The agent sometimes ends a run on its analysis summary (prose) rather than the
+final prediction JSON object. The handler catches this and writes a `FAILED`
+prediction row with `error: "Agent produced non-JSON output: ..."`. Because the
+`/predictions/{round}` API only serves rows with `status == OK`, an affected
+match **silently disappears** from the site — the row exists but never surfaces.
+Observed on `round-15-warriors-v-sharks` (failed twice) and as trailing `FAILED`
+rows in round 14. It is model variance, not missing data (matches predict fine
+even when no team sheet exists for the round).
+
+**Manual recovery** — re-invoke the agent for the single match; it usually
+succeeds on the next attempt:
+
+```bash
+aws lambda invoke --function-name nrl-predictor-agent \
+  --payload '{"matchId":"round-15-warriors-v-sharks","round":15,"season":2026}' \
+  --cli-binary-format raw-in-base64-out --region ap-southeast-2 \
+  --cli-read-timeout 180 /dev/null
+```
+
+**Planned fix — JSON repair retry in the agent.** When `run_agent` gets a
+non-JSON final message, do one follow-up turn ("return only the prediction JSON,
+no other text") before giving up and writing the `FAILED` row. This would absorb
+the common single-shot formatting miss without manual re-invocation. Lives in
+`agent/graph.py` / `agent/lambda_handler.py`; add a `[TEST]` first per the TDD
+workflow.
+
+### No alert when a round is under-predicted
+
+A `FAILED`-only match (see above) leaves the round quietly short on the site with
+no signal — these are currently only caught by eye. **Planned fix — coverage
+alert:** compare the round's OK-prediction count against the draw's match count
+(both already available) and emit a warning (CloudWatch metric / log alarm) when
+predictions < matches. Natural home is the orchestrator after its per-match
+fan-out completes, or a small post-round check alongside `scripts/score_round.py`.
+
+---
+
 ## CDK deploy
 
 The CDK app lives in `infra/` and is written in Python. `aws-cdk-lib` is **not** in the main project venv — it must be installed separately:
