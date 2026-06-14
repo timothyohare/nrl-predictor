@@ -1,0 +1,10 @@
+# Mock AWS for the heavy gate-verify (boot-and-verify). DynamoDB Local is the
+# only AWS service the API read path touches, so that's all we stand up here.
+# Started/stopped by gate-verify via the mockUp/mockDown bindings in
+# .claude/harness.json.
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    command: "-jar DynamoDBLocal.jar -inMemory -sharedDb"
+    ports:
+      - "8000:8000"

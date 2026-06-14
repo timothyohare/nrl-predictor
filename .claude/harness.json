@@ -3,5 +3,26 @@
   "lint": ".venv/bin/ruff check .",
   "typecheck": ".venv/bin/mypy .",
   "test": "AWS_DEFAULT_REGION=ap-southeast-2 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test python3 -m pytest",
-  "build": "cd frontend && npm run build"
+  "build": "cd frontend && npm run build",
+
+  "mockAws": "dynamodb-local",
+  "mockUp": "docker compose -f scripts/gate/docker-compose.yml up -d",
+  "mockDown": "docker compose -f scripts/gate/docker-compose.yml down",
+  "setup": ".venv/bin/python scripts/gate/local_setup.py",
+  "boot": ".venv/bin/python scripts/gate/local_api_server.py",
+  "ready": "http://127.0.0.1:8001/health",
+  "readyMatch": "ok",
+  "acceptance": ".venv/bin/python scripts/gate/acceptance.py",
+  "env": {
+    "AWS_DEFAULT_REGION": "ap-southeast-2",
+    "AWS_ACCESS_KEY_ID": "test",
+    "AWS_SECRET_ACCESS_KEY": "test",
+    "AWS_ENDPOINT_URL_DYNAMODB": "http://127.0.0.1:8000",
+    "GATE_API_PORT": "8001",
+    "PREDICTIONS_TABLE": "predictions",
+    "RESULTS_TABLE": "results",
+    "RETROSPECTIVES_TABLE": "retrospectives",
+    "ODDS_TABLE": "odds",
+    "RATE_LIMITS_TABLE": "nrl-rate-limits"
+  }
 }
