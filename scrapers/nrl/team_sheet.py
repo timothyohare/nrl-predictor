@@ -26,7 +26,7 @@ def fetch_team_sheet_page(match_centre_url: str) -> dict:
     el = soup.find(id="vue-match-centre")
     if not el or not el.get("q-data"):
         raise TeamSheetNotFound(f"No q-data found at {url}")
-    return json.loads(el["q-data"])
+    return json.loads(str(el["q-data"]))
 
 
 def parse_team_sheet(q_data: dict) -> TeamSheet:

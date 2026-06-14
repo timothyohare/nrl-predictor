@@ -1,5 +1,7 @@
 {
   "runtime": "python",
+  "lint": ".venv/bin/ruff check .",
+  "typecheck": ".venv/bin/mypy .",
   "test": "AWS_DEFAULT_REGION=ap-southeast-2 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test python3 -m pytest",
   "build": "cd frontend && npm run build"
 }

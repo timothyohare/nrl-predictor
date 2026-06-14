@@ -1,6 +1,7 @@
 """Scores prompt variant predictions against actual results."""
 import logging
 from decimal import Decimal
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ def score_round(
         FilterExpression="roundNumber = :r",
         ExpressionAttributeValues={":r": round_number},
     )
-    result_by_match = {}
+    result_by_match: dict[str, Any] = {}
     for item in results_resp.get("Items", []):
         mid = item["matchId"]
         if mid not in result_by_match or item.get("scoredAt", "") > result_by_match[mid].get("scoredAt", ""):
@@ -105,7 +106,7 @@ def aggregate_variant_season(
         FilterExpression="season = :s",
         ExpressionAttributeValues={":s": season},
     )
-    result_by_match = {}
+    result_by_match: dict[str, Any] = {}
     for item in results_resp.get("Items", []):
         mid = item["matchId"]
         if mid not in result_by_match or item.get("scoredAt", "") > result_by_match[mid].get("scoredAt", ""):

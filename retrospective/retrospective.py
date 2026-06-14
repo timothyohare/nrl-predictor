@@ -121,7 +121,7 @@ def generate_retrospective(
     text_block = next((b for b in response.content if getattr(b, "type", None) == "text"), None)
     if text_block is None:
         raise ValueError(f"No text block in Claude response for {match_id}")
-    raw = text_block.text.strip()
+    raw = getattr(text_block, "text", "").strip()
     if raw.startswith("```"):
         raw = raw.split("```", 2)[1].lstrip("json").strip()
     parsed = json.loads(raw)

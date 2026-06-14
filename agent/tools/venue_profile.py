@@ -1,9 +1,11 @@
 """Venue profile tool — returns ground characteristics and historical context."""
 
+from typing import Any
+
 # Static venue profiles. NRL venues change sponsor names frequently, so we
 # include common aliases. Characteristics like roof type and weather exposure
 # don't change between seasons.
-VENUE_PROFILES = {
+VENUE_PROFILES: dict[str, dict[str, Any]] = {
     "accor-stadium": {
         "name": "Accor Stadium",
         "aliases": ["stadium australia", "anz stadium", "telstra stadium", "homebush"],

@@ -6,6 +6,7 @@ message history until Claude produces a text-only response.
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 from agent.budget import record_usage
 from agent.model_selection import select_model
@@ -256,7 +257,7 @@ def run_agent(match_id: str, match_context: dict, client=None,
     system = system_prompt if system_prompt is not None else build_system_prompt(
         lessons=match_context.get("lessons")
     )
-    messages = [
+    messages: list[dict[str, Any]] = [
         {
             "role": "user",
             "content": (
