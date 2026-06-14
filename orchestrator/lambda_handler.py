@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
@@ -28,7 +28,7 @@ def lambda_handler(event: dict, context) -> dict:
     bucket = os.environ["RAW_BUCKET"]
     teams_table_name = os.environ["TEAMS_TABLE"]
     agent_fn_name = os.environ["AGENT_FUNCTION_NAME"]
-    scraped_at = datetime.now(timezone.utc).isoformat()
+    scraped_at = datetime.now(UTC).isoformat()
 
     # 1. Scrape draw
     raw_draw = fetch_draw(season, round_for_fetch)

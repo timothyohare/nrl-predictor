@@ -1,4 +1,5 @@
 import boto3
+
 ddb = boto3.resource('dynamodb', region_name='ap-southeast-2')
 t = ddb.Table('teams')
 # scan everything in round 12 and delete rows whose matchId does NOT start with 'round-'

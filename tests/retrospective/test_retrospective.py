@@ -1,8 +1,6 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from retrospective.retrospective import generate_retrospective
 
 MATCH_ID = "panthers-v-storm-20260515"

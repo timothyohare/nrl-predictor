@@ -1,4 +1,5 @@
 import os
+
 from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
 
 

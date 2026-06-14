@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
+from unittest.mock import patch
+
 import boto3
 import pytest
 from moto import mock_aws
-from pathlib import Path
-from unittest.mock import patch
-from scrapers.nrl.ladder import parse_ladder, lambda_handler
+
+from scrapers.nrl.ladder import lambda_handler, parse_ladder
 from scrapers.shared.models import LadderPosition
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_ladder.json"

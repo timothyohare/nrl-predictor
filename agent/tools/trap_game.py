@@ -1,6 +1,7 @@
 """Trap game detection — identifies schedule context that favours upsets."""
 
 import os
+
 import boto3
 
 # Minimum round for dead rubber detection (late season)

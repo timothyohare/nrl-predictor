@@ -1,8 +1,15 @@
-import time
+from unittest.mock import MagicMock
+
 import pytest
 import requests
-from unittest.mock import MagicMock, patch, call
-from scrapers.shared.http_client import get_with_retry, ScraperError, MAX_RETRIES, DELAY_MIN, DELAY_MAX
+
+from scrapers.shared.http_client import (
+    DELAY_MAX,
+    DELAY_MIN,
+    MAX_RETRIES,
+    ScraperError,
+    get_with_retry,
+)
 
 
 def _mock_response(status_code, text="body"):

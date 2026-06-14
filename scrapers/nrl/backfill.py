@@ -5,16 +5,16 @@ Usage:
     python3 -m scrapers.nrl.backfill --seasons 2025 2026
 """
 import argparse
+import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
 from scrapers.nrl.results import fetch_results, parse_results
 from scrapers.shared.s3_cache import save_raw
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def backfill_season(season: int, max_round: int = 27) -> None:
             time.sleep(2)
             continue
 
-        scored_at = datetime.now(timezone.utc).isoformat()
+        scored_at = datetime.now(UTC).isoformat()
         with table.batch_writer() as batch:
             for r in results:
                 batch.put_item(Item={

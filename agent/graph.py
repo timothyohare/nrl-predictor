@@ -5,29 +5,25 @@ message history until Claude produces a text-only response.
 """
 import json
 import logging
-import os
-from datetime import datetime, timezone
-
-import boto3
+from datetime import UTC, datetime
 
 from agent.budget import record_usage
 from agent.model_selection import select_model
 from agent.prompt import build_system_prompt
 from agent.schema import validate_prediction
 from agent.tools.coaching_matchup import get_coaching_matchup
+from agent.tools.fantasy_stats import get_fantasy_stats
 from agent.tools.head_to_head import get_head_to_head
 from agent.tools.injury_list import get_injury_list
 from agent.tools.ladder import get_ladder
-from agent.tools.recent_form import get_recent_form
-from agent.tools.team_sheet import get_team_sheet
-from agent.tools.weather import get_weather
-from agent.tools.fantasy_stats import get_fantasy_stats
 from agent.tools.lessons import get_lessons
-from agent.tools.venue_profile import get_venue_profile
+from agent.tools.recent_form import get_recent_form
 from agent.tools.spine_synergy import get_spine_synergy
+from agent.tools.team_sheet import get_team_sheet
 from agent.tools.trap_game import detect_trap_game
+from agent.tools.venue_profile import get_venue_profile
+from agent.tools.weather import get_weather
 from agent.tools.web_search import web_search
-from scrapers.shared.constants import HAIKU_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -275,7 +271,7 @@ def run_agent(match_id: str, match_context: dict, client=None,
 
     total_input = total_output = 0
 
-    for iteration in range(MAX_ITERATIONS):
+    for _iteration in range(MAX_ITERATIONS):
         response = client.messages.create(
             model=model,
             max_tokens=2048,
@@ -302,7 +298,7 @@ def run_agent(match_id: str, match_context: dict, client=None,
                 raise ValueError(f"Agent produced non-JSON output: {raw_text[:200]}") from e
 
             prediction["model_used"] = model
-            prediction["generated_at"] = datetime.now(timezone.utc).isoformat()
+            prediction["generated_at"] = datetime.now(UTC).isoformat()
 
             try:
                 record_usage(total_input, total_output, model)

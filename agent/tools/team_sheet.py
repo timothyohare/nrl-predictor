@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 import boto3
 
@@ -18,8 +18,8 @@ def get_team_sheet(match_id: str, round_number: int, table=None) -> dict:
         raise ToolError(f"No team sheet found for {match_id} round {round_number}")
     scraped_at = datetime.fromisoformat(item["scraped_at"])
     if scraped_at.tzinfo is None:
-        scraped_at = scraped_at.replace(tzinfo=timezone.utc)
-    age = datetime.now(timezone.utc) - scraped_at
+        scraped_at = scraped_at.replace(tzinfo=UTC)
+    age = datetime.now(UTC) - scraped_at
     if age > timedelta(hours=MAX_DATA_AGE_HOURS):
         raise ToolError(f"Team sheet for {match_id} is stale ({age.total_seconds()/3600:.1f}h old)")
     return item

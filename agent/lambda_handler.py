@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event: dict, context) -> None:
     match_id = event["matchId"]
     # Fetch recent lessons from retrospectives to inject into the prompt
-    season = event.get("season", datetime.now(timezone.utc).year)
+    season = event.get("season", datetime.now(UTC).year)
     lessons = []
     retro_table_name = os.environ.get("RETROSPECTIVES_TABLE")
     if retro_table_name:
@@ -36,7 +36,7 @@ def lambda_handler(event: dict, context) -> None:
     table_name = os.environ["PREDICTIONS_TABLE"]
     budget_usd = float(os.environ.get("MONTHLY_BUDGET_USD", "18"))
     table = boto3.resource("dynamodb").Table(table_name)
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
 
     try:
         check_budget(threshold_usd=budget_usd)

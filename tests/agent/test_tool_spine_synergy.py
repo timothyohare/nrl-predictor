@@ -1,8 +1,8 @@
 import boto3
 import pytest
 from moto import mock_aws
-from agent.tools.spine_synergy import get_spine_synergy
 
+from agent.tools.spine_synergy import get_spine_synergy
 
 TEAMS_TABLE = "teams"
 RESULTS_TABLE = "results"

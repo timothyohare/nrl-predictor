@@ -1,8 +1,10 @@
+from decimal import Decimal
+
 import boto3
 import pytest
-from decimal import Decimal
 from moto import mock_aws
-from agent.tools.weather import get_weather, ToolError
+
+from agent.tools.weather import ToolError, get_weather
 
 TABLE = "weather"
 

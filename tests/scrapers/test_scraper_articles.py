@@ -1,8 +1,8 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch
-from scrapers.articles.rss import parse_rss
+
 from scrapers.articles.body import extract_body_text
+from scrapers.articles.rss import parse_rss
 from scrapers.shared.models import Article
 
 RSS_FIXTURE = Path(__file__).parent.parent / "fixtures" / "zerotackle_rss.xml"
@@ -16,7 +16,7 @@ NRL_TEAMS = ["Panthers", "Broncos", "Storm", "Roosters", "Sharks", "Raiders",
 def make_rss_with_dates(hours_ago_list: list[int]) -> str:
     items = ""
     for h in hours_ago_list:
-        pub = (datetime.now(timezone.utc) - timedelta(hours=h)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+        pub = (datetime.now(UTC) - timedelta(hours=h)).strftime("%a, %d %b %Y %H:%M:%S +0000")
         items += f"""
         <item>
           <title>Panthers injury update</title>
@@ -29,14 +29,14 @@ def make_rss_with_dates(hours_ago_list: list[int]) -> str:
 
 def test_parse_rss_returns_article_objects():
     xml = RSS_FIXTURE.read_text()
-    now = datetime(2026, 5, 15, 12, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 15, 12, 0, 0, tzinfo=UTC)
     articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=now)
     assert all(isinstance(a, Article) for a in articles)
 
 
 def test_parse_rss_filters_older_than_48h():
     xml = make_rss_with_dates([10, 30, 50, 72])
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=now)
     assert all(a for a in articles)
     assert len(articles) == 2  # only 10h and 30h articles
@@ -44,7 +44,7 @@ def test_parse_rss_filters_older_than_48h():
 
 def test_parse_rss_filters_non_nrl_articles():
     xml = RSS_FIXTURE.read_text()
-    now = datetime(2026, 5, 15, 12, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 15, 12, 0, 0, tzinfo=UTC)
     articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=now)
     titles = [a.title for a in articles]
     assert not any("AFL" in t for t in titles)
@@ -52,7 +52,7 @@ def test_parse_rss_filters_non_nrl_articles():
 
 def test_parse_rss_source_field():
     xml = make_rss_with_dates([5])
-    articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=datetime.now(timezone.utc))
+    articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=datetime.now(UTC))
     assert articles[0].source == "Zero Tackle"
 
 

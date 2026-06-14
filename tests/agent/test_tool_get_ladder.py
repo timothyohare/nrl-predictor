@@ -1,7 +1,9 @@
+from decimal import Decimal
+
 import boto3
 import pytest
-from decimal import Decimal
 from moto import mock_aws
+
 from agent.tools.ladder import get_ladder
 
 TABLE = "teams"

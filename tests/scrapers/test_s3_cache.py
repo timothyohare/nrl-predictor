@@ -1,7 +1,8 @@
-import pytest
 import boto3
+import pytest
 from moto import mock_aws
-from scrapers.shared.s3_cache import save_raw, load_raw
+
+from scrapers.shared.s3_cache import load_raw, save_raw
 
 BUCKET = "test-bucket"
 KEY = "raw-scrapes/test.json"

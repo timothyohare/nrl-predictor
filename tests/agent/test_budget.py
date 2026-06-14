@@ -1,8 +1,9 @@
+
 import boto3
 import pytest
-from decimal import Decimal
 from moto import mock_aws
-from agent.budget import record_usage, get_month_to_date_spend, check_budget, BudgetExceeded
+
+from agent.budget import BudgetExceeded, check_budget, get_month_to_date_spend, record_usage
 
 TABLE = "claude_usage"
 

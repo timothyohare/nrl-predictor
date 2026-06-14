@@ -1,14 +1,16 @@
+from datetime import UTC, datetime, timedelta
+
 import boto3
 import pytest
-from datetime import datetime, timezone, timedelta
 from moto import mock_aws
+
 from agent.tools.injury_list import get_injury_list
 
 TABLE = "injuries"
 
 
 def _seed(table, team="Panthers", hours_old=5):
-    scraped_at = (datetime.now(timezone.utc) - timedelta(hours=hours_old)).isoformat()
+    scraped_at = (datetime.now(UTC) - timedelta(hours=hours_old)).isoformat()
     table.put_item(Item={
         "pk": f"injury#{team}#Payne Haas",
         "sk": scraped_at,

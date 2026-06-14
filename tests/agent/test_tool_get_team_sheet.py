@@ -1,14 +1,16 @@
+from datetime import UTC, datetime, timedelta
+
 import boto3
 import pytest
-from datetime import datetime, timezone, timedelta
 from moto import mock_aws
-from agent.tools.team_sheet import get_team_sheet, ToolError
+
+from agent.tools.team_sheet import ToolError, get_team_sheet
 
 TABLE = "teams"
 
 
 def _seed(table, match_id="panthers-v-broncos", round_num="12", hours_old=1):
-    scraped_at = (datetime.now(timezone.utc) - timedelta(hours=hours_old)).isoformat()
+    scraped_at = (datetime.now(UTC) - timedelta(hours=hours_old)).isoformat()
     table.put_item(Item={
         "teamId": match_id,
         "round": round_num,

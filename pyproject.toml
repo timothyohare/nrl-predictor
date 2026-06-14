@@ -23,6 +23,8 @@ dev = [
     "moto[dynamodb,s3,secretsmanager]>=5.0",
     "aws-cdk-lib>=2.140",
     "constructs>=10.3",
+    "ruff>=0.6",
+    "mypy>=1.10",
 ]
 
 [tool.setuptools.packages.find]
@@ -32,3 +34,27 @@ include = ["scrapers*", "agent*", "scoring*", "api*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["infra/cdk.out", "fetcher-spikes", ".venv"]
+
+[tool.ruff.lint]
+# Pragmatic default set: pyflakes (F), pycodestyle errors (E), import sorting (I),
+# pep8-naming (N), pyupgrade (UP), flake8-bugbear (B), comprehensions (C4).
+select = ["F", "E", "I", "N", "UP", "B", "C4"]
+# E501 (line too long) is handled by the formatter; N818 would force renaming
+# established public exception classes (BudgetExceeded, TeamSheetNotFound, …) —
+# an invasive API change not worth a naming rule.
+ignore = ["E501", "N818"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+# Lenient baseline: enforce correctness on annotated code without demanding
+# annotations everywhere. Tighten incrementally.
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+exclude = ["infra/", "fetcher-spikes/", "tests/", "build/"]

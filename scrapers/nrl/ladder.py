@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import boto3
@@ -39,7 +39,7 @@ def lambda_handler(event: dict, context) -> None:
     season = event["season"]
     table_name = os.environ["TEAMS_TABLE"]
     bucket = os.environ["RAW_BUCKET"]
-    scraped_at = datetime.now(timezone.utc).isoformat()
+    scraped_at = datetime.now(UTC).isoformat()
 
     raw = fetch_ladder(season)
     save_raw(bucket, f"raw-scrapes/ladder/{season}.json", json.dumps(raw))

@@ -1,6 +1,7 @@
 import boto3
 import pytest
 from moto import mock_aws
+
 from agent.tools.lessons import get_lessons
 
 TABLE = "retrospectives"

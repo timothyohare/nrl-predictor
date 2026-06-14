@@ -1,5 +1,6 @@
 import random
 import time
+
 import requests
 
 MAX_RETRIES = 3
@@ -25,7 +26,7 @@ def get_with_retry(url: str, headers: dict | None = None, max_retries: int = MAX
     requester = session or requests.Session()
     last_status = None
 
-    for attempt in range(max_retries):
+    for _attempt in range(max_retries):
         time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
         response = requester.get(url, headers=merged_headers)
         last_status = response.status_code

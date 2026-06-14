@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import anthropic
 import boto3
@@ -86,7 +86,7 @@ def generate_retrospective(
     except Exception as e:
         logger.warning("Web search failed for %s: %s", match_id, e)
 
-    scraped_at = datetime.now(timezone.utc).isoformat()
+    scraped_at = datetime.now(UTC).isoformat()
     match_stats_table.put_item(Item={
         "matchId": match_id,
         "scraped_at": scraped_at,
@@ -126,7 +126,7 @@ def generate_retrospective(
         raw = raw.split("```", 2)[1].lstrip("json").strip()
     parsed = json.loads(raw)
 
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
     item = {
         "matchId": match_id,
         "generatedAt": generated_at,

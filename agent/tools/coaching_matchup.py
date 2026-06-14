@@ -1,6 +1,7 @@
 """Coaching matchup tool — returns coach-vs-coach record filtered to current tenures."""
 
 import os
+
 import boto3
 
 # Static mapping of team → current head coach with tenure start.

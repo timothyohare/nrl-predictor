@@ -1,11 +1,13 @@
 import json
+from pathlib import Path
+from unittest.mock import patch
+
 import boto3
 import pytest
 from moto import mock_aws
-from pathlib import Path
-from unittest.mock import patch
-from scrapers.nrl.team_sheet import parse_team_sheet, lambda_handler, TeamSheetNotFound
-from scrapers.shared.models import TeamSheet, Player
+
+from scrapers.nrl.team_sheet import TeamSheetNotFound, lambda_handler, parse_team_sheet
+from scrapers.shared.models import TeamSheet
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_team_sheet_qdata.json"
 
@@ -95,7 +97,6 @@ def test_lambda_handler_writes_to_dynamo_and_s3(q_data, monkeypatch):
     monkeypatch.setenv("TEAMS_TABLE", "teams")
     monkeypatch.setenv("RAW_BUCKET", "test-bucket")
 
-    fake_html = f'<div id="vue-match-centre" q-data=\'{json.dumps(q_data)}\'></div>'
     with patch("scrapers.nrl.team_sheet.fetch_team_sheet_page", return_value=q_data):
         lambda_handler({"matchCentreUrl": "/draw/nrl-premiership/2026/round-12/sharks-v-bulldogs/"}, {})
 

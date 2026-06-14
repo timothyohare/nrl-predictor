@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
-from agent.tools.web_search import web_search, ToolError
+
+from agent.tools.web_search import ToolError, web_search
 
 
 def _mock_tavily(results):

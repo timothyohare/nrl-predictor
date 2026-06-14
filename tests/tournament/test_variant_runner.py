@@ -1,13 +1,11 @@
 """Tests for tournament variant runner."""
-import json
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import boto3
 import pytest
 from moto import mock_aws
 
-from tournament.variant_runner import run_variant_prediction, run_variant_for_round
+from tournament.variant_runner import run_variant_for_round, run_variant_prediction
 
 SIM_TABLE = "simulation_predictions"
 MATCH_ID = "round-12-panthers-v-broncos"
@@ -120,9 +118,7 @@ class TestRunVariantForRound:
         assert calls_made == match_ids
 
     def test_staggers_between_matches(self):
-        import time
         match_ids = ["round-12-panthers-v-broncos", "round-12-storm-v-roosters"]
-        sleep_calls = []
 
         def fake_predict(match_id, variant, match_context, client=None, sim_table=None):
             return {"pk": f"{match_id}#v", "generatedAt": "2026-05-31T08:00:00Z"}

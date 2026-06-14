@@ -1,8 +1,9 @@
+
 import boto3
 import pytest
-from decimal import Decimal
 from moto import mock_aws
-from scoring.scorer import score_prediction, ScoredResult
+
+from scoring.scorer import ScoredResult, score_prediction
 
 PRED_TABLE = "predictions"
 RESULTS_TABLE = "results"

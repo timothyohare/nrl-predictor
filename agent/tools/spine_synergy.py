@@ -1,6 +1,7 @@
 """Spine synergy tool — analyses how many games a team's spine has played together."""
 
 import os
+
 import boto3
 
 _SPINE_NUMBERS = {1, 6, 7, 9}

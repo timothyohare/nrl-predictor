@@ -1,5 +1,6 @@
 import pytest
-from agent.schema import validate_prediction, validate_player_names, ValidationError
+
+from agent.schema import ValidationError, validate_player_names, validate_prediction
 
 _VALID = {
     "predicted_winner": "Panthers",

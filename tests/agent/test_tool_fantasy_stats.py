@@ -1,5 +1,5 @@
 from unittest.mock import patch
-import pytest
+
 from agent.tools.fantasy_stats import get_fantasy_stats
 
 _SQUADS = [

@@ -1,7 +1,9 @@
+from unittest.mock import patch
+
 import boto3
 import pytest
 from moto import mock_aws
-from unittest.mock import patch, call
+
 from scrapers.nrl.backfill import backfill_season
 from tests.fixtures_helpers import make_draw_with_results
 

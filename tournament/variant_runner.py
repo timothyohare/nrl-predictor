@@ -1,7 +1,7 @@
 """Runs a single prompt variant for a set of matches."""
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from agent.graph import run_agent
 
@@ -27,7 +27,7 @@ def run_variant_prediction(
         "pk": f"{match_id}#{variant['variantId']}",
         "matchId": match_id,
         "variantId": variant["variantId"],
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "generatedAt": datetime.now(UTC).isoformat(),
         "predicted_winner": prediction.get("predicted_winner", ""),
         "predicted_margin": int(prediction.get("predicted_margin", 0)),
         "confidence": prediction.get("confidence", "MEDIUM"),

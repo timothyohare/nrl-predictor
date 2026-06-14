@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import boto3
@@ -23,8 +23,8 @@ def record_usage(input_tokens: int, output_tokens: int, model: str, table=None) 
         Decimal(output_tokens) / 1000 * costs["output"]
     )
     tbl.put_item(Item={
-        "yearMonth": datetime.now(timezone.utc).strftime("%Y-%m"),
-        "invokedAt": datetime.now(timezone.utc).isoformat(),
+        "yearMonth": datetime.now(UTC).strftime("%Y-%m"),
+        "invokedAt": datetime.now(UTC).isoformat(),
         "model": model,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
@@ -34,7 +34,7 @@ def record_usage(input_tokens: int, output_tokens: int, model: str, table=None) 
 
 def get_month_to_date_spend(table=None) -> float:
     tbl = table or boto3.resource("dynamodb").Table(os.environ["CLAUDE_USAGE_TABLE"])
-    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    month = datetime.now(UTC).strftime("%Y-%m")
     response = tbl.query(
         KeyConditionExpression="yearMonth = :m",
         ExpressionAttributeValues={":m": month},

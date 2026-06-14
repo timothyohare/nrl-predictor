@@ -1,11 +1,11 @@
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
-from scoring.metrics import aggregate_round, aggregate_season, aggregate_market_season
+from scoring.metrics import aggregate_market_season, aggregate_round, aggregate_season
 from scoring.scorer import score_prediction
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def lambda_handler(event: dict, context) -> None:
     metrics_table = ddb.Table(os.environ["METRICS_TABLE"])
     odds_table_name = os.environ.get("ODDS_TABLE")
     odds_table = ddb.Table(odds_table_name) if odds_table_name else None
-    scored_at = datetime.now(timezone.utc).isoformat()
+    scored_at = datetime.now(UTC).isoformat()
 
     try:
         scored = score_prediction(match_id, results_table, pred_table)

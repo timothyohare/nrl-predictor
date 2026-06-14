@@ -1,6 +1,7 @@
 import boto3
 import pytest
 from moto import mock_aws
+
 from agent.tools.coaching_matchup import get_coaching_matchup
 
 TABLE = "results"

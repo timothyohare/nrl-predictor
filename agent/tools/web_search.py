@@ -1,6 +1,6 @@
-import os
-import boto3
 import json
+
+import boto3
 from tavily import TavilyClient
 
 

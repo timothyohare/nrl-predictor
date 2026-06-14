@@ -1,14 +1,16 @@
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import patch
-from scrapers.weather.weather import (
-    parse_open_meteo,
-    parse_bom_hourly,
-    get_geohash,
-    WeatherDataUnavailable,
-)
+
+import pytest
+
 from scrapers.shared.models import WeatherForecast
+from scrapers.weather.weather import (
+    WeatherDataUnavailable,
+    get_geohash,
+    parse_bom_hourly,
+    parse_open_meteo,
+)
 
 OM_FIXTURE = Path(__file__).parent.parent / "fixtures" / "open_meteo_response.json"
 BOM_HOURLY_FIXTURE = Path(__file__).parent.parent / "fixtures" / "bom_hourly_response.json"

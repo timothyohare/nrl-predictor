@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
+from unittest.mock import patch
+
 import boto3
 import pytest
 from moto import mock_aws
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-from scrapers.nrl.draw import parse_draw, lambda_handler
+
+from scrapers.nrl.draw import lambda_handler, parse_draw
 from scrapers.shared.models import Match
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_round12.json"

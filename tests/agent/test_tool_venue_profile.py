@@ -1,5 +1,4 @@
-import pytest
-from agent.tools.venue_profile import get_venue_profile, VENUE_PROFILES
+from agent.tools.venue_profile import VENUE_PROFILES, get_venue_profile
 
 
 def test_exact_match():

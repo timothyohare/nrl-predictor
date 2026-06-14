@@ -1,4 +1,3 @@
-import pytest
 from agent.tools.momentum import calculate_momentum
 
 

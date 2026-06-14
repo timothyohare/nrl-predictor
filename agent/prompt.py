@@ -11,8 +11,8 @@ def build_system_prompt(lessons: list[dict] | None = None) -> str:
     lessons_section = ""
     if lessons:
         bullet_points = "\n".join(
-            f"- Round {l.get('roundNumber', '?')} ({l['matchId']}): {l['lesson']}"
-            for l in lessons
+            f"- Round {lesson.get('roundNumber', '?')} ({lesson['matchId']}): {lesson['lesson']}"
+            for lesson in lessons
         )
         lessons_section = f"""
 

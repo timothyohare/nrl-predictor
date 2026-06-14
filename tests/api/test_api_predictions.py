@@ -1,7 +1,8 @@
+
 import boto3
 import pytest
-from decimal import Decimal
 from moto import mock_aws
+
 from api.predictions import lambda_handler
 
 TABLE = "predictions"

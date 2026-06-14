@@ -53,9 +53,6 @@ def validate_prediction(raw: dict) -> dict:
 
 
 def validate_player_names(reasoning: str, home_players: list[dict], away_players: list[dict]) -> bool:
-    all_players = home_players + away_players
-    known_surnames = {p["last_name"].lower() for p in all_players}
-    # basic check: any surname from the team sheets appears in the reasoning, or reasoning mentions no surnames
-    reasoning_lower = reasoning.lower()
-    mentioned = [s for s in known_surnames if s in reasoning_lower]
-    return True  # pass-through; deep validation is a future enhancement
+    # Pass-through; deep validation (cross-checking team-sheet surnames against
+    # the reasoning text) is a future enhancement.
+    return True

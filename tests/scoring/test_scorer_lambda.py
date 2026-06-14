@@ -1,7 +1,8 @@
+from unittest.mock import patch
+
 import boto3
 import pytest
 from moto import mock_aws
-from unittest.mock import patch
 
 PRED_TABLE = "predictions"
 RESULTS_TABLE = "results"

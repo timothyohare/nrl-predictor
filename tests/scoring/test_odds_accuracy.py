@@ -1,9 +1,10 @@
+from decimal import Decimal
+
 import boto3
 import pytest
-from decimal import Decimal
 from moto import mock_aws
 
-from scoring.odds_accuracy import ScoredMarket, score_market, find_outlier
+from scoring.odds_accuracy import find_outlier, score_market
 
 ODDS_TABLE = "odds"
 RESULTS_TABLE = "results"
@@ -176,7 +177,7 @@ class TestScoreMarket:
         odds_tbl, results_tbl, _ = tables
         _put_odds(odds_tbl)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IndexError):
             score_market(MATCH_ID, odds_tbl, results_tbl)
 
 

@@ -1,8 +1,8 @@
 import boto3
 import pytest
 from moto import mock_aws
-from agent.tools.trap_game import detect_trap_game
 
+from agent.tools.trap_game import detect_trap_game
 
 TEAMS_TABLE = "teams"
 RESULTS_TABLE = "results"

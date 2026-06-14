@@ -1,10 +1,6 @@
-import json
-import boto3
-import pytest
-from moto import mock_aws
-from unittest.mock import patch, MagicMock
-from scrapers.odds.scraper import fetch_odds, parse_odds, TEAM_NAME_MAP
+from unittest.mock import MagicMock
 
+from scrapers.odds.scraper import TEAM_NAME_MAP, fetch_odds, parse_odds
 
 # Sample response from the-odds-api.com
 SAMPLE_API_RESPONSE = [

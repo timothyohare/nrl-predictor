@@ -5,7 +5,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from tournament.variant_scorer import score_round, aggregate_variant_season, get_leaderboard
+from tournament.variant_scorer import get_leaderboard, score_round
 
 SIM_TABLE = "simulation_predictions"
 RESULTS_TABLE = "results"

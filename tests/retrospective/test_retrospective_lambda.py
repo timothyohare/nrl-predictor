@@ -1,6 +1,4 @@
-import json
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -17,6 +15,7 @@ def env(monkeypatch):
 
 def test_lambda_handler_invokes_retrospective():
     import importlib
+
     import retrospective.lambda_handler as mod
     importlib.reload(mod)
 

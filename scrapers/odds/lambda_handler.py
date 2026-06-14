@@ -1,9 +1,8 @@
 """Lambda handler for odds scraping."""
 
-import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
@@ -14,9 +13,9 @@ logger.setLevel(logging.INFO)
 
 
 def lambda_handler(event: dict, context) -> dict:
-    season = event.get("season", datetime.now(timezone.utc).year)
+    season = event.get("season", datetime.now(UTC).year)
     round_number = event.get("round")
-    scraped_at = datetime.now(timezone.utc).isoformat()
+    scraped_at = datetime.now(UTC).isoformat()
 
     # Get API key from env (set from Secrets Manager via CDK)
     api_key = os.environ.get("ODDS_API_KEY")

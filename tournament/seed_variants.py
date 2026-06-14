@@ -5,8 +5,7 @@ Usage:
 """
 import argparse
 import os
-import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
@@ -107,7 +106,7 @@ _VARIANTS = [
 
 
 def seed(table_name: str, dry_run: bool = False) -> None:
-    version = datetime.now(timezone.utc).isoformat()
+    version = datetime.now(UTC).isoformat()
     print(f"Seeding {len(_VARIANTS)} variants to {table_name} (version={version})")
 
     if not dry_run:

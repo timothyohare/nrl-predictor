@@ -1,9 +1,9 @@
 import json
-import boto3
-import pytest
-from decimal import Decimal
-from moto import mock_aws
 from unittest.mock import MagicMock, patch
+
+import pytest
+from moto import mock_aws
+
 from agent.graph import run_agent
 from agent.schema import validate_prediction
 
@@ -96,7 +96,6 @@ def test_run_agent_includes_match_id_in_messages(aws_env):
     client = _make_client()
     run_agent(MATCH_ID, {"is_finals": False}, client=client)
     first_call = client.messages.create.call_args_list[0]
-    messages_arg = first_call.kwargs.get("messages") or first_call.args[0] if first_call.args else []
     # match_id should appear in the initial user message
     combined = json.dumps(first_call.kwargs)
     assert MATCH_ID in combined

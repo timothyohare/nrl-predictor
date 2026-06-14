@@ -1,5 +1,6 @@
 import json
 from unittest.mock import MagicMock
+
 from scrapers.articles.haiku_extractor import extract_injury_mentions
 from scrapers.shared.models import InjuryMention
 

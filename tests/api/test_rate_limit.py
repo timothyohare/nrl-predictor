@@ -1,7 +1,8 @@
+
 import boto3
 import pytest
-import time
 from moto import mock_aws
+
 from api.rate_limit import check_rate_limit
 
 TABLE = "rate_limits"

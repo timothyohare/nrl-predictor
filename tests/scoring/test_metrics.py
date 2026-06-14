@@ -1,7 +1,8 @@
 import boto3
 import pytest
 from moto import mock_aws
-from scoring.metrics import aggregate_round, aggregate_season, RoundMetrics
+
+from scoring.metrics import RoundMetrics, aggregate_round, aggregate_season
 
 RESULTS_TABLE = "results"
 METRICS_TABLE = "metrics"
