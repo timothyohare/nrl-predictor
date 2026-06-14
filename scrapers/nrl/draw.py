@@ -16,16 +16,23 @@ def fetch_draw(season: int, round_number: int) -> dict:
     return json.loads(body)
 
 
+def slug_from_match_centre_url(url: str) -> str:
+    """Derive the round-qualified match slug (e.g. "round-11-panthers-v-broncos")
+    from a matchCentreUrl path like
+    "/draw/nrl-premiership/2026/round-11/panthers-v-broncos/". This slug is the
+    canonical matchId used everywhere downstream (predictions, agent invokes,
+    the teams table key)."""
+    parts = url.rstrip("/").rsplit("/", 2)
+    return f"{parts[-2]}-{parts[-1]}" if len(parts) >= 3 else parts[-1]
+
+
 def parse_draw(data: dict) -> list[Match]:
     matches = []
     for fixture in data.get("fixtures", []):
         url = fixture.get("matchCentreUrl")
         if not url:
             continue
-        # URL format: /draw/nrl-premiership/{year}/round-{N}/{home}-v-{away}/
-        # Take the last two segments to get e.g. "round-11-panthers-v-broncos"
-        parts = url.rstrip("/").rsplit("/", 2)
-        match_id = f"{parts[-2]}-{parts[-1]}" if len(parts) >= 3 else parts[-1]
+        match_id = slug_from_match_centre_url(url)
         kick_off = fixture.get("clock", {}).get("kickOffTimeLong") or None
         # venue is a plain string in current API; guard against legacy dict form
         venue_raw = fixture.get("venue", "")

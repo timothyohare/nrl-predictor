@@ -6,7 +6,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from scrapers.nrl.draw import lambda_handler, parse_draw
+from scrapers.nrl.draw import lambda_handler, parse_draw, slug_from_match_centre_url
 from scrapers.shared.models import Match
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_round12.json"
@@ -15,6 +15,13 @@ FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_round12.json"
 @pytest.fixture
 def draw_data():
     return json.loads(FIXTURE.read_text())
+
+
+def test_slug_from_match_centre_url():
+    url = "/draw/nrl-premiership/2026/round-12/sharks-v-bulldogs/"
+    assert slug_from_match_centre_url(url) == "round-12-sharks-v-bulldogs"
+    # Trailing slash optional
+    assert slug_from_match_centre_url(url.rstrip("/")) == "round-12-sharks-v-bulldogs"
 
 
 def test_parse_draw_returns_match_objects(draw_data):

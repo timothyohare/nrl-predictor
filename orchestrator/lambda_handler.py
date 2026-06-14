@@ -72,8 +72,10 @@ def lambda_handler(event: dict, context) -> dict:
             ts = parse_team_sheet(q_data)
             ts.scraped_at = scraped_at
             teams_table.put_item(Item={
-                "teamId": ts.match_id,
-                "round": str(ts.round),
+                # Key by the slug the agent is invoked with / queries by, not the
+                # numerical NRL matchId from the q-data.
+                "teamId": match.match_id,
+                "round": str(match.round_number),
                 "matchState": ts.match_state,
                 "kickOff": ts.kick_off or "",
                 "homeTeam": ts.home_team.nick_name,

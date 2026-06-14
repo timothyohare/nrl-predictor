@@ -101,8 +101,46 @@ def test_lambda_handler_writes_to_dynamo_and_s3(q_data, monkeypatch):
         lambda_handler({"matchCentreUrl": "/draw/nrl-premiership/2026/round-12/sharks-v-bulldogs/"}, {})
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
-    item = table.get_item(Key={"teamId": "20261111110", "round": "12"})
+    # Stored under the round-qualified slug the agent queries with — NOT the
+    # numerical NRL matchId from the q-data.
+    item = table.get_item(Key={"teamId": "round-12-sharks-v-bulldogs", "round": "12"})
     assert "Item" in item
+    assert "Item" not in table.get_item(Key={"teamId": "20261111110", "round": "12"})
+
+
+@mock_aws
+def test_lambda_handler_write_is_readable_by_agent_tool(q_data, monkeypatch):
+    """Regression: the team-sheet writer must key rows the same way the agent's
+    get_team_sheet tool reads them, otherwise the agent never sees team sheets.
+    """
+    from agent.tools.team_sheet import get_team_sheet
+
+    boto3.client("dynamodb", region_name="ap-southeast-2").create_table(
+        TableName="teams",
+        KeySchema=[
+            {"AttributeName": "teamId", "KeyType": "HASH"},
+            {"AttributeName": "round", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "teamId", "AttributeType": "S"},
+            {"AttributeName": "round", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    boto3.client("s3", region_name="ap-southeast-2").create_bucket(
+        Bucket="test-bucket",
+        CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"},
+    )
+    monkeypatch.setenv("TEAMS_TABLE", "teams")
+    monkeypatch.setenv("RAW_BUCKET", "test-bucket")
+
+    with patch("scrapers.nrl.team_sheet.fetch_team_sheet_page", return_value=q_data):
+        lambda_handler({"matchCentreUrl": "/draw/nrl-premiership/2026/round-12/sharks-v-bulldogs/"}, {})
+
+    table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
+    sheet = get_team_sheet("round-12-sharks-v-bulldogs", round_number=12, table=table)
+    assert sheet["homeTeam"] == "Sharks"
+    assert len(sheet["homePlayers"]) == 17
 
 
 @mock_aws

@@ -117,6 +117,29 @@ def test_orchestrator_staggers_agent_invocations(ddb_and_s3, draw_data, monkeypa
     assert sleep_mock.call_args_list[0].args == (8.0,)
 
 
+def test_orchestrator_writes_team_sheet_under_slug(aws_env, ddb_and_s3, draw_data):
+    """The team sheet row must be keyed by the round-qualified slug (the same id
+    the agent is invoked with and queries by), not the numerical q-data matchId.
+    """
+    from agent.tools.team_sheet import get_team_sheet
+    from orchestrator.lambda_handler import lambda_handler
+
+    q_data = json.loads(
+        (Path(__file__).parent.parent / "fixtures" / "nrl_team_sheet_qdata.json").read_text()
+    )
+
+    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data), \
+         patch("orchestrator.lambda_handler.boto3.client"):
+        lambda_handler({"season": 2026, "round": 12}, {})
+
+    table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
+    # Readable via the agent tool by slug; the numerical key must be absent.
+    sheet = get_team_sheet("round-12-panthers-v-broncos", round_number=12, table=table)
+    assert "homePlayers" in sheet
+    assert "Item" not in table.get_item(Key={"teamId": "20261111110", "round": "12"})
+
+
 def test_orchestrator_writes_teams_entries_to_dynamo(aws_env, ddb_and_s3, draw_data):
     from orchestrator.lambda_handler import lambda_handler
 

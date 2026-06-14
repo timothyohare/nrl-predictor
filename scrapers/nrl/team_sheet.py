@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 import boto3
 from bs4 import BeautifulSoup
 
+from scrapers.nrl.draw import slug_from_match_centre_url
 from scrapers.shared.http_client import get_with_retry
 from scrapers.shared.models import Player, TeamSheet, TeamSide
 from scrapers.shared.s3_cache import save_raw
@@ -90,9 +91,13 @@ def lambda_handler(event: dict, context) -> None:
     ts = parse_team_sheet(q_data)
     ts.scraped_at = scraped_at
 
+    # Key the row by the round-qualified slug the agent queries with, not the
+    # numerical NRL matchId embedded in the q-data.
+    slug = slug_from_match_centre_url(match_centre_url)
+
     table = boto3.resource("dynamodb").Table(table_name)
     table.put_item(Item={
-        "teamId": ts.match_id,
+        "teamId": slug,
         "round": str(ts.round),
         "matchState": ts.match_state,
         "kickOff": ts.kick_off or "",
