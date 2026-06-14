@@ -20,6 +20,38 @@ pytest tests/agent/test_tool_get_team_sheet.py::test_returns_correct_team_sheet 
 
 Tests use `moto` to mock AWS (DynamoDB, S3, Secrets Manager) — no real AWS credentials are needed. CI sets dummy credentials via env vars; do the same locally if boto3 complains.
 
+## Quality gates
+
+The repo is wired into the user-level SDLC harness (`~/.claude/bin/gate-ci.mjs`,
+`gate-verify.mjs`). The binding lives in `.claude/harness.json`; the gates read
+it and fall back to autodetection. `gate-ci` is also a Stop hook, so it runs at
+turn-end and blocks completion on failure.
+
+**Fast gate — `node ~/.claude/bin/gate-ci.mjs [--full] [--force]`** runs:
+
+| Step | Command | Config |
+|------|---------|--------|
+| lint | `ruff check .` then `cd frontend && npm run lint` (ESLint) | `[tool.ruff]` in `pyproject.toml`; `frontend/eslint.config.mjs` |
+| typecheck | `mypy .` then `cd frontend && npm run typecheck` (`tsc --noEmit`) | `[tool.mypy]` in `pyproject.toml`; `frontend/tsconfig.json` |
+| test | `pytest` (with dummy AWS creds inlined) | `[tool.pytest.ini_options]` |
+| build (`--full`) | `cd frontend && npm run build` | — |
+
+Run the Python tools directly via the project venv: `.venv/bin/ruff check .`,
+`.venv/bin/mypy .`. Frontend: `cd frontend && npm run lint` / `npm run typecheck`.
+ESLint uses flat config (`next/core-web-vitals` + `next/typescript` via
+FlatCompat) — `next lint` is deprecated and intentionally not used.
+
+**Heavy gate — `node ~/.claude/bin/gate-verify.mjs [--keep]`** is the
+boot-and-verify gate for the API read path. It stands up DynamoDB Local
+(Docker), seeds a round, boots the real API Lambda over HTTP, and asserts the
+predictions ⨝ results ⨝ retrospectives ⨝ odds join (incl. `is_outlier`,
+most-recent-generation, and `FAILED`-row exclusion). **Requires Docker
+running.** The pieces live in `scripts/gate/` (`docker-compose.yml`,
+`local_setup.py`, `local_api_server.py`, `acceptance.py`) and are driven by the
+`mockAws`/`setup`/`boot`/`ready`/`acceptance` keys in `.claude/harness.json`.
+Scope is the API read path only — the async orchestrator/agent write path is not
+booted (it doesn't fit the HTTP-readiness model).
+
 ## Post-round operations
 
 After a round completes, run these steps in order:
