@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export const dynamic = "force-static";
 
 export default function HowItWorksPage() {
@@ -69,7 +71,7 @@ export default function HowItWorksPage() {
           Every prediction is stored. Once a match result is confirmed, the prediction is scored
           automatically — winner correct or not, margin error, and a Brier score that penalises
           overconfident wrong picks. All results are published on the{" "}
-          <a href="/accuracy" className="text-blue-600 hover:underline">Accuracy</a> page,
+          <Link href="/accuracy" className="text-blue-600 hover:underline">Accuracy</Link> page,
           including rounds where we performed poorly.
         </p>
       </Section>
