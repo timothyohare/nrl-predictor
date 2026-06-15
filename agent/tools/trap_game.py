@@ -89,10 +89,12 @@ def _check_sandwich(team: str, round_number: int, ladder: dict, teams_table, res
 
 
 def _get_opponent_from_fixture(team: str, match_id: str, teams_table) -> str | None:
-    """Find the opponent team name from draw entries for a match."""
-    for side in ("home", "away"):
-        response = teams_table.get_item(Key={"teamId": f"{match_id}#{side}", "round": "0"})
-        # Round might vary, so scan instead
+    """Find the opponent team name from draw entries for a match.
+
+    Draw rows are keyed ``{matchId}#{side}`` with ``round = str(round_number)``,
+    so a point lookup would need the round (which this helper isn't given). We
+    scan by the ``matchId`` attribute instead and return whichever side isn't
+    ``team``."""
     response = teams_table.scan(
         FilterExpression="matchId = :m",
         ExpressionAttributeValues={":m": match_id},
