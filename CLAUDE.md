@@ -97,8 +97,12 @@ prediction row with `error: "Agent produced non-JSON output: ..."`. Because the
 `/predictions/{round}` API only serves rows with `status == OK`, an affected
 match **silently disappears** from the site — the row exists but never surfaces.
 Observed on `round-15-warriors-v-sharks` (failed twice) and as trailing `FAILED`
-rows in round 14. It is model variance, not missing data (matches predict fine
-even when no team sheet exists for the round).
+rows in round 14. It is variance in the agent's final formatting step, not a data
+problem — the match predicts fine on a re-run with the same inputs. (Note: the
+"matches predict fine even with no team sheet" behaviour seen earlier was a
+separate bug — team sheets were keyed by the numerical NRL matchId and never read
+by the agent; fixed 2026-06-14 by keying them on the round-qualified slug, with a
+one-off backfill of existing rows via `scripts/backfill_team_sheet_keys.py`.)
 
 **Manual recovery** — re-invoke the agent for the single match; it usually
 succeeds on the next attempt:

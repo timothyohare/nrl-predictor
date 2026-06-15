@@ -13,6 +13,14 @@
   "ready": "http://127.0.0.1:8001/health",
   "readyMatch": "ok",
   "acceptance": ".venv/bin/python scripts/gate/acceptance.py",
+
+  "perfBoot": ".venv/bin/python scripts/gate/perf_boot.py",
+  "perfReady": "http://127.0.0.1:8001/health",
+  "perfReadyMatch": "ok",
+  "perfBase": "http://127.0.0.1:8001",
+  "perfRoutes": ["/predictions/12", "/health"],
+  "perfBaseline": ".claude/perf-baseline.json",
+
   "env": {
     "AWS_DEFAULT_REGION": "ap-southeast-2",
     "AWS_ACCESS_KEY_ID": "test",

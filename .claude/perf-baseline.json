@@ -1,0 +1,15 @@
+{
+  "note": "Deterministic route-latency baseline (gate-perf). Refresh with `node ~/.claude/bin/gate-perf.mjs --update`.",
+  "capturedAt": "2026-06-15T10:17:21.201Z",
+  "samples": 40,
+  "routes": {
+    "/predictions/12": {
+      "p50": 21.8,
+      "p95": 24.7
+    },
+    "/health": {
+      "p50": 1,
+      "p95": 1.2
+    }
+  }
+}
