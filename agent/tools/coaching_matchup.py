@@ -4,6 +4,8 @@ import os
 
 import boto3
 
+from common.teams import to_slug
+
 # Static mapping of team → current head coach with tenure start.
 # Update when coaching changes happen (2-3 times per season max).
 COACH_MAP = {
@@ -29,8 +31,9 @@ COACH_MAP = {
 
 def _get_coach(team: str) -> dict | None:
     """Look up coach by team nickname (case-insensitive)."""
+    slug = to_slug(team)
     for t, info in COACH_MAP.items():
-        if t.lower() == team.lower():
+        if to_slug(t) == slug:
             return {"team": t, **info}
     return None
 

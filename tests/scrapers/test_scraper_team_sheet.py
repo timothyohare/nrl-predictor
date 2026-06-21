@@ -139,7 +139,7 @@ def test_lambda_handler_write_is_readable_by_agent_tool(q_data, monkeypatch):
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
     sheet = get_team_sheet("round-12-sharks-v-bulldogs", round_number=12, table=table)
-    assert sheet["homeTeam"] == "Sharks"
+    assert sheet["homeTeam"] == "sharks"
     assert len(sheet["homePlayers"]) == 17
 
 

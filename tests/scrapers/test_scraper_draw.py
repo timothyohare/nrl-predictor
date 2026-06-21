@@ -33,8 +33,8 @@ def test_parse_draw_correct_field_mapping(draw_data):
     matches = parse_draw(draw_data)
     first = matches[0]
     assert first.match_id == "round-12-panthers-v-broncos"
-    assert first.home_team == "Panthers"
-    assert first.away_team == "Broncos"
+    assert first.home_team == "panthers"
+    assert first.away_team == "broncos"
     assert first.venue == "BlueBet Stadium"
     assert first.round_number == 12
     assert first.kick_off == "2026-05-16T09:50:00Z"
@@ -43,7 +43,7 @@ def test_parse_draw_correct_field_mapping(draw_data):
 
 def test_parse_draw_kick_off_none_when_missing(draw_data):
     matches = parse_draw(draw_data)
-    storm_match = next(m for m in matches if m.home_team == "Storm")
+    storm_match = next(m for m in matches if m.home_team == "storm")
     assert storm_match.kick_off is None
 
 

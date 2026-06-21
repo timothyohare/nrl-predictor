@@ -4,6 +4,8 @@ import os
 
 import boto3
 
+from common.teams import to_slug
+
 _SPINE_NUMBERS = {1, 6, 7, 9}
 _ESTABLISHED_THRESHOLD = 5
 
@@ -20,15 +22,13 @@ def _extract_spine(players: list[dict]) -> dict[int, str]:
 
 def _get_historical_team_sheets(team: str, current_round: int, teams_table) -> list[dict]:
     """Get all team sheet entries where this team played, for rounds before current."""
-    # Scan for entries that have player data and are from earlier rounds
-    response = teams_table.scan(
-        FilterExpression="(homeTeam = :t OR awayTeam = :t) AND attribute_exists(homePlayers)",
-        ExpressionAttributeValues={":t": team},
-    )
-    items = response.get("Items", [])
-    # Filter to rounds before current
+    # Match on the canonical slug (robust to mixed nickname/slug storage); filter client-side.
+    slug = to_slug(team)
+    response = teams_table.scan(FilterExpression="attribute_exists(homePlayers)")
     results = []
-    for item in items:
+    for item in response.get("Items", []):
+        if slug not in (to_slug(item.get("homeTeam", "")), to_slug(item.get("awayTeam", ""))):
+            continue
         try:
             rnd = int(item.get("round", "0"))
         except (ValueError, TypeError):
@@ -63,7 +63,7 @@ def _analyse_team(team: str, current_spine: dict[int, str], current_round: int,
 
     for sheet in historical:
         # Determine which side this team is on
-        if sheet.get("homeTeam") == team:
+        if to_slug(sheet.get("homeTeam", "")) == to_slug(team):
             players = sheet.get("homePlayers", [])
         else:
             players = sheet.get("awayPlayers", [])
@@ -85,7 +85,7 @@ def _analyse_team(team: str, current_spine: dict[int, str], current_round: int,
         # Get result to compute win rate
         match_id = sheet.get("teamId", "")  # teamId = matchId for team sheet entries
         result = _get_result_for_match(match_id, results_table)
-        won = result.get("winner") == team if result else False
+        won = to_slug(result.get("winner", "")) == to_slug(team) if result else False
 
         if full_match:
             full_spine_games += 1

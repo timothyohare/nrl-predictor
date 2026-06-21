@@ -16,7 +16,7 @@ _VALID = {
 
 def test_valid_prediction_passes():
     p = validate_prediction(_VALID)
-    assert p["predicted_winner"] == "Panthers"
+    assert p["predicted_winner"] == "panthers"
 
 
 def test_invalid_team_name():

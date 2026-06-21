@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 
 import boto3
 
+from common.match_id import match_id_from_url
+from common.teams import to_slug
 from scrapers.shared.http_client import get_with_retry
 from scrapers.shared.models import Match
 from scrapers.shared.s3_cache import save_raw
@@ -17,13 +19,9 @@ def fetch_draw(season: int, round_number: int) -> dict:
 
 
 def slug_from_match_centre_url(url: str) -> str:
-    """Derive the round-qualified match slug (e.g. "round-11-panthers-v-broncos")
-    from a matchCentreUrl path like
-    "/draw/nrl-premiership/2026/round-11/panthers-v-broncos/". This slug is the
-    canonical matchId used everywhere downstream (predictions, agent invokes,
-    the teams table key)."""
-    parts = url.rstrip("/").rsplit("/", 2)
-    return f"{parts[-2]}-{parts[-1]}" if len(parts) >= 3 else parts[-1]
+    """Canonical round-qualified matchId from a matchCentreUrl. Delegates to the single
+    source of truth in common.match_id (kept as a named alias for back-compat)."""
+    return match_id_from_url(url)
 
 
 def parse_draw(data: dict) -> list[Match]:
@@ -45,8 +43,8 @@ def parse_draw(data: dict) -> list[Match]:
             round_number = fixture.get("roundNumber", 0)
         matches.append(Match(
             match_id=match_id,
-            home_team=fixture["homeTeam"]["nickName"],
-            away_team=fixture["awayTeam"]["nickName"],
+            home_team=to_slug(fixture["homeTeam"]["nickName"]),
+            away_team=to_slug(fixture["awayTeam"]["nickName"]),
             venue=venue,
             round_number=round_number,
             kick_off=kick_off,

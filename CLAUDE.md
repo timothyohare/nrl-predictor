@@ -273,6 +273,25 @@ Never write `[CODE]` without a preceding `[TEST]`. Every new module has a corres
 
 Fixture JSON files go in `tests/fixtures/` and are copied from spike output.
 
+## Team & match identity (canonical representation)
+
+The single source of truth is `common/` (shipped to every Lambda via the whole-repo asset),
+shared in form with v2:
+
+- **Team identity** — a team is *always* the lowercase slug (`sea-eagles`) internally. NRL
+  `nickName`, full names, odds-API names and LLM output are inbound forms that **must** be
+  `common.teams.to_slug()`'d at the boundary (scrapers on write, `agent/schema.py` on the agent's
+  `predicted_winner`, tools on read). Display strings come from `common.teams.display()`; the API
+  adds `*_name` fields and the frontend renders via `frontend/lib/teams.ts`. Registry data:
+  `common/team_registry.json` (Python) + `frontend/lib/team_registry.json` (TS).
+  *Invariant: no raw team name is written to a table or passed to a tool — slug at the boundary.*
+- **Match identity** — `matchId` is the round-qualified slug `round-<N>-<home>-v-<away>` from
+  `common.match_id`. **Every join is round-aware** (matchId or roundNumber); never a bare team-pair.
+
+Plans: `docs/team-identity-plan-v1.md`, `docs/matchid-identity-plan-v1.md`. One-off DB migration:
+`scripts/migrate_identity.py {teams,matchids}` (dry-run by default; `--apply` to write) — the
+`results`/`teams`/`predictions` tables are shared with v2, so migrate once, coordinated.
+
 ## Important constraints
 
 - **Betting market odds (`scrapers/odds/`) are for comparison only — NEVER pass odds data as input to the prediction agent.** The predictions must remain independent so the AI vs market accuracy comparison is meaningful. Odds are stored in the `odds` table and joined onto the API response post-prediction.

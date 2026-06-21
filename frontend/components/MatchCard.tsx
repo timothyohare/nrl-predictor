@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Prediction, Retrospective, Odds } from "@/lib/api";
 import { teamColor } from "@/lib/teamColors";
+import { teamName, toSlug } from "@/lib/teams";
 
 const CONFIDENCE_STYLES: Record<string, string> = {
   HIGH: "bg-green-600 text-white",
@@ -112,11 +113,11 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
   const [retroExpanded, setRetroExpanded] = useState(false);
   const [homeSlug, awaySlug] = splitMatchId(prediction.matchId);
 
-  const homeTeam = prediction.homeTeam || homeSlug?.replace(/-/g, " ") || "Home";
-  const awayTeam = prediction.awayTeam || awaySlug?.replace(/-/g, " ") || "Away";
+  const homeTeam = teamName(prediction.homeTeam || homeSlug) || "Home";
+  const awayTeam = teamName(prediction.awayTeam || awaySlug) || "Away";
   const homeColor = teamColor(homeSlug);
   const awayColor = teamColor(awaySlug);
-  const winnerSlug = prediction.predicted_winner?.toLowerCase().replace(/\s+/g, "-");
+  const winnerSlug = toSlug(prediction.predicted_winner) || homeSlug;
   const winnerColor = teamColor(winnerSlug || homeSlug);
 
   if (prediction.status === "FAILED") {
@@ -156,23 +157,23 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
 
       <div className="space-y-1.5">
         <p className="font-display text-2xl leading-none" style={{ color: winnerColor }}>
-          {prediction.predicted_winner}
+          {teamName(prediction.predicted_winner)}
           {prediction.predicted_margin > 0 && (
             <span className="text-gray-700"> BY {prediction.predicted_margin}</span>
           )}
         </p>
         {prediction.result && (() => {
           const r = prediction.result;
-          const actualWinnerColor = teamColor(r.winner.toLowerCase().replace(/\s+/g, "-"));
-          const winnerCorrect = r.winner === prediction.predicted_winner;
+          const actualWinnerColor = teamColor(toSlug(r.winner));
+          const winnerCorrect = toSlug(r.winner) === toSlug(prediction.predicted_winner);
           const marginError = Math.abs(prediction.predicted_margin - r.margin);
           const marginWithin6 = winnerCorrect && marginError <= 6;
           return (
             <div className="flex items-baseline gap-2 flex-wrap">
               <p className="font-display text-xl leading-none" style={{ color: actualWinnerColor }}>
-                {r.homeTeam.toUpperCase()} <span className="text-gray-800">{r.homeScore}</span>
+                {teamName(r.homeTeam).toUpperCase()} <span className="text-gray-800">{r.homeScore}</span>
                 <span className="text-gray-400 mx-1">—</span>
-                {r.awayTeam.toUpperCase()} <span className="text-gray-800">{r.awayScore}</span>
+                {teamName(r.awayTeam).toUpperCase()} <span className="text-gray-800">{r.awayScore}</span>
               </p>
               <span
                 title={winnerCorrect ? "Correct winner" : "Wrong winner"}

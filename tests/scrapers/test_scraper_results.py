@@ -28,8 +28,8 @@ def test_parse_returns_match_result_objects(draw_data):
 
 def test_parse_correct_winner(draw_data):
     results = parse_results(draw_data)
-    panthers = next(r for r in results if r.home_team == "Panthers")
-    assert panthers.winner == "Panthers"
+    panthers = next(r for r in results if r.home_team == "panthers")
+    assert panthers.winner == "panthers"
     assert panthers.home_score == 28
     assert panthers.away_score == 16
     assert panthers.margin == 12
@@ -37,8 +37,8 @@ def test_parse_correct_winner(draw_data):
 
 def test_parse_away_team_win(draw_data):
     results = parse_results(draw_data)
-    storm_match = next(r for r in results if r.away_team == "Storm")
-    assert storm_match.winner == "Storm"
+    storm_match = next(r for r in results if r.away_team == "storm")
+    assert storm_match.winner == "storm"
     assert storm_match.margin == 16
 
 

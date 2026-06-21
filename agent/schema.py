@@ -1,32 +1,6 @@
-NRL_TEAMS = {
-    "Panthers", "Broncos", "Storm", "Roosters", "Sharks", "Raiders",
-    "Warriors", "Cowboys", "Titans", "Eels", "Dragons", "Bulldogs",
-    "Knights", "Sea Eagles", "Rabbitohs", "Wests Tigers", "Dolphins",
-}
-CONFIDENCE_LEVELS = {"LOW", "MEDIUM", "HIGH"}
+from common.teams import is_known, to_slug
 
-# Map long-form or alternate names the model may produce → canonical nickname
-_TEAM_ALIASES = {
-    "north queensland cowboys": "Cowboys",
-    "new zealand warriors": "Warriors",
-    "new south wales waratahs": "Waratahs",
-    "sydney roosters": "Roosters",
-    "south sydney rabbitohs": "Rabbitohs",
-    "st george illawarra dragons": "Dragons",
-    "gold coast titans": "Titans",
-    "newcastle knights": "Knights",
-    "parramatta eels": "Eels",
-    "canberra raiders": "Raiders",
-    "penrith panthers": "Panthers",
-    "brisbane broncos": "Broncos",
-    "cronulla sharks": "Sharks",
-    "cronulla-sutherland sharks": "Sharks",
-    "manly sea eagles": "Sea Eagles",
-    "manly-warringah sea eagles": "Sea Eagles",
-    "melbourne storm": "Storm",
-    "wests tigers": "Wests Tigers",
-    "dolphins": "Dolphins",
-}
+CONFIDENCE_LEVELS = {"LOW", "MEDIUM", "HIGH"}
 
 
 class ValidationError(Exception):
@@ -34,13 +8,14 @@ class ValidationError(Exception):
 
 
 def _normalise_team(name: str) -> str:
-    return _TEAM_ALIASES.get(name.lower(), name)
+    """Resolve the model's team string to the canonical slug stored everywhere."""
+    return to_slug(name)
 
 
 def validate_prediction(raw: dict) -> dict:
     winner = _normalise_team(raw.get("predicted_winner", ""))
     raw["predicted_winner"] = winner
-    if winner not in NRL_TEAMS:
+    if not is_known(winner):
         raise ValidationError(f"Unknown team: {winner!r}")
     confidence = raw.get("confidence", "")
     if confidence not in CONFIDENCE_LEVELS:

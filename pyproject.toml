@@ -29,7 +29,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["scrapers*", "agent*", "scoring*", "api*"]
+include = ["common*", "scrapers*", "agent*", "scoring*", "api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

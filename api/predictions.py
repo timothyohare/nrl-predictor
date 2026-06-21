@@ -4,6 +4,8 @@ from decimal import Decimal
 
 import boto3
 
+from common.teams import display_name, to_slug
+
 
 def _serialise(obj):
     if isinstance(obj, Decimal):
@@ -101,12 +103,18 @@ def lambda_handler(event: dict, context) -> dict:
                 "lesson": retro.get("lesson", ""),
                 "generated_at": retro.get("generatedAt", ""),
             }
+        # Team identity is stored as a slug; expose display names for the frontend
+        # alongside the raw slug fields.
+        pred["predicted_winner_name"] = display_name(to_slug(pred.get("predicted_winner", "")))
         result = result_by_match.get(pred["matchId"])
         if result:
             pred["result"] = {
                 "winner": result.get("winner", ""),
+                "winner_name": display_name(to_slug(result.get("winner", ""))),
                 "homeTeam": result.get("homeTeam", ""),
+                "homeTeam_name": display_name(to_slug(result.get("homeTeam", ""))),
                 "awayTeam": result.get("awayTeam", ""),
+                "awayTeam_name": display_name(to_slug(result.get("awayTeam", ""))),
                 "homeScore": result.get("homeScore", 0),
                 "awayScore": result.get("awayScore", 0),
                 "margin": result.get("margin", 0),
@@ -122,8 +130,8 @@ def lambda_handler(event: dict, context) -> dict:
                 "implied_away_prob": float(odds.get("implied_away_prob", 0)),
             }
             # Outlier: prediction disagrees with market on winner or margin differs by >6
-            pred_winner = pred.get("predicted_winner", "")
-            market_fav = odds.get("market_favourite", "")
+            pred_winner = to_slug(pred.get("predicted_winner", ""))
+            market_fav = to_slug(odds.get("market_favourite", ""))
             pred_margin = int(pred.get("predicted_margin", 0))
             market_margin = float(odds.get("market_margin", 0))
             pred["is_outlier"] = (

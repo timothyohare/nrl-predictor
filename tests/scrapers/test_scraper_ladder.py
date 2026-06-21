@@ -29,7 +29,7 @@ def test_parse_returns_17_items(ladder_data):
 def test_parse_first_position_fields(ladder_data):
     pos = parse_ladder(ladder_data)[0]
     assert pos.position == 1
-    assert pos.team_name == "Panthers"
+    assert pos.team_name == "panthers"
     assert pos.played == 11
     assert pos.wins == 9
     assert pos.losses == 2

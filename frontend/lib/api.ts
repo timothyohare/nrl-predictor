@@ -9,8 +9,11 @@ export interface Retrospective {
 
 export interface MatchResult {
   winner: string;
+  winner_name?: string;
   homeTeam: string;
+  homeTeam_name?: string;
   awayTeam: string;
+  awayTeam_name?: string;
   homeScore: number;
   awayScore: number;
   margin: number;
@@ -28,6 +31,7 @@ export interface Odds {
 export interface Prediction {
   matchId: string;
   predicted_winner: string;
+  predicted_winner_name?: string;
   predicted_margin: number;
   confidence: "LOW" | "MEDIUM" | "HIGH";
   key_factors: string[];
