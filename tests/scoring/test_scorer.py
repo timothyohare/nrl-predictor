@@ -119,3 +119,14 @@ def test_skips_failed_prediction_uses_latest_ok(tables):
     _seed_result(results_tbl, home_score=24, away_score=18)
     result = score_prediction(MATCH_ID, results_tbl, pred_tbl)
     assert result.correct_pick is True
+
+
+def test_result_not_ready_when_no_result_row(tables):
+    """A prediction with no result row must raise ResultNotReady (caught + skipped by the
+    handler), not crash with IndexError — this 500'd the scoring lambda on 2026-06-21."""
+    from scoring.scorer import ResultNotReady
+    pred_tbl, results_tbl = tables
+    _seed_prediction(pred_tbl, winner="Panthers")
+    # no result seeded
+    with pytest.raises(ResultNotReady):
+        score_prediction(MATCH_ID, results_tbl, pred_tbl)

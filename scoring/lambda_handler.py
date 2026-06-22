@@ -6,13 +6,13 @@ from datetime import UTC, datetime
 import boto3
 
 from scoring.metrics import aggregate_market_season, aggregate_round, aggregate_season
-from scoring.scorer import score_prediction
+from scoring.scorer import ResultNotReady, score_prediction
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def lambda_handler(event: dict, context) -> None:
+def lambda_handler(event: dict, context) -> dict:
     match_id = event["matchId"]
     round_number = event["round"]
     season = event["season"]
@@ -74,6 +74,10 @@ def lambda_handler(event: dict, context) -> None:
 
         # Trigger retrospective asynchronously — failure here must not affect scoring
         _invoke_retrospective(match_id, round_number, season)
+        return {"status": "OK", "matchId": match_id}
+    except ResultNotReady as e:
+        logger.warning("Skipping %s — result not ready: %s", match_id, e)
+        return {"status": "NO_RESULT", "matchId": match_id}
     except Exception as e:
         logger.error("Scoring failed for %s: %s", match_id, e, exc_info=True)
         raise
