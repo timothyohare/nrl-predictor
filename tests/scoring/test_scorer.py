@@ -130,3 +130,20 @@ def test_result_not_ready_when_no_result_row(tables):
     # no result seeded
     with pytest.raises(ResultNotReady):
         score_prediction(MATCH_ID, results_tbl, pred_tbl)
+
+
+def test_scores_last_prediction_before_kickoff(tables):
+    """A post-kickoff regeneration must NOT be scored — pick the last pre-kickoff prediction."""
+    from common.teams import to_slug  # noqa: F401 (ensure import path works)
+    pred_tbl, results_tbl = tables
+    ko = "2026-05-16T08:00:00Z"
+    # pre-kickoff forecast: Broncos (wrong); post-kickoff hindsight: Panthers (right)
+    pred_tbl.put_item(Item={"matchId": MATCH_ID, "generatedAt": "2026-05-14T09:00:00Z",
+                            "predicted_winner": "Broncos", "predicted_margin": 4,
+                            "confidence": "MEDIUM", "status": "OK"})
+    pred_tbl.put_item(Item={"matchId": MATCH_ID, "generatedAt": "2026-05-16T20:00:00Z",
+                            "predicted_winner": "Panthers", "predicted_margin": 10,
+                            "confidence": "HIGH", "status": "OK"})
+    _seed_result(results_tbl, home_score=24, away_score=18)  # Panthers win
+    scored = score_prediction(MATCH_ID, results_tbl, pred_tbl, kickoff=ko)
+    assert scored.correct_pick is False  # scored pre-KO 'Broncos', not hindsight 'Panthers'
