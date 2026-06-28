@@ -25,9 +25,9 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-# Monorepo root (two levels up from v2/infra): bundles root-shared common/scrapers/
+# Monorepo root (one level up from infra/): bundles root-shared common/scrapers/
 # scoring + the v2/ tree. v1/ and root-only dirs are excluded below.
-REPO_ROOT = "../.."
+REPO_ROOT = ".."
 LAMBDA_RUNTIME = _lambda.Runtime.PYTHON_3_12
 
 _ASSET_EXCLUDE = [
