@@ -127,11 +127,16 @@ shadow the root copies until v2 runs under one config on the monorepo path. A du
 deletion can't be *proven* until then. **Resolved by running Phase 4 (v2 rewire + single
 root pyproject) before Phase 3.** Drift *decisions* are still recorded as encountered.
 
-### Drift decisions
+### Drift decisions — ALL 11 UNIFY ON ROOT, no splits (2026-06-28)
+8 files functionally identical (comments/imports/whitespace only). 3 substantive — root
+is a superset in every case; v2 had no fix root lacked, and v2's tests already passed
+against root copies (388). Deleted `v2/{common,scrapers,scoring}` entirely.
 | file | decision | rationale |
 |---|---|---|
-| `scrapers/nrl/ladder.py` | **unify (root canonical)** | only diff is `UTC` vs `timezone.utc` import spelling; `parse_ladder` byte-identical. Both got the same 2026 feed-shape fix. |
-| _others filled during P3_ | | |
+| ladder, results, backfill, odds/scraper, odds/lambda_handler, articles/rss, shared/http_client, scoring/metrics | **unify (root)** | functionally identical (only UTC-spelling / import-order / comments) |
+| `scrapers/nrl/draw.py` | **unify (root)** | root superset: adds `slug_from_match_centre_url` back-compat alias; same output as v2's inline `match_id_from_url` |
+| `scrapers/nrl/team_sheet.py` | **unify (root)** | root superset: defensive `json.loads(str(...))` cast + alias; equivalent behaviour |
+| `scoring/lambda_handler.py` | **unify (root)** | root superset: returns informative `{"status":"OK"}` on success (v2 returned None); async invocation ignores return, tests unaffected |
 
 **▶ Checkpoint C3:** one copy of each shared module at root (minus any documented
 splits). Both suites green.

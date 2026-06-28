@@ -34,14 +34,10 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 - [x] **C4** v2 runs under unified config on v2.*; both suites 388 from one rootdir; v2 template diff = Code/Handler-only ✓ 2026-06-28
       FOLLOW-UPS: (1) type-check v2 (44 pre-existing mypy errors, currently excluded); (2) dead v2/api/tournament.py endpoint (no v2 tournament backend).
 
-## Phase 3 (now after Phase 4) — Reconcile shared drift (delete dupes)
-- [ ] T3.1 `scrapers/nrl/ladder.py` — DECISION: **unify, root canonical** (only diff UTC vs timezone.utc; parse_ladder identical). Delete v2 dup + prove both suites.
-- [ ] T3.2 `scrapers/nrl/{draw,results,team_sheet,backfill}.py`
-- [ ] T3.3 `scrapers/odds/{scraper,lambda_handler}.py`
-- [ ] T3.4 `scrapers/articles/rss.py`, `scrapers/shared/http_client.py`
-- [ ] T3.5 `scoring/{lambda_handler,metrics}.py`
-- [ ] T3.final delete reconciled `v2/{common,scrapers,scoring}` dupes; v2 → root shared
-- [ ] **C3** one copy per shared module (minus documented splits); both green
+## Phase 3 (after Phase 4) — Reconcile shared drift (delete dupes) ✅
+- [x] T3.1–T3.5 all 11 drifted files reviewed: 8 identical, 3 root-superset → ALL unify on root, no splits (see plan.md drift table)
+- [x] T3.final deleted v2/{common,scrapers,scoring}; v2 → root shared (verified: nothing imports v2.common/scrapers/scoring; asset bundles root shared, no v2 dup, no v1 leak)
+- [x] **C3** one copy per shared module; full suite 388; ruff+mypy clean; v2 synth logical IDs IDENTICAL ✓ 2026-06-28
 
 ## Phase 5 — Unify infra + harness + packaging
 - [ ] T5.1 `infra/app.py` both stacks; `v1_stack.py`/`v2_stack.py`; one `cdk.json`
