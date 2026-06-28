@@ -20,19 +20,27 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 - [x] **C2** root=shared+`v1/`+`v2/`; all v1 Python pkgs (api,agent,orchestrator,tournament,retrospective) under v1/; v1 green (288); template diff = Code/Handler-only ✓ 2026-06-28
       NOTE: full-repo gate-ci (mypy/ruff over `.`) deferred to C5 — v2/ still has bare `from agent…` imports until Phase 4; lint/type validated scoped to v1+shared.
 
-## Phase 3 — Reconcile shared drift (root vs `v2/`)
-- [ ] T3.1 `scrapers/nrl/ladder.py` (unify; real-feed fixture both suites)
+## ⚠️ RESEQUENCED 2026-06-28 (see plan.md "Sequencing correction")
+# Phase 4 (v2 rewire + single config) now runs BEFORE Phase 3 (drift deletion).
+# Reason: v2/pyproject.toml makes v2/ a separate pytest rootdir; v2's bare
+# `from scrapers/common/scoring` shadow root until v2 runs under one config.
+# Deleting a shared dup can't be PROVEN until v2 is on the monorepo path.
+# Drift *decisions* recorded as we go; ladder already decided (unify, root canon).
+
+## Phase 4 (now first) — Rewire v2 onto v2.* + single config
+- [ ] T4.0 add `v2/__init__.py`; single root `pyproject.toml` (packages incl `v1*`,`v2*`; testpaths `tests`+`v2/tests`); neutralize `v2/pyproject.toml` rootdir; both suites collect from one rootdir
+- [ ] T4.1 v2 version imports → `v2.*` (agent/api/orchestrator/tools/retrospective); shared stay bare; v2 tests green
+- [ ] T4.2 v2 stack handlers `→ v2.*` + asset bundles root-shared+`v2/`, excludes `v1/`; logical IDs stable vs baseline
+- [ ] **C4** v2 runs under unified config on `v2.*`; v2 template diff = Code/Handler-only
+
+## Phase 3 (now after Phase 4) — Reconcile shared drift (delete dupes)
+- [ ] T3.1 `scrapers/nrl/ladder.py` — DECISION: **unify, root canonical** (only diff UTC vs timezone.utc; parse_ladder identical). Delete v2 dup + prove both suites.
 - [ ] T3.2 `scrapers/nrl/{draw,results,team_sheet,backfill}.py`
 - [ ] T3.3 `scrapers/odds/{scraper,lambda_handler}.py`
 - [ ] T3.4 `scrapers/articles/rss.py`, `scrapers/shared/http_client.py`
 - [ ] T3.5 `scoring/{lambda_handler,metrics}.py`
 - [ ] T3.final delete reconciled `v2/{common,scrapers,scoring}` dupes; v2 → root shared
 - [ ] **C3** one copy per shared module (minus documented splits); both green
-
-## Phase 4 — Rewire v2 onto shared root
-- [ ] T4.1 v2 version imports → `v2.*` + bare `common/scrapers/scoring`; `pytest v2/ tests/` green
-- [ ] T4.2 v2 stack handlers `→ v2.*` + asset bundles root-shared+`v2/`, excludes `v1/`; logical IDs stable
-- [ ] **C4** v2 on root-shared; template diff = Code/Handler-only
 
 ## Phase 5 — Unify infra + harness + packaging
 - [ ] T5.1 `infra/app.py` both stacks; `v1_stack.py`/`v2_stack.py`; one `cdk.json`

@@ -120,10 +120,18 @@ duplicate remains; if split, rationale logged.
 `v2/scrapers`,`v2/scoring` files; v2 imports resolve `common/scrapers/scoring` from root.
 *AC:* no shared file exists in two places except those explicitly marked "split".
 
-### Drift decisions (filled during P3)
-| file | decision (unify/split) | rationale |
+### Sequencing correction (2026-06-28, during T3.1)
+Phase 3 (delete shared dupes) **depends on** Phase 4 + single-config: `v2/pyproject.toml`
+makes `v2/` a separate pytest rootdir, so v2's bare `from scrapers/common/scoring`
+shadow the root copies until v2 runs under one config on the monorepo path. A dup
+deletion can't be *proven* until then. **Resolved by running Phase 4 (v2 rewire + single
+root pyproject) before Phase 3.** Drift *decisions* are still recorded as encountered.
+
+### Drift decisions
+| file | decision | rationale |
 |---|---|---|
-| _to be completed in build_ | | |
+| `scrapers/nrl/ladder.py` | **unify (root canonical)** | only diff is `UTC` vs `timezone.utc` import spelling; `parse_ladder` byte-identical. Both got the same 2026 feed-shape fix. |
+| _others filled during P3_ | | |
 
 **▶ Checkpoint C3:** one copy of each shared module at root (minus any documented
 splits). Both suites green.
