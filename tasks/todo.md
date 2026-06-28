@@ -9,11 +9,12 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 - [x] **C0** baselines exist + green ✓ 2026-06-28
 
 ## Phase 1 — Subtree-merge v2 (history preserved)
-- [ ] T1.1 `git subtree add --prefix v2` (or read-tree); verify `git log --follow v2/...`; v1 root untouched + green
-- [ ] **C1** root=v1, `v2/`=full v2; v1 suite green
+- [x] T1.1 `git subtree add --prefix=v2` on branch `monorepo-merge`; v2 history reachable (fefba3c ancestor; 79=65+12+2 commits); v1 root untouched
+- [x] **C1** root=v1, `v2/`=full v2; v1 suite green (288) ✓ 2026-06-28
+      NOTE: `git log --follow v2/...` is empty by design — subtree grafts old root paths; history is reachable via commit ancestry (`git log fefba3c`).
 
 ## Phase 2 — Relocate v1 under `v1/` (absolute imports)
-- [ ] T2.1 v1 `api` → `v1/api` + imports + stack ApiFn handler/asset + tests
+- [x] T2.1 v1 `api` → `v1/api` + imports + stack ApiLambda handler + tests; asset excludes v2/tasks/SPEC; api tests 12, full v1 288, logical IDs IDENTICAL, handler→`v1.api.router` ✓ 2026-06-28
 - [ ] T2.2 v1 `agent`,`orchestrator` (+ handlers) → `v1/*` + imports + stack handlers + tests
 - [ ] T2.3 v1 `frontend`,`tournament`,`scripts`,`docs` → `v1/*`; provisional harness paths
 - [ ] **C2** root=shared+`v1/`+`v2/`; v1 green; template diff = Code/Handler-only

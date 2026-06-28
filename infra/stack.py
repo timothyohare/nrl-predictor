@@ -58,6 +58,9 @@ _ASSET_EXCLUDE = [
     "tests",
     "TODO.md",
     "CLAUDE.md",
+    "v2",            # v2 lives in the same monorepo but ships from its own stack
+    "tasks",         # migration SDLC artifacts
+    "SPEC.md",
 ]
 
 
@@ -502,7 +505,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "ApiLambda",
             function_name="nrl-predictor-api",
             runtime=LAMBDA_RUNTIME,
-            handler="api.router.lambda_handler",
+            handler="v1.api.router.lambda_handler",
             code=scraper_code,
             layers=[deps_layer],
             timeout=cdk.Duration.seconds(10),

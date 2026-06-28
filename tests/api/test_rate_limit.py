@@ -3,7 +3,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from api.rate_limit import check_rate_limit
+from v1.api.rate_limit import check_rate_limit
 
 TABLE = "rate_limits"
 
