@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.budget import BudgetExceeded
+from v1.agent.budget import BudgetExceeded
 
 PRED_TABLE = "predictions"
 USAGE_TABLE = "claude_usage"
@@ -60,9 +60,9 @@ def ddb_tables():
 
 
 def test_lambda_handler_writes_prediction(aws_env, ddb_tables):
-    from agent.lambda_handler import lambda_handler
-    with patch("agent.lambda_handler.run_agent", return_value=_VALID_PREDICTION), \
-         patch("agent.lambda_handler.check_budget"):
+    from v1.agent.lambda_handler import lambda_handler
+    with patch("v1.agent.lambda_handler.run_agent", return_value=_VALID_PREDICTION), \
+         patch("v1.agent.lambda_handler.check_budget"):
         lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
     table = ddb_tables.Table(PRED_TABLE)
     result = table.scan()
@@ -72,11 +72,11 @@ def test_lambda_handler_writes_prediction(aws_env, ddb_tables):
 
 
 def test_lambda_handler_increments_generation(aws_env, ddb_tables):
-    from agent.lambda_handler import lambda_handler
+    from v1.agent.lambda_handler import lambda_handler
     pred_1 = {**_VALID_PREDICTION, "generated_at": "2026-05-15T10:00:00Z"}
     pred_2 = {**_VALID_PREDICTION, "generated_at": "2026-05-16T10:00:00Z"}
-    with patch("agent.lambda_handler.run_agent", side_effect=[pred_1, pred_2]), \
-         patch("agent.lambda_handler.check_budget"):
+    with patch("v1.agent.lambda_handler.run_agent", side_effect=[pred_1, pred_2]), \
+         patch("v1.agent.lambda_handler.check_budget"):
         lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
         lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
     table = ddb_tables.Table(PRED_TABLE)
@@ -86,7 +86,7 @@ def test_lambda_handler_increments_generation(aws_env, ddb_tables):
 
 
 def test_lambda_handler_serves_cached_on_budget_exceeded(aws_env, ddb_tables):
-    from agent.lambda_handler import lambda_handler
+    from v1.agent.lambda_handler import lambda_handler
     # Pre-seed a cached prediction
     table = ddb_tables.Table(PRED_TABLE)
     table.put_item(Item={
@@ -94,7 +94,7 @@ def test_lambda_handler_serves_cached_on_budget_exceeded(aws_env, ddb_tables):
         "generatedAt": "2026-05-14T10:00:00Z",
         **_VALID_PREDICTION,
     })
-    with patch("agent.lambda_handler.check_budget", side_effect=BudgetExceeded("over budget")):
+    with patch("v1.agent.lambda_handler.check_budget", side_effect=BudgetExceeded("over budget")):
         lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
     result = table.scan()
     # Should have added a staleness-flagged record
@@ -104,9 +104,9 @@ def test_lambda_handler_serves_cached_on_budget_exceeded(aws_env, ddb_tables):
 
 
 def test_lambda_handler_writes_failed_status_on_error(aws_env, ddb_tables):
-    from agent.lambda_handler import lambda_handler
-    with patch("agent.lambda_handler.run_agent", side_effect=RuntimeError("agent crashed")), \
-         patch("agent.lambda_handler.check_budget"):
+    from v1.agent.lambda_handler import lambda_handler
+    with patch("v1.agent.lambda_handler.run_agent", side_effect=RuntimeError("agent crashed")), \
+         patch("v1.agent.lambda_handler.check_budget"):
         lambda_handler({"matchId": "panthers-v-broncos", "round": 12, "is_finals": False}, {})
     table = ddb_tables.Table(PRED_TABLE)
     items = table.scan()["Items"]

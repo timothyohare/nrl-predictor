@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from agent.tools.fantasy_stats import get_fantasy_stats
+from v1.agent.tools.fantasy_stats import get_fantasy_stats
 
 _SQUADS = [
     {"id": 500011, "name": "Broncos", "full_name": "Brisbane Broncos", "short_name": "BRI"},
@@ -35,8 +35,8 @@ _PLAYERS = [
 
 
 def _patched(fn):
-    return patch("agent.tools.fantasy_stats._fetch_squads", return_value=_SQUADS)(
-           patch("agent.tools.fantasy_stats._fetch_players", return_value=_PLAYERS)(fn))
+    return patch("v1.agent.tools.fantasy_stats._fetch_squads", return_value=_SQUADS)(
+           patch("v1.agent.tools.fantasy_stats._fetch_players", return_value=_PLAYERS)(fn))
 
 
 @_patched

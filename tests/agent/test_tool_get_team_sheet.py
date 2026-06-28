@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.team_sheet import ToolError, get_team_sheet
+from v1.agent.tools.team_sheet import ToolError, get_team_sheet
 
 TABLE = "teams"
 

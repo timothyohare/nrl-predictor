@@ -2,7 +2,7 @@ import os
 
 import boto3
 
-from agent.tools.momentum import calculate_momentum
+from v1.agent.tools.momentum import calculate_momentum
 from common.teams import to_slug
 
 

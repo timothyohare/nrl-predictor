@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.weather import ToolError, get_weather
+from v1.agent.tools.weather import ToolError, get_weather
 
 TABLE = "weather"
 

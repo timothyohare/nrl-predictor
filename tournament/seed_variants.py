@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 import boto3
 
-from agent.prompt import build_system_prompt
+from v1.agent.prompt import build_system_prompt
 
 _BASE_PROMPT = build_system_prompt()
 

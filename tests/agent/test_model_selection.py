@@ -1,4 +1,4 @@
-from agent.model_selection import select_model
+from v1.agent.model_selection import select_model
 from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
 
 

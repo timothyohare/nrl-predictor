@@ -1,4 +1,4 @@
-from agent.prompt import build_system_prompt
+from v1.agent.prompt import build_system_prompt
 
 
 def test_returns_non_empty_string():

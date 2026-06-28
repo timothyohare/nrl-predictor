@@ -3,7 +3,7 @@ import logging
 import time
 from datetime import UTC, datetime
 
-from agent.graph import run_agent
+from v1.agent.graph import run_agent
 
 logger = logging.getLogger(__name__)
 

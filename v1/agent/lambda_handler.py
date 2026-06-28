@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 
 import boto3
 
-from agent.budget import BudgetExceeded, check_budget
-from agent.graph import run_agent
-from agent.prompt import PROMPT_VERSION
-from agent.tools.lessons import get_lessons
+from v1.agent.budget import BudgetExceeded, check_budget
+from v1.agent.graph import run_agent
+from v1.agent.prompt import PROMPT_VERSION
+from v1.agent.tools.lessons import get_lessons
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -51,12 +51,12 @@ def ddb_and_s3():
 def test_orchestrator_writes_draw_and_invokes_agent_per_match(
     aws_env, ddb_and_s3, draw_data
 ):
-    from orchestrator.lambda_handler import lambda_handler
+    from v1.orchestrator.lambda_handler import lambda_handler
 
     lambda_mock = MagicMock()
-    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")), \
-         patch("orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")), \
+         patch("v1.orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
         result = lambda_handler({"season": 2026, "round": 12}, {})
 
     # 3 fixtures have matchCentreUrl
@@ -81,13 +81,13 @@ def test_orchestrator_continues_when_team_sheet_unavailable(
     """Team sheets may not be available yet (e.g. early in the week);
     orchestrator must still trigger the agent — agent will use cached/stale
     team sheet data or fail per-match without blocking the whole round."""
-    from orchestrator.lambda_handler import lambda_handler
+    from v1.orchestrator.lambda_handler import lambda_handler
 
     lambda_mock = MagicMock()
-    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("orchestrator.lambda_handler.fetch_team_sheet_page",
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page",
                side_effect=TeamSheetNotFound("not posted yet")), \
-         patch("orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
+         patch("v1.orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
         result = lambda_handler({"season": 2026, "round": 12}, {})
 
     # All matches still trigger agent invocations
@@ -103,13 +103,13 @@ def test_orchestrator_staggers_agent_invocations(ddb_and_s3, draw_data, monkeypa
     monkeypatch.setenv("AGENT_FUNCTION_NAME", "nrl-predictor-agent")
     monkeypatch.setenv("AGENT_INVOKE_STAGGER_SECONDS", "8")
 
-    from orchestrator.lambda_handler import lambda_handler
+    from v1.orchestrator.lambda_handler import lambda_handler
 
     sleep_mock = MagicMock()
-    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
-         patch("orchestrator.lambda_handler.boto3.client"), \
-         patch("orchestrator.lambda_handler.time.sleep", sleep_mock):
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
+         patch("v1.orchestrator.lambda_handler.boto3.client"), \
+         patch("v1.orchestrator.lambda_handler.time.sleep", sleep_mock):
         lambda_handler({"season": 2026, "round": 12}, {})
 
     # 3 invocations → 2 sleeps (no sleep before the first one)
@@ -121,16 +121,16 @@ def test_orchestrator_writes_team_sheet_under_slug(aws_env, ddb_and_s3, draw_dat
     """The team sheet row must be keyed by the round-qualified slug (the same id
     the agent is invoked with and queries by), not the numerical q-data matchId.
     """
-    from agent.tools.team_sheet import get_team_sheet
-    from orchestrator.lambda_handler import lambda_handler
+    from v1.agent.tools.team_sheet import get_team_sheet
+    from v1.orchestrator.lambda_handler import lambda_handler
 
     q_data = json.loads(
         (Path(__file__).parent.parent / "fixtures" / "nrl_team_sheet_qdata.json").read_text()
     )
 
-    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data), \
-         patch("orchestrator.lambda_handler.boto3.client"):
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data), \
+         patch("v1.orchestrator.lambda_handler.boto3.client"):
         lambda_handler({"season": 2026, "round": 12}, {})
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
@@ -141,11 +141,11 @@ def test_orchestrator_writes_team_sheet_under_slug(aws_env, ddb_and_s3, draw_dat
 
 
 def test_orchestrator_writes_teams_entries_to_dynamo(aws_env, ddb_and_s3, draw_data):
-    from orchestrator.lambda_handler import lambda_handler
+    from v1.orchestrator.lambda_handler import lambda_handler
 
-    with patch("orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
-         patch("orchestrator.lambda_handler.boto3.client"):
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
+         patch("v1.orchestrator.lambda_handler.boto3.client"):
         lambda_handler({"season": 2026, "round": 12}, {})
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")

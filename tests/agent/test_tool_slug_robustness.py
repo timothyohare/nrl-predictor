@@ -5,9 +5,9 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.coaching_matchup import _get_coach
-from agent.tools.head_to_head import get_head_to_head
-from agent.tools.recent_form import get_recent_form
+from v1.agent.tools.coaching_matchup import _get_coach
+from v1.agent.tools.head_to_head import get_head_to_head
+from v1.agent.tools.recent_form import get_recent_form
 
 TABLE = "results"
 

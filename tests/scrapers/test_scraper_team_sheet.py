@@ -113,7 +113,7 @@ def test_lambda_handler_write_is_readable_by_agent_tool(q_data, monkeypatch):
     """Regression: the team-sheet writer must key rows the same way the agent's
     get_team_sheet tool reads them, otherwise the agent never sees team sheets.
     """
-    from agent.tools.team_sheet import get_team_sheet
+    from v1.agent.tools.team_sheet import get_team_sheet
 
     boto3.client("dynamodb", region_name="ap-southeast-2").create_table(
         TableName="teams",

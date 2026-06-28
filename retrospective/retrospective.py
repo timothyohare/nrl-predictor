@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import anthropic
 import boto3
 
-from agent.tools.web_search import web_search
+from v1.agent.tools.web_search import web_search
 from retrospective.prompt import build_retrospective_prompt
 
 logger = logging.getLogger(__name__)

@@ -8,23 +8,23 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from agent.budget import record_usage
-from agent.model_selection import select_model
-from agent.prompt import build_system_prompt
-from agent.schema import validate_prediction
-from agent.tools.coaching_matchup import get_coaching_matchup
-from agent.tools.fantasy_stats import get_fantasy_stats
-from agent.tools.head_to_head import get_head_to_head
-from agent.tools.injury_list import get_injury_list
-from agent.tools.ladder import get_ladder
-from agent.tools.lessons import get_lessons
-from agent.tools.recent_form import get_recent_form
-from agent.tools.spine_synergy import get_spine_synergy
-from agent.tools.team_sheet import get_team_sheet
-from agent.tools.trap_game import detect_trap_game
-from agent.tools.venue_profile import get_venue_profile
-from agent.tools.weather import get_weather
-from agent.tools.web_search import web_search
+from v1.agent.budget import record_usage
+from v1.agent.model_selection import select_model
+from v1.agent.prompt import build_system_prompt
+from v1.agent.schema import validate_prediction
+from v1.agent.tools.coaching_matchup import get_coaching_matchup
+from v1.agent.tools.fantasy_stats import get_fantasy_stats
+from v1.agent.tools.head_to_head import get_head_to_head
+from v1.agent.tools.injury_list import get_injury_list
+from v1.agent.tools.ladder import get_ladder
+from v1.agent.tools.lessons import get_lessons
+from v1.agent.tools.recent_form import get_recent_form
+from v1.agent.tools.spine_synergy import get_spine_synergy
+from v1.agent.tools.team_sheet import get_team_sheet
+from v1.agent.tools.trap_game import detect_trap_game
+from v1.agent.tools.venue_profile import get_venue_profile
+from v1.agent.tools.weather import get_weather
+from v1.agent.tools.web_search import web_search
 
 logger = logging.getLogger(__name__)
 

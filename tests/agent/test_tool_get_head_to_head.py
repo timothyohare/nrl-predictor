@@ -2,7 +2,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.head_to_head import get_head_to_head
+from v1.agent.tools.head_to_head import get_head_to_head
 
 TABLE = "results"
 
