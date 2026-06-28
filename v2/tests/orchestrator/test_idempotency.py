@@ -13,7 +13,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-import orchestrator.lambda_handler as oh
+import v2.orchestrator.lambda_handler as oh
 
 
 def _match(slug="round-16-knights-v-dragons"):

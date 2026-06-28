@@ -5,8 +5,9 @@ from unittest.mock import MagicMock
 import pytest
 from langchain_core.messages import AIMessage
 
-from agent.graph import build_graph
-from agent.state import (
+from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
+from v2.agent.graph import build_graph
+from v2.agent.state import (
     Challenge,
     ExtendedPrediction,
     FinalPrediction,
@@ -14,7 +15,6 @@ from agent.state import (
     FirstTryScorerCandidate,
     RouterOutput,
 )
-from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
 
 
 def _structured_llm(return_value):

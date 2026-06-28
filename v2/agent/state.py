@@ -5,7 +5,6 @@ from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field, field_validator
 
-
 # ── Pydantic output models ───────────────────────────────────────────────────
 
 class RouterOutput(BaseModel):

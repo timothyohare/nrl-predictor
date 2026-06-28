@@ -4,8 +4,8 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agent.state import Challenge, FinalPrediction, MatchPredictionState, PrimaryPrediction
 from scrapers.shared.constants import SONNET_MODEL
+from v2.agent.state import Challenge, FinalPrediction, MatchPredictionState, PrimaryPrediction
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,8 @@ def make_judge_node(llm=None):
         base_llm = llm
         if base_llm is None:
             from langchain_anthropic import ChatAnthropic
-            from agent.lambda_handler import get_api_key
+
+            from v2.agent.lambda_handler import get_api_key
             # FinalPrediction has two prose fields (judge_rationale + reasoning), so its
             # structured output runs larger than the Challenger's; 1536 truncated it and
             # crashed with a max_tokens ValidationError. Give it room.

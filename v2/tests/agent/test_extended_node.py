@@ -1,9 +1,8 @@
 """Tests for the Extended Predictor node."""
 from unittest.mock import MagicMock
 
-
-from agent.nodes.extended import make_extended_node
-from agent.state import (
+from v2.agent.nodes.extended import make_extended_node
+from v2.agent.state import (
     Challenge,
     ExtendedPrediction,
     FinalPrediction,

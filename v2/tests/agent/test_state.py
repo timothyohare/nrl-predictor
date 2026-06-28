@@ -2,7 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from agent.state import (
+from v2.agent.state import (
     Challenge,
     ExtendedPrediction,
     FinalPrediction,

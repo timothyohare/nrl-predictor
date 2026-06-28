@@ -4,7 +4,7 @@ import os
 
 import boto3
 
-from api.rate_limit import check_rate_limit
+from v2.api.rate_limit import check_rate_limit
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -27,15 +27,15 @@ def lambda_handler(event: dict, context) -> dict:
         return {"statusCode": 200, "headers": {"Content-Type": "application/json"}, "body": '{"status":"ok"}'}
 
     if path.startswith("/predictions"):
-        from api.predictions import lambda_handler as predictions_handler
+        from v2.api.predictions import lambda_handler as predictions_handler
         return predictions_handler(event, context)
 
     if path == "/accuracy":
-        from api.accuracy import lambda_handler as accuracy_handler
+        from v2.api.accuracy import lambda_handler as accuracy_handler
         return accuracy_handler(event, context)
 
     if path == "/tournament/leaderboard":
-        from api.tournament import lambda_handler as tournament_handler
+        from v2.api.tournament import lambda_handler as tournament_handler
         return tournament_handler(event, context)
 
     return {

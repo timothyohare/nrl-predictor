@@ -1,12 +1,12 @@
 """LangGraph StateGraph for the multi-agent NRL prediction pipeline."""
 from langgraph.graph import END, StateGraph
 
-from agent.nodes.challenger import make_challenger_node
-from agent.nodes.extended import make_extended_node
-from agent.nodes.judge import make_judge_node
-from agent.nodes.primary import make_primary_node
-from agent.nodes.router import make_router_node
-from agent.state import MatchPredictionState
+from v2.agent.nodes.challenger import make_challenger_node
+from v2.agent.nodes.extended import make_extended_node
+from v2.agent.nodes.judge import make_judge_node
+from v2.agent.nodes.primary import make_primary_node
+from v2.agent.nodes.router import make_router_node
+from v2.agent.state import MatchPredictionState
 
 
 def build_graph(

@@ -3,8 +3,8 @@ import json
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agent.state import ExtendedPrediction, MatchPredictionState
 from scrapers.shared.constants import HAIKU_MODEL
+from v2.agent.state import ExtendedPrediction, MatchPredictionState
 
 _SYSTEM = """\
 You are an NRL prop-betting specialist. Given a final match prediction and team sheets,
@@ -30,7 +30,8 @@ def make_extended_node(llm=None):
         base_llm = llm
         if base_llm is None:
             from langchain_anthropic import ChatAnthropic
-            from agent.lambda_handler import get_api_key
+
+            from v2.agent.lambda_handler import get_api_key
             base_llm = ChatAnthropic(model=HAIKU_MODEL, api_key=get_api_key(), max_tokens=1024)
 
         structured = base_llm.with_structured_output(ExtendedPrediction)

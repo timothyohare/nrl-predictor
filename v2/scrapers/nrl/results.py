@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 
@@ -48,7 +48,7 @@ def lambda_handler(event: dict, context) -> None:
     round_number = event["round"]
     table_name = os.environ["RESULTS_TABLE"]
     bucket = os.environ["RAW_BUCKET"]
-    scored_at = datetime.now(timezone.utc).isoformat()
+    scored_at = datetime.now(UTC).isoformat()
 
     raw = fetch_results(season, round_number)
     save_raw(bucket, f"raw-scrapes/results/{season}/round-{round_number}.json", json.dumps(raw))

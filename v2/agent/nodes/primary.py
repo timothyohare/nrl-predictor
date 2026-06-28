@@ -4,9 +4,9 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from agent.state import MatchPredictionState, PrimaryPrediction
-from agent.tools import ALL_TOOLS
 from scrapers.shared.constants import HAIKU_MODEL
+from v2.agent.state import MatchPredictionState, PrimaryPrediction
+from v2.agent.tools import ALL_TOOLS
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ def make_primary_node(llm=None):
         base_llm = llm
         if base_llm is None:
             from langchain_anthropic import ChatAnthropic
-            from agent.lambda_handler import get_api_key
+
+            from v2.agent.lambda_handler import get_api_key
             base_llm = ChatAnthropic(model=model_name, api_key=get_api_key(), max_tokens=2048)
 
         # Prompt caching for the ReAct loop. Each iteration re-sends the full,

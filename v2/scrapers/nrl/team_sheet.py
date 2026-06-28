@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 from bs4 import BeautifulSoup
@@ -79,7 +79,7 @@ def lambda_handler(event: dict, context) -> None:
     match_centre_url = event["matchCentreUrl"]
     table_name = os.environ["TEAMS_TABLE"]
     bucket = os.environ["RAW_BUCKET"]
-    scraped_at = datetime.now(timezone.utc).isoformat()
+    scraped_at = datetime.now(UTC).isoformat()
 
     try:
         q_data = fetch_team_sheet_page(match_centre_url)

@@ -1,12 +1,26 @@
 import aws_cdk as cdk
 from aws_cdk import (
-    aws_dynamodb as dynamodb,
-    aws_events as events,
-    aws_events_targets as targets,
     aws_apigatewayv2 as apigwv2,
+)
+from aws_cdk import (
     aws_apigatewayv2_integrations as integrations,
+)
+from aws_cdk import (
+    aws_dynamodb as dynamodb,
+)
+from aws_cdk import (
+    aws_events as events,
+)
+from aws_cdk import (
+    aws_events_targets as targets,
+)
+from aws_cdk import (
     aws_lambda as _lambda,
+)
+from aws_cdk import (
     aws_s3 as s3,
+)
+from aws_cdk import (
     aws_secretsmanager as secretsmanager,
 )
 from constructs import Construct

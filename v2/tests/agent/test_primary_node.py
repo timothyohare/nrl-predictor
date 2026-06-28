@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 import pytest
 from langchain_core.messages import AIMessage
 
-from agent.nodes.primary import make_primary_node
-from agent.state import PrimaryPrediction
+from v2.agent.nodes.primary import make_primary_node
+from v2.agent.state import PrimaryPrediction
 
 
 def _make_final_ai_message() -> AIMessage:
@@ -82,5 +82,5 @@ def test_primary_raises_on_extraction_failure(monkeypatch):
     llm.bind_tools.return_value.invoke.return_value = _make_final_ai_message()
     llm.with_structured_output.return_value.invoke.side_effect = ValueError("Output parsing failed")
     node = make_primary_node(llm=llm)
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017 — node surfaces parse failure; exact type not contracted
         node(_make_state())

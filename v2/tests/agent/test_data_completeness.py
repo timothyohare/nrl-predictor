@@ -5,7 +5,7 @@ match ran with an empty team sheet, so the structured tools (recent_form, head_t
 returned nothing and the agent predicted blind off web_search — 1/7 winners. The guard
 short-circuits before the five-call graph runs when the essential inputs are absent.
 """
-from agent.lambda_handler import assess_data_completeness
+from v2.agent.lambda_handler import assess_data_completeness
 
 
 def _full_context() -> dict:

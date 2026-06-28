@@ -24,7 +24,7 @@ Empty v2/experiment tables are expected today and render as "pending", not error
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -34,7 +34,7 @@ import streamlit as st
 # (which puts tools/ — not the repo root — on sys.path[0]).
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import tools.inspector as ins  # noqa: E402
+import v2.tools.inspector as ins  # noqa: E402
 
 DATA_TTL = 30  # seconds; bounds how stale the auto-refreshing monitor can get
 V2 = ins.V2_PROMPT_VERSION
@@ -309,8 +309,8 @@ def _ago(iso: str) -> str:
     try:
         then = datetime.fromisoformat(iso)
         if then.tzinfo is None:
-            then = then.replace(tzinfo=timezone.utc)
-        secs = (datetime.now(timezone.utc) - then).total_seconds()
+            then = then.replace(tzinfo=UTC)
+        secs = (datetime.now(UTC) - then).total_seconds()
     except ValueError:
         return iso
     for unit, n in (("d", 86400), ("h", 3600), ("m", 60)):

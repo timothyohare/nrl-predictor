@@ -3,8 +3,8 @@ import json
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agent.state import MatchPredictionState, RouterOutput
 from scrapers.shared.constants import HAIKU_MODEL
+from v2.agent.state import MatchPredictionState, RouterOutput
 
 _SYSTEM = """\
 You are an NRL match classifier. Given a match context, classify the match difficulty
@@ -29,7 +29,8 @@ def make_router_node(llm=None):
         model = llm
         if model is None:
             from langchain_anthropic import ChatAnthropic
-            from agent.lambda_handler import get_api_key
+
+            from v2.agent.lambda_handler import get_api_key
             model = ChatAnthropic(model=HAIKU_MODEL, api_key=get_api_key(), max_tokens=512)
 
         structured = model.with_structured_output(RouterOutput)

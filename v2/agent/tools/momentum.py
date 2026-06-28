@@ -38,9 +38,9 @@ def calculate_momentum(
         points_against.append(pa)
 
     total_weight = sum(weights)
-    weighted_win_rate = sum(w * v for w, v in zip(weights, wins)) / total_weight
-    weighted_pf = sum(w * v for w, v in zip(weights, points_for)) / total_weight
-    weighted_pa = sum(w * v for w, v in zip(weights, points_against)) / total_weight
+    weighted_win_rate = sum(w * v for w, v in zip(weights, wins, strict=False)) / total_weight
+    weighted_pf = sum(w * v for w, v in zip(weights, points_for, strict=False)) / total_weight
+    weighted_pa = sum(w * v for w, v in zip(weights, points_against, strict=False)) / total_weight
 
     # Momentum direction: compare unweighted win rate of recent half vs older half
     # Use unweighted to avoid decay bias making alternating patterns look directional

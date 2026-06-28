@@ -1,14 +1,14 @@
 """AWS Lambda entry point for the v2 multi-agent NRL predictor."""
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import boto3
 
-from agent.budget import BudgetExceeded, check_budget
-from agent.graph import get_app
 from common.teams import to_slug
+from v2.agent.budget import BudgetExceeded, check_budget
+from v2.agent.graph import get_app
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -110,7 +110,7 @@ def write_prediction(match_id: str, round_number: int, season: int, state: dict,
 
     final = state["final_prediction"]
     extended = state.get("extended")
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
 
     item = {
         "matchId": match_id,
@@ -205,7 +205,7 @@ def lambda_handler(event: dict, context) -> dict:
     app = get_app()
     result = app.invoke(initial_state)
 
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
     write_prediction(match_id, round_number, season, result, generation)
     write_trace(match_id, generated_at, result)
 

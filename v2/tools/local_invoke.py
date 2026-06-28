@@ -130,12 +130,17 @@ def seed_secrets() -> None:
 def mock_graph():
     from langchain_core.messages import AIMessage
 
-    from agent.graph import build_graph
-    from agent.state import (
-        Challenge, ExtendedPrediction, FinalPrediction, FirstTryPrediction,
-        FirstTryScorerCandidate, PrimaryPrediction, RouterOutput,
-    )
     from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
+    from v2.agent.graph import build_graph
+    from v2.agent.state import (
+        Challenge,
+        ExtendedPrediction,
+        FinalPrediction,
+        FirstTryPrediction,
+        FirstTryScorerCandidate,
+        PrimaryPrediction,
+        RouterOutput,
+    )
 
     def structured(value):
         llm = MagicMock()
@@ -223,7 +228,7 @@ def run(args) -> int:
             if args.real_llm:
                 seed_secrets()
 
-        import agent.lambda_handler as lh
+        import v2.agent.lambda_handler as lh
         if not args.real_llm:
             graph = mock_graph()
             lh.get_app = lambda: graph  # noqa: E731 — inject mocked pipeline

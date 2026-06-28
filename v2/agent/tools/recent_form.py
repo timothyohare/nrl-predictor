@@ -3,8 +3,8 @@ import os
 import boto3
 from langchain_core.tools import tool
 
-from agent.tools.momentum import calculate_momentum
 from common.teams import to_slug
+from v2.agent.tools.momentum import calculate_momentum
 
 
 def _get_recent_form(team: str, n: int = 5, table=None) -> dict:

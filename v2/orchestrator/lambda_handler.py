@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -62,7 +62,7 @@ def lambda_handler(event: dict, context) -> dict:
     bucket = os.environ["RAW_BUCKET"]
     teams_table_name = os.environ["TEAMS_TABLE"]
     agent_fn_name = os.environ["AGENT_FUNCTION_NAME"]
-    scraped_at = datetime.now(timezone.utc).isoformat()
+    scraped_at = datetime.now(UTC).isoformat()
 
     # 1. Scrape draw
     raw_draw = fetch_draw(season, round_for_fetch)
@@ -81,7 +81,7 @@ def lambda_handler(event: dict, context) -> dict:
     # run already claimed this round within the lock window. `force: true` overrides it.
     lock_window_s = int(os.environ.get("ORCHESTRATOR_LOCK_WINDOW_SECONDS", "900"))
     if not event.get("force") and lock_window_s > 0:
-        if not _acquire_round_lock(teams_table, season, actual_round, datetime.now(timezone.utc), lock_window_s):
+        if not _acquire_round_lock(teams_table, season, actual_round, datetime.now(UTC), lock_window_s):
             logger.warning(
                 "Orchestrator already ran for season=%s round=%s within %ds — skipping "
                 "fan-out (pass force=true to override).", season, actual_round, lock_window_s,

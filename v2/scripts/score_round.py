@@ -12,8 +12,8 @@ for each. The scoring Lambda auto-triggers the retrospective Lambda after scorin
 import argparse
 import json
 import time
-import boto3
 
+import boto3
 
 SCORING_FUNCTION = "nrl-predictor-scoring"
 REGION = "ap-southeast-2"

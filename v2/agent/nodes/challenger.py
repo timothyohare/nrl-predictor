@@ -3,8 +3,8 @@ import json
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agent.state import Challenge, MatchPredictionState
 from scrapers.shared.constants import SONNET_MODEL
+from v2.agent.state import Challenge, MatchPredictionState
 
 _SYSTEM = """\
 You are a contrarian NRL analyst. You have been given a match prediction.
@@ -32,7 +32,8 @@ def make_challenger_node(llm=None):
         base_llm = llm
         if base_llm is None:
             from langchain_anthropic import ChatAnthropic
-            from agent.lambda_handler import get_api_key
+
+            from v2.agent.lambda_handler import get_api_key
             base_llm = ChatAnthropic(model=SONNET_MODEL, api_key=get_api_key(), max_tokens=2048)
 
         structured = base_llm.with_structured_output(Challenge)

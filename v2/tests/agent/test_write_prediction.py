@@ -14,8 +14,8 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.lambda_handler import write_prediction, write_trace
-from agent.state import (
+from v2.agent.lambda_handler import write_prediction, write_trace
+from v2.agent.state import (
     Challenge,
     ExtendedPrediction,
     FinalPrediction,

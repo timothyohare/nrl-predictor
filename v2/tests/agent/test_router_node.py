@@ -1,10 +1,9 @@
 """Tests for the Router node."""
 from unittest.mock import MagicMock
 
-
-from agent.nodes.router import make_router_node
-from agent.state import RouterOutput
 from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
+from v2.agent.nodes.router import make_router_node
+from v2.agent.state import RouterOutput
 
 
 def _make_llm(output: RouterOutput):

@@ -1,10 +1,10 @@
 """Tournament leaderboard API endpoint."""
 import json
 import os
+from datetime import UTC
 from decimal import Decimal
 
 import boto3
-
 from tournament.variant_scorer import get_leaderboard
 
 
@@ -23,8 +23,8 @@ def lambda_handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "Tournament not configured"}),
         }
 
-    from datetime import datetime, timezone
-    season = int((event.get("queryStringParameters") or {}).get("season", datetime.now(timezone.utc).year))
+    from datetime import datetime
+    season = int((event.get("queryStringParameters") or {}).get("season", datetime.now(UTC).year))
 
     metrics_table = boto3.resource("dynamodb").Table(metrics_table_name)
     leaderboard = get_leaderboard(season, metrics_table)

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
@@ -25,7 +25,7 @@ def parse_rss(
     now: datetime | None = None,
 ) -> list[Article]:
     teams = nrl_teams or _NRL_TEAMS
-    cutoff = (now or datetime.now(timezone.utc)) - timedelta(hours=_MAX_AGE_HOURS)
+    cutoff = (now or datetime.now(UTC)) - timedelta(hours=_MAX_AGE_HOURS)
     root = ElementTree.fromstring(xml_text)
     articles = []
     for item in root.iter("item"):
@@ -37,7 +37,7 @@ def parse_rss(
             continue
 
         try:
-            published_at = parsedate_to_datetime(pub_raw).astimezone(timezone.utc)
+            published_at = parsedate_to_datetime(pub_raw).astimezone(UTC)
         except Exception:
             continue
 

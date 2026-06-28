@@ -31,7 +31,7 @@ import os
 import re
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import boto3
@@ -360,7 +360,7 @@ def _trace_html(t: dict) -> str:
 
 def render_html(cov: dict, preds: list[dict], results: list[dict], traces: list[dict],
                 rounds: list[int], kickoffs: dict[str, str] | None = None) -> str:
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     v2_card = (f'<div class="n">{cov["v2"]}</div>' if cov["v2"]
                else '<div class="n warn">0</div>')
     tr_card = (f'<div class="n">{cov["traces"]}</div>' if cov["traces"]

@@ -1,9 +1,8 @@
 """Tests for the Synthesis Judge node."""
 from unittest.mock import MagicMock
 
-
-from agent.nodes.judge import make_judge_node
-from agent.state import Challenge, FinalPrediction, PrimaryPrediction
+from v2.agent.nodes.judge import make_judge_node
+from v2.agent.state import Challenge, FinalPrediction, PrimaryPrediction
 
 
 def _primary(winner="Panthers", margin=14, confidence="HIGH"):
