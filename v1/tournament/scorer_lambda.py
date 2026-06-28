@@ -4,7 +4,7 @@ import os
 
 import boto3
 
-from tournament.variant_scorer import aggregate_variant_season, score_round
+from v1.tournament.variant_scorer import aggregate_variant_season, score_round
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

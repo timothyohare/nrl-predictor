@@ -2,8 +2,8 @@ import os
 
 import boto3
 
-from v1.agent.tools.momentum import calculate_momentum
 from common.teams import to_slug
+from v1.agent.tools.momentum import calculate_momentum
 
 
 def get_recent_form(team: str, n: int = 5, table=None) -> dict:

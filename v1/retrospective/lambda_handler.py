@@ -3,7 +3,7 @@ import os
 
 import boto3
 
-from retrospective.retrospective import generate_retrospective
+from v1.retrospective.retrospective import generate_retrospective
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

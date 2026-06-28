@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import boto3
 
-from tournament.variant_scorer import get_leaderboard
+from v1.tournament.variant_scorer import get_leaderboard
 
 
 def _serialise(obj):

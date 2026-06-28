@@ -1,7 +1,7 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from retrospective.retrospective import generate_retrospective
+from v1.retrospective.retrospective import generate_retrospective
 
 MATCH_ID = "panthers-v-storm-20260515"
 
@@ -75,7 +75,7 @@ def test_generate_calls_claude_and_stores(monkeypatch):
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _mock_claude_response()
 
-    with patch("retrospective.retrospective.web_search", return_value=["Storm 28 Panthers 20 match report"]):
+    with patch("v1.retrospective.retrospective.web_search", return_value=["Storm 28 Panthers 20 match report"]):
         result = generate_retrospective(
             match_id=MATCH_ID,
             round_number=11,
@@ -104,7 +104,7 @@ def test_match_stats_stored(monkeypatch):
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _mock_claude_response()
 
-    with patch("retrospective.retrospective.web_search", return_value=["Try scorers: Smith 10, Brown 55"]):
+    with patch("v1.retrospective.retrospective.web_search", return_value=["Try scorers: Smith 10, Brown 55"]):
         generate_retrospective(
             match_id=MATCH_ID,
             round_number=11,
@@ -188,7 +188,7 @@ def test_thinking_block_before_text_block():
     })
     mock_client.messages.create.return_value = MagicMock(content=[thinking_block, text_block])
 
-    with patch("retrospective.retrospective.web_search", return_value=[]):
+    with patch("v1.retrospective.retrospective.web_search", return_value=[]):
         result = generate_retrospective(
             match_id=MATCH_ID,
             round_number=11,
@@ -211,7 +211,7 @@ def test_web_search_failure_still_completes():
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _mock_claude_response()
 
-    with patch("retrospective.retrospective.web_search", side_effect=Exception("Search failed")):
+    with patch("v1.retrospective.retrospective.web_search", side_effect=Exception("Search failed")):
         result = generate_retrospective(
             match_id=MATCH_ID,
             round_number=11,

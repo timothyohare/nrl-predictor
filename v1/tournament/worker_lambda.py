@@ -5,7 +5,7 @@ import time
 
 import boto3
 
-from tournament.variant_runner import run_variant_for_round
+from v1.tournament.variant_runner import run_variant_for_round
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

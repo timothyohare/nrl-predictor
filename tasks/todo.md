@@ -15,9 +15,10 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 
 ## Phase 2 — Relocate v1 under `v1/` (absolute imports)
 - [x] T2.1 v1 `api` → `v1/api` + imports + stack ApiLambda handler + tests; asset excludes v2/tasks/SPEC; api tests 12, full v1 288, logical IDs IDENTICAL, handler→`v1.api.router` ✓ 2026-06-28
-- [ ] T2.2 v1 `agent`,`orchestrator` (+ handlers) → `v1/*` + imports + stack handlers + tests
-- [ ] T2.3 v1 `frontend`,`tournament`,`scripts`,`docs` → `v1/*`; provisional harness paths
-- [ ] **C2** root=shared+`v1/`+`v2/`; v1 green; template diff = Code/Handler-only
+- [x] T2.2 v1 `agent`,`orchestrator` → `v1/*` + imports (30 files) + AgentLambda/OrchestratorLambda handlers + tests; agent+orch 111, full v1 288, logical IDs IDENTICAL ✓ 2026-06-28
+- [x] T2.3 v1 `tournament`,`retrospective` → `v1/*` + imports + 4 CDK handlers + tests (option b: frontend/scripts/docs/plans stay at root); tournament+retro 22, full v1 288, logical IDs IDENTICAL, ruff+mypy(v1+shared) clean ✓ 2026-06-28
+- [x] **C2** root=shared+`v1/`+`v2/`; all v1 Python pkgs (api,agent,orchestrator,tournament,retrospective) under v1/; v1 green (288); template diff = Code/Handler-only ✓ 2026-06-28
+      NOTE: full-repo gate-ci (mypy/ruff over `.`) deferred to C5 — v2/ still has bare `from agent…` imports until Phase 4; lint/type validated scoped to v1+shared.
 
 ## Phase 3 — Reconcile shared drift (root vs `v2/`)
 - [ ] T3.1 `scrapers/nrl/ladder.py` (unify; real-feed fixture both suites)

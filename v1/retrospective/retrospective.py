@@ -7,7 +7,7 @@ import anthropic
 import boto3
 
 from v1.agent.tools.web_search import web_search
-from retrospective.prompt import build_retrospective_prompt
+from v1.retrospective.prompt import build_retrospective_prompt
 
 logger = logging.getLogger(__name__)
 _MODEL = "claude-sonnet-4-6"
