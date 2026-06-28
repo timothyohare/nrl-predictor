@@ -25,13 +25,18 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-REPO_ROOT = ".."
+# Monorepo root (two levels up from v2/infra): bundles root-shared common/scrapers/
+# scoring + the v2/ tree. v1/ and root-only dirs are excluded below.
+REPO_ROOT = "../.."
 LAMBDA_RUNTIME = _lambda.Runtime.PYTHON_3_12
 
 _ASSET_EXCLUDE = [
     "cdk.out", ".venv", "frontend", "infra", ".git", ".github",
     "node_modules", "**/__pycache__", "**/*.pyc", "**/*.pyo", "tests",
     "TODO.md", "CLAUDE.md", "fetcher-spikes", "docs",
+    "v1",            # v1 version code ships from its own stack
+    "v2/infra", "v2/tests", "v2/docs",
+    "tasks", "plans", "SPEC.md", "README.md",
 ]
 
 
@@ -114,7 +119,7 @@ class NrlPredictorV2Stack(cdk.Stack):
             self, "AgentFn",
             function_name="nrl-predictor-v2-agent",
             runtime=LAMBDA_RUNTIME,
-            handler="agent.lambda_handler.lambda_handler",
+            handler="v2.agent.lambda_handler.lambda_handler",
             code=code,
             timeout=cdk.Duration.minutes(8),
             memory_size=512,
@@ -127,7 +132,7 @@ class NrlPredictorV2Stack(cdk.Stack):
             self, "OrchestratorFn",
             function_name="nrl-predictor-v2-orchestrator",
             runtime=LAMBDA_RUNTIME,
-            handler="orchestrator.lambda_handler.lambda_handler",
+            handler="v2.orchestrator.lambda_handler.lambda_handler",
             code=code,
             timeout=cdk.Duration.minutes(5),
             memory_size=256,
@@ -152,7 +157,7 @@ class NrlPredictorV2Stack(cdk.Stack):
             self, "ApiFn",
             function_name="nrl-predictor-v2-api",
             runtime=LAMBDA_RUNTIME,
-            handler="api.router.lambda_handler",
+            handler="v2.api.router.lambda_handler",
             code=code,
             timeout=cdk.Duration.seconds(15),
             memory_size=256,
