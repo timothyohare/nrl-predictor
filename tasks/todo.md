@@ -28,10 +28,11 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 # Drift *decisions* recorded as we go; ladder already decided (unify, root canon).
 
 ## Phase 4 (now first) — Rewire v2 onto v2.* + single config
-- [ ] T4.0 add `v2/__init__.py`; single root `pyproject.toml` (packages incl `v1*`,`v2*`; testpaths `tests`+`v2/tests`); neutralize `v2/pyproject.toml` rootdir; both suites collect from one rootdir
-- [ ] T4.1 v2 version imports → `v2.*` (agent/api/orchestrator/tools/retrospective); shared stay bare; v2 tests green
-- [ ] T4.2 v2 stack handlers `→ v2.*` + asset bundles root-shared+`v2/`, excludes `v1/`; logical IDs stable vs baseline
-- [ ] **C4** v2 runs under unified config on `v2.*`; v2 template diff = Code/Handler-only
+- [x] T4.0 v2/__init__.py; single root pyproject (packages common*/scrapers*/scoring*/v1*/v2*; testpaths tests+v2/tests; --import-mode=importlib); removed v2/pyproject.toml; merged deps ✓
+- [x] T4.1 v2 version imports → v2.* (25 files); shared stay bare→root; ruff merged (fixed 90+5); mypy excludes v2 (never typed pre-merge, follow-up); full suite 388 ✓
+- [x] T4.2 v2 stack → v2.* handlers + asset REPO_ROOT=../.. bundles root-shared+v2/, excludes v1/; logical IDs IDENTICAL; asset verified (no v1 leak) ✓
+- [x] **C4** v2 runs under unified config on v2.*; both suites 388 from one rootdir; v2 template diff = Code/Handler-only ✓ 2026-06-28
+      FOLLOW-UPS: (1) type-check v2 (44 pre-existing mypy errors, currently excluded); (2) dead v2/api/tournament.py endpoint (no v2 tournament backend).
 
 ## Phase 3 (now after Phase 4) — Reconcile shared drift (delete dupes)
 - [ ] T3.1 `scrapers/nrl/ladder.py` — DECISION: **unify, root canonical** (only diff UTC vs timezone.utc; parse_ladder identical). Delete v2 dup + prove both suites.
