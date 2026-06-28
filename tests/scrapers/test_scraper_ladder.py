@@ -30,13 +30,14 @@ def test_parse_first_position_fields(ladder_data):
     pos = parse_ladder(ladder_data)[0]
     assert pos.position == 1
     assert pos.team_name == "panthers"
-    assert pos.played == 11
-    assert pos.wins == 9
-    assert pos.losses == 2
+    assert pos.played == 15
+    assert pos.wins == 12
+    assert pos.losses == 3
     assert pos.draws == 0
-    assert pos.points == 18
-    assert pos.for_against_diff == 102
-    assert pos.percentage == pytest.approx(158.3)
+    assert pos.points == 28
+    assert pos.for_against_diff == 258
+    # The live feed no longer carries a percentage; parser defaults it.
+    assert pos.percentage == 0.0
 
 
 def test_parse_sorted_by_position(ladder_data):
