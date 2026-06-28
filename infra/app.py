@@ -5,7 +5,6 @@ v1 (NrlPredictorStack) and v2 (NrlPredictorV2Stack) coexist and deploy
 independently:  cdk deploy NrlPredictorStack  /  cdk deploy NrlPredictorV2Stack.
 """
 import aws_cdk as cdk
-
 from v1_stack import NrlPredictorStack
 from v2_stack import NrlPredictorV2Stack
 

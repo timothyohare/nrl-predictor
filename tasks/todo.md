@@ -39,14 +39,14 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 - [x] T3.final deleted v2/{common,scrapers,scoring}; v2 → root shared (verified: nothing imports v2.common/scrapers/scoring; asset bundles root shared, no v2 dup, no v1 leak)
 - [x] **C3** one copy per shared module; full suite 388; ruff+mypy clean; v2 synth logical IDs IDENTICAL ✓ 2026-06-28
 
-## Phase 5 — Unify infra + harness + packaging
-- [ ] T5.1 `infra/app.py` both stacks; `v1_stack.py`/`v2_stack.py`; one `cdk.json`
-- [ ] T5.2 one `pyproject.toml` (packages: common*,scrapers*,scoring*,v1*,v2*); install clean
-- [ ] T5.3 merge `harness.json` (v1-rich, globs cover v1*/v2*/shared); update root `CLAUDE.md`
-- [ ] **C5** `gate-ci --full` + `gate-verify` green
+## Phase 5 — Unify infra + harness + packaging ✅
+- [x] T5.1 `infra/app.py` both stacks; `v1_stack.py`/`v2_stack.py`; merged `cdk.json`; v2/infra removed; logical IDs IDENTICAL both stacks
+- [x] T5.2 one `pyproject.toml` (done in T4.0): packages common*/scrapers*/scoring*/v1*/v2*; clean editable install
+- [x] T5.3 harness.json needs no path changes (scripts/frontend stay at root; gate scripts audited clean); root CLAUDE.md updated with monorepo layout
+- [x] **C5** `gate-ci --full` green (ruff+mypy+388 tests+frontend build); `gate-verify` green (v1 API boots, 14 acceptance checks) ✓ 2026-06-28
 
 ## Phase 6 — Verify + gated cutover
-- [ ] T6.1 template no-drift proof vs baseline → `tasks/baseline/diff-report.md`
-- [ ] T6.2 full gate (`gate-ci --full`, `gate-verify`, both pytest) green, output pasted
-- [ ] T6.3 **ASK-FIRST** deploy both from monorepo + smoke + retire v2 remote (no push without go-ahead)
-- [ ] **C6** monorepo is single source of truth
+- [x] T6.1 template no-drift proof → `tasks/baseline/diff-report.md` (both stacks logical IDs IDENTICAL; v1 no property drift; v2 benign IAM consolidation 34→10, same action set)
+- [x] T6.2 full gate green: gate-ci --full + gate-verify + both suites (388), output captured
+- [ ] T6.3 **ASK-FIRST** deploy both from monorepo + smoke + retire v2 remote (no push without go-ahead) — AWAITING APPROVAL
+- [~] **C6** verification complete; cutover (deploy + push + retire remote) gated on user

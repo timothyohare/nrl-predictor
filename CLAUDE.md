@@ -2,6 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Monorepo layout (v1 + v2 coexist)
+
+This repo hosts **both** the v1 (single-loop) and v2 (LangGraph multi-agent) predictors,
+which run side by side and deploy independently.
+
+```
+common/ scrapers/ scoring/   # SHARED — single source of truth, imported bare
+                             #   (`from scrapers.nrl.ladder import ...`)
+v1/  agent/ api/ orchestrator/ tournament/ retrospective/   # v1.* absolute imports
+v2/  agent/ api/ orchestrator/ tools/ retrospective/        # v2.* absolute imports
+frontend/ scripts/ docs/     # v1 support dirs, stay at root
+infra/  app.py  v1_stack.py  v2_stack.py   # ONE cdk app, two stacks
+```
+
+- **Shared code is edited once** at the root (`common/scrapers/scoring`). Never
+  re-introduce a copy under `v1/` or `v2/`. Both fleets import these bare.
+- **Version code uses absolute imports**: v1 code imports `v1.*`, v2 code imports `v2.*`.
+- **Deploy independently**: `cd infra && cdk deploy NrlPredictorStack` (v1) /
+  `cdk deploy NrlPredictorV2Stack` (v2). Both synth from the single `infra/app.py`.
+- Migration history/decisions: `SPEC.md`, `tasks/plan.md`, `tasks/todo.md`.
+
 ## Commands
 
 ```bash
