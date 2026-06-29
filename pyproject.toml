@@ -46,7 +46,12 @@ exclude = ["tests*", "v1.tests*", "v2.tests*"]
 # duplicate-basename collisions across the tests/ and v2/tests/ trees, and ensures
 # bare `from scrapers/common/scoring` resolve to the ROOT copies (via the editable
 # install), not the v2/ duplicates.
+# pythonpath=["."] puts the repo root on sys.path so root-level, non-installed
+# modules (`scripts/`, not in packages.find) resolve under plain `pytest` too —
+# importlib mode doesn't add rootdir itself, so without this CI (`pytest`) fails
+# `from scripts...` even though local `python -m pytest` (adds cwd) passed.
 testpaths = ["tests", "v2/tests"]
+pythonpath = ["."]
 addopts = "-v --import-mode=importlib"
 
 [tool.ruff]
