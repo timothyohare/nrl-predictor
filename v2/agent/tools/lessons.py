@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import boto3
 from langchain_core.tools import tool
@@ -7,7 +8,7 @@ from langchain_core.tools import tool
 def _get_lessons(season: int, team: str | None = None, limit: int = 10, table=None) -> list[dict]:
     tbl = table or boto3.resource("dynamodb").Table(os.environ["RETROSPECTIVES_TABLE"])
     filter_expr = "season = :s"
-    expr_values = {":s": season}
+    expr_values: dict[str, Any] = {":s": season}
     if team:
         filter_expr += " AND contains(matchId, :t)"
         expr_values[":t"] = team.lower()

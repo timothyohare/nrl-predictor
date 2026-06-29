@@ -93,7 +93,8 @@ def latest_per_match(preds: list[dict], kickoffs: dict[str, str] | None = None) 
         mid = p.get("matchId")
         if mid:
             grouped.setdefault(mid, []).append(p)
-    return {mid: latest_before_kickoff(ps, kickoffs.get(mid)) for mid, ps in grouped.items()}
+    return {mid: v for mid, ps in grouped.items()
+            if (v := latest_before_kickoff(ps, kickoffs.get(mid))) is not None}
 
 
 def results_by_match_id(results: list[dict]) -> dict[str, dict]:
@@ -145,12 +146,12 @@ def board_rows(preds: list[dict], results: list[dict], round_no: int,
         res = res_idx.get(mid)  # round-aware: join on the full matchId, not the bare slug
         winner = display_name(to_slug(p.get("predicted_winner", "?")))
         margin = num(p.get("predicted_margin"))
-        actual_winner = display_name(to_slug(res.get("winner"))) if res else None
+        actual_winner = display_name(to_slug(res.get("winner") or "")) if res else None
         actual_margin = num(res.get("margin")) if res else None
         correct = None
         margin_err = None
         if actual_winner:
-            correct = to_slug(p.get("predicted_winner", "")) == to_slug(res.get("winner"))
+            correct = to_slug(p.get("predicted_winner", "")) == to_slug((res or {}).get("winner") or "")
             if margin is not None and actual_margin is not None:
                 margin_err = abs(margin - actual_margin)
         rows.append({

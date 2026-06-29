@@ -56,7 +56,7 @@ def make_primary_node(llm=None):
             from langchain_anthropic import ChatAnthropic
 
             from v2.agent.lambda_handler import get_api_key
-            base_llm = ChatAnthropic(model=model_name, api_key=get_api_key(), max_tokens=2048)
+            base_llm = ChatAnthropic(model=model_name, api_key=get_api_key(), max_tokens=2048)  # type: ignore[call-arg, arg-type]
 
         # Prompt caching for the ReAct loop. Each iteration re-sends the full,
         # growing conversation (system + tool schemas + every accumulated tool
@@ -82,7 +82,7 @@ def make_primary_node(llm=None):
             )),
         ]
 
-        trace: list[dict] = list(state.get("agent_trace") or [])
+        trace: list[dict] = [dict(e) for e in (state.get("agent_trace") or [])]
 
         for _ in range(MAX_ITERATIONS):
             response: AIMessage = bound.invoke(messages)

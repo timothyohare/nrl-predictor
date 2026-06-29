@@ -56,4 +56,8 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 - [x] **C6** monorepo is the single source of truth; both fleets live from it; v2 remote archived ✓ 2026-06-29
 
 # 🎉 MIGRATION COMPLETE — all phases C0–C6 done. Both fleets deploy from the monorepo;
-# one copy of common/scrapers/scoring. Follow-ups (non-blocking): type-check v2; dead v2/api/tournament.py.
+# one copy of common/scrapers/scoring.
+# FOLLOW-UP DONE 2026-06-29: v2 is now type-checked (42 mypy errors fixed; v2 removed from
+#   mypy exclude). Found + fixed a real latent bug: v2/retrospective called the @tool
+#   web_search wrapper (no client param) instead of _web_search — dead code in v2, now correct.
+# REMAINING follow-up (non-blocking): dead v2/api/tournament.py endpoint (no v2 tournament backend).

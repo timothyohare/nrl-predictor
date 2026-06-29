@@ -1,6 +1,7 @@
 """Synthesis Judge node — weighs primary vs challenger and produces final prediction."""
 import json
 import logging
+from typing import Literal, cast
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -9,13 +10,14 @@ from v2.agent.state import Challenge, FinalPrediction, MatchPredictionState, Pri
 
 logger = logging.getLogger(__name__)
 
+Confidence = Literal["LOW", "MEDIUM", "HIGH"]
 _CONFIDENCE_TIERS = ["LOW", "MEDIUM", "HIGH"]
 
 
-def _downgrade(confidence: str) -> str:
+def _downgrade(confidence: str) -> Confidence:
     """Drop a confidence tier (HIGH→MEDIUM→LOW), flooring at LOW."""
     idx = _CONFIDENCE_TIERS.index(confidence) if confidence in _CONFIDENCE_TIERS else 1
-    return _CONFIDENCE_TIERS[max(0, idx - 1)]
+    return cast(Confidence, _CONFIDENCE_TIERS[max(0, idx - 1)])
 
 
 def _fallback_from_primary(primary: PrimaryPrediction, challenge: Challenge) -> FinalPrediction:
@@ -71,7 +73,7 @@ def make_judge_node(llm=None):
             # FinalPrediction has two prose fields (judge_rationale + reasoning), so its
             # structured output runs larger than the Challenger's; 1536 truncated it and
             # crashed with a max_tokens ValidationError. Give it room.
-            base_llm = ChatAnthropic(model=SONNET_MODEL, api_key=get_api_key(), max_tokens=3072)
+            base_llm = ChatAnthropic(model=SONNET_MODEL, api_key=get_api_key(), max_tokens=3072)  # type: ignore[call-arg, arg-type]
 
         structured = base_llm.with_structured_output(FinalPrediction)
         primary = state["primary_prediction"]
