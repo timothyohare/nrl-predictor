@@ -48,5 +48,9 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
 ## Phase 6 — Verify + gated cutover
 - [x] T6.1 template no-drift proof → `tasks/baseline/diff-report.md` (both stacks logical IDs IDENTICAL; v1 no property drift; v2 benign IAM consolidation 34→10, same action set)
 - [x] T6.2 full gate green: gate-ci --full + gate-verify + both suites (388), output captured
-- [ ] T6.3 **ASK-FIRST** deploy both from monorepo + smoke + retire v2 remote (no push without go-ahead) — AWAITING APPROVAL
-- [~] **C6** verification complete; cutover (deploy + push + retire remote) gated on user
+- [x] T6.3 PR #1 merged to main; deployed BOTH stacks from monorepo (2026-06-29):
+      - v1: handlers v1.*, /health 200, LastModified bumped
+      - v2: handlers v2.*, api /health 200, agent imports clean (KeyError only from empty probe payload)
+      - cdk diff was exactly as predicted (Code/Handler + benign v2 IAM 34→10; no stateful changes)
+- [~] retire nrl-predictor2 remote — pending (method TBD: archive vs delete)
+- [x] **C6** monorepo is the single source of truth; both fleets live from it ✓ 2026-06-29
