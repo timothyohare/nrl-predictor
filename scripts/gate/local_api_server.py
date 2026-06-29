@@ -12,7 +12,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-from api.router import lambda_handler
+from v1.api.router import lambda_handler
 
 PORT = int(os.environ.get("GATE_API_PORT", "8001"))
 

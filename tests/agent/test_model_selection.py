@@ -1,5 +1,5 @@
-from agent.model_selection import select_model
 from scrapers.shared.constants import HAIKU_MODEL, SONNET_MODEL
+from v1.agent.model_selection import select_model
 
 
 def test_standard_round_uses_haiku():

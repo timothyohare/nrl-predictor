@@ -16,11 +16,11 @@ def env(monkeypatch):
 def test_lambda_handler_invokes_retrospective():
     import importlib
 
-    import retrospective.lambda_handler as mod
+    import v1.retrospective.lambda_handler as mod
     importlib.reload(mod)
 
-    with patch("retrospective.lambda_handler.generate_retrospective") as mock_gen, \
-         patch("retrospective.lambda_handler.boto3"):
+    with patch("v1.retrospective.lambda_handler.generate_retrospective") as mock_gen, \
+         patch("v1.retrospective.lambda_handler.boto3"):
         mock_gen.return_value = {"matchId": "test-match", "verdict": "OK"}
         result = mod.lambda_handler({"matchId": "test-match", "round": 11, "season": 2026}, None)
 

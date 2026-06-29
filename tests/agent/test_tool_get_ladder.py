@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.ladder import get_ladder
+from v1.agent.tools.ladder import get_ladder
 
 TABLE = "teams"
 

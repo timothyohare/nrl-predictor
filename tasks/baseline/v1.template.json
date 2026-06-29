@@ -1,0 +1,5087 @@
+{
+  "Resources": {
+    "RawScrapes2714B57E": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "BucketName": "nrl-predictor-raw-scrapes",
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 90,
+              "Prefix": "raw-scrapes/",
+              "Status": "Enabled"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/RawScrapes/Resource"
+      }
+    },
+    "PredictionsD178A010": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "matchId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "generatedAt",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "matchId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "generatedAt",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "predictions"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Predictions/Resource"
+      }
+    },
+    "Teams577113D3": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "teamId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "round",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "teamId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "round",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "teams"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Teams/Resource"
+      }
+    },
+    "Results25575328": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "matchId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "scoredAt",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "matchId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "scoredAt",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "results"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Results/Resource"
+      }
+    },
+    "Metrics6DBDA108": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "period",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "metricName",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "period",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "metricName",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "metrics"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Metrics/Resource"
+      }
+    },
+    "RateLimitsV22D73BB2A": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "pk",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          }
+        ],
+        "TableName": "nrl-rate-limits",
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/RateLimitsV2/Resource"
+      }
+    },
+    "ClaudeUsage7923EDE0": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "yearMonth",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "invokedAt",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "yearMonth",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "invokedAt",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "claude_usage"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ClaudeUsage/Resource"
+      }
+    },
+    "Injuries453A92F5": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "pk",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "sk",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "sk",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "injuries"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Injuries/Resource"
+      }
+    },
+    "Weather812728CF": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "pk",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "sk",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "sk",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "weather"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Weather/Resource"
+      }
+    },
+    "Retrospectives8BCDA259": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "matchId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "generatedAt",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "matchId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "generatedAt",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "retrospectives"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Retrospectives/Resource"
+      }
+    },
+    "MatchStats994E809D": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "matchId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "scraped_at",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "matchId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "scraped_at",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "match_stats"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/MatchStats/Resource"
+      }
+    },
+    "OddsA4852A68": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "matchId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "scrapedAt",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "matchId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "scrapedAt",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "odds"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/Odds/Resource"
+      }
+    },
+    "PromptVariants557D14A0": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "variantId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "version",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "variantId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "version",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "prompt_variants"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/PromptVariants/Resource"
+      }
+    },
+    "SimulationPredictionsE96C09C1": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "pk",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "generatedAt",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "generatedAt",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "simulation_predictions"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/SimulationPredictions/Resource"
+      }
+    },
+    "VariantMetrics749C47C0": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "variantId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "period",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "variantId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "period",
+            "KeyType": "RANGE"
+          }
+        ],
+        "TableName": "variant_metrics"
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/VariantMetrics/Resource"
+      }
+    },
+    "AnthropicApiKeyC9C806DA": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Description": "Anthropic API key for Claude inference",
+        "GenerateSecretString": {},
+        "Name": "nrl-predictor/anthropic-api-key"
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AnthropicApiKey/Resource"
+      }
+    },
+    "TavilyApiKeyC47DA659": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Description": "Tavily API key for web search",
+        "GenerateSecretString": {},
+        "Name": "nrl-predictor/tavily-api-key"
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TavilyApiKey/Resource"
+      }
+    },
+    "SupercoachToken8C47B3C5": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Description": "SuperCoach bearer token (V1.1)",
+        "Name": "nrl-predictor/supercoach-token",
+        "SecretString": "PENDING"
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/SupercoachToken/Resource"
+      }
+    },
+    "OddsApiKeyC60B4813": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Description": "the-odds-api.com API key for betting market comparison",
+        "GenerateSecretString": {},
+        "Name": "nrl-predictor/odds-api-key"
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OddsApiKey/Resource"
+      }
+    },
+    "AlertTopic2720D535": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "nrl-predictor-alerts"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AlertTopic/Resource"
+      }
+    },
+    "AlertTopictimoharegmailcomE982C0EB": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "Endpoint": "timohare@gmail.com",
+        "Protocol": "email",
+        "TopicArn": {
+          "Ref": "AlertTopic2720D535"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AlertTopic/timohare@gmail.com/Resource"
+      }
+    },
+    "DepsLayerA0D7F79A": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Properties": {
+        "CompatibleRuntimes": [
+          "python3.12"
+        ],
+        "Content": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "bb72c695a9d63a62b9a52e6b97e6e21122ffe240d48f47d606a511defb7769ba.zip"
+        },
+        "Description": "Third-party Python runtime dependencies",
+        "LayerName": "nrl-predictor-deps"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/DepsLayer/Resource",
+        "aws:asset:path": "asset.bb72c695a9d63a62b9a52e6b97e6e21122ffe240d48f47d606a511defb7769ba",
+        "aws:asset:is-bundled": true,
+        "aws:asset:property": "Content"
+      }
+    },
+    "DrawScraperServiceRole5A2A5D17": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/DrawScraper/ServiceRole/Resource"
+      }
+    },
+    "DrawScraperServiceRoleDefaultPolicy7B4C39DD": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "DrawScraperServiceRoleDefaultPolicy7B4C39DD",
+        "Roles": [
+          {
+            "Ref": "DrawScraperServiceRole5A2A5D17"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/DrawScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "DrawScraperF44D0AE1": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-draw-scraper",
+        "Handler": "scrapers.nrl.draw.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "DrawScraperServiceRole5A2A5D17",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "DrawScraperServiceRoleDefaultPolicy7B4C39DD",
+        "DrawScraperServiceRole5A2A5D17"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/DrawScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "TeamSheetScraperServiceRoleCAB33DED": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TeamSheetScraper/ServiceRole/Resource"
+      }
+    },
+    "TeamSheetScraperServiceRoleDefaultPolicy8CA8A6B3": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "TeamSheetScraperServiceRoleDefaultPolicy8CA8A6B3",
+        "Roles": [
+          {
+            "Ref": "TeamSheetScraperServiceRoleCAB33DED"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TeamSheetScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "TeamSheetScraper687EB491": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-team-sheet-scraper",
+        "Handler": "scrapers.nrl.team_sheet.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "TeamSheetScraperServiceRoleCAB33DED",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 180
+      },
+      "DependsOn": [
+        "TeamSheetScraperServiceRoleDefaultPolicy8CA8A6B3",
+        "TeamSheetScraperServiceRoleCAB33DED"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TeamSheetScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "LadderScraperServiceRole450BFF8B": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/LadderScraper/ServiceRole/Resource"
+      }
+    },
+    "LadderScraperServiceRoleDefaultPolicy80C4E43D": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "LadderScraperServiceRoleDefaultPolicy80C4E43D",
+        "Roles": [
+          {
+            "Ref": "LadderScraperServiceRole450BFF8B"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/LadderScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "LadderScraper0A5759DC": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-ladder-scraper",
+        "Handler": "scrapers.nrl.ladder.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "LadderScraperServiceRole450BFF8B",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "LadderScraperServiceRoleDefaultPolicy80C4E43D",
+        "LadderScraperServiceRole450BFF8B"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/LadderScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "ResultsScraperServiceRole985F8C2D": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ResultsScraper/ServiceRole/Resource"
+      }
+    },
+    "ResultsScraperServiceRoleDefaultPolicyA7AC74CD": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "ResultsScraperServiceRoleDefaultPolicyA7AC74CD",
+        "Roles": [
+          {
+            "Ref": "ResultsScraperServiceRole985F8C2D"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ResultsScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "ResultsScraper41044630": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-results-scraper",
+        "Handler": "scrapers.nrl.results.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "ResultsScraperServiceRole985F8C2D",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "ResultsScraperServiceRoleDefaultPolicyA7AC74CD",
+        "ResultsScraperServiceRole985F8C2D"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ResultsScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "WeatherScraperServiceRole8F25BAD8": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/WeatherScraper/ServiceRole/Resource"
+      }
+    },
+    "WeatherScraperServiceRoleDefaultPolicyB8E43EB8": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "WeatherScraperServiceRoleDefaultPolicyB8E43EB8",
+        "Roles": [
+          {
+            "Ref": "WeatherScraperServiceRole8F25BAD8"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/WeatherScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "WeatherScraperDBC71934": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-weather-scraper",
+        "Handler": "scrapers.weather.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "WeatherScraperServiceRole8F25BAD8",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "WeatherScraperServiceRoleDefaultPolicyB8E43EB8",
+        "WeatherScraperServiceRole8F25BAD8"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/WeatherScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "ArticlesScraperServiceRole3011ADC9": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ArticlesScraper/ServiceRole/Resource"
+      }
+    },
+    "ArticlesScraperServiceRoleDefaultPolicy44252ED5": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "AnthropicApiKeyC9C806DA"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "ArticlesScraperServiceRoleDefaultPolicy44252ED5",
+        "Roles": [
+          {
+            "Ref": "ArticlesScraperServiceRole3011ADC9"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ArticlesScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "ArticlesScraper08AF271E": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "ANTHROPIC_SECRET_ARN": {
+              "Ref": "AnthropicApiKeyC9C806DA"
+            }
+          }
+        },
+        "FunctionName": "nrl-predictor-articles-scraper",
+        "Handler": "scrapers.articles.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "ArticlesScraperServiceRole3011ADC9",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 180
+      },
+      "DependsOn": [
+        "ArticlesScraperServiceRoleDefaultPolicy44252ED5",
+        "ArticlesScraperServiceRole3011ADC9"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ArticlesScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "OddsScraperServiceRole38E0601D": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OddsScraper/ServiceRole/Resource"
+      }
+    },
+    "OddsScraperServiceRoleDefaultPolicyA5CB47F0": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "OddsA4852A68",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "OddsApiKeyC60B4813"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "OddsScraperServiceRoleDefaultPolicyA5CB47F0",
+        "Roles": [
+          {
+            "Ref": "OddsScraperServiceRole38E0601D"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OddsScraper/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "OddsScraperFF5EE8FA": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "ODDS_API_KEY_SECRET_ARN": {
+              "Ref": "OddsApiKeyC60B4813"
+            }
+          }
+        },
+        "FunctionName": "nrl-predictor-odds-scraper",
+        "Handler": "scrapers.odds.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "OddsScraperServiceRole38E0601D",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "OddsScraperServiceRoleDefaultPolicyA5CB47F0",
+        "OddsScraperServiceRole38E0601D"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OddsScraper/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "AgentLambdaServiceRole00E15E1C": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AgentLambda/ServiceRole/Resource"
+      }
+    },
+    "AgentLambdaServiceRoleDefaultPolicy95AD5045": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ClaudeUsage7923EDE0",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Injuries453A92F5",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Metrics6DBDA108",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "PredictionsD178A010",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Weather812728CF",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "Retrospectives8BCDA259",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Ref": "AnthropicApiKeyC9C806DA"
+                },
+                {
+                  "Ref": "TavilyApiKeyC47DA659"
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "AgentLambdaServiceRoleDefaultPolicy95AD5045",
+        "Roles": [
+          {
+            "Ref": "AgentLambdaServiceRole00E15E1C"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AgentLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "AgentLambda7DC01917": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "ANTHROPIC_SECRET_ARN": {
+              "Ref": "AnthropicApiKeyC9C806DA"
+            },
+            "TAVILY_SECRET_ARN": {
+              "Ref": "TavilyApiKeyC47DA659"
+            },
+            "MONTHLY_BUDGET_USD": "18"
+          }
+        },
+        "FunctionName": "nrl-predictor-agent",
+        "Handler": "agent.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "AgentLambdaServiceRole00E15E1C",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 300
+      },
+      "DependsOn": [
+        "AgentLambdaServiceRoleDefaultPolicy95AD5045",
+        "AgentLambdaServiceRole00E15E1C"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AgentLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "OrchestratorLambdaServiceRole403C7880": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OrchestratorLambda/ServiceRole/Resource"
+      }
+    },
+    "OrchestratorLambdaServiceRoleDefaultPolicy32C2103A": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "Teams577113D3",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject*",
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AgentLambda7DC01917",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AgentLambda7DC01917",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "OrchestratorLambdaServiceRoleDefaultPolicy32C2103A",
+        "Roles": [
+          {
+            "Ref": "OrchestratorLambdaServiceRole403C7880"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OrchestratorLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "OrchestratorLambdaA7A0AD32": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "AGENT_FUNCTION_NAME": {
+              "Ref": "AgentLambda7DC01917"
+            },
+            "AGENT_INVOKE_STAGGER_SECONDS": "15"
+          }
+        },
+        "FunctionName": "nrl-predictor-orchestrator",
+        "Handler": "orchestrator.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "OrchestratorLambdaServiceRole403C7880",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 600
+      },
+      "DependsOn": [
+        "OrchestratorLambdaServiceRoleDefaultPolicy32C2103A",
+        "OrchestratorLambdaServiceRole403C7880"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/OrchestratorLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "RetrospectiveLambdaServiceRoleF330A932": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/RetrospectiveLambda/ServiceRole/Resource"
+      }
+    },
+    "RetrospectiveLambdaServiceRoleDefaultPolicy6C97AA41": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "PredictionsD178A010",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "MatchStats994E809D",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Retrospectives8BCDA259",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Ref": "AnthropicApiKeyC9C806DA"
+                },
+                {
+                  "Ref": "TavilyApiKeyC47DA659"
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "RetrospectiveLambdaServiceRoleDefaultPolicy6C97AA41",
+        "Roles": [
+          {
+            "Ref": "RetrospectiveLambdaServiceRoleF330A932"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/RetrospectiveLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "RetrospectiveLambda6CC2189B": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "ANTHROPIC_SECRET_ARN": {
+              "Ref": "AnthropicApiKeyC9C806DA"
+            },
+            "TAVILY_SECRET_ARN": {
+              "Ref": "TavilyApiKeyC47DA659"
+            }
+          }
+        },
+        "FunctionName": "nrl-predictor-retrospective",
+        "Handler": "retrospective.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "RetrospectiveLambdaServiceRoleF330A932",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 180
+      },
+      "DependsOn": [
+        "RetrospectiveLambdaServiceRoleDefaultPolicy6C97AA41",
+        "RetrospectiveLambdaServiceRoleF330A932"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/RetrospectiveLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "ScoringLambdaServiceRole122EB013": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ScoringLambda/ServiceRole/Resource"
+      }
+    },
+    "ScoringLambdaServiceRoleDefaultPolicy0DD4E42C": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Metrics6DBDA108",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "PredictionsD178A010",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RetrospectiveLambda6CC2189B",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RetrospectiveLambda6CC2189B",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "ScoringLambdaServiceRoleDefaultPolicy0DD4E42C",
+        "Roles": [
+          {
+            "Ref": "ScoringLambdaServiceRole122EB013"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ScoringLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "ScoringLambdaA3E3C5EC": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "RETROSPECTIVE_FUNCTION_ARN": {
+              "Fn::GetAtt": [
+                "RetrospectiveLambda6CC2189B",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "FunctionName": "nrl-predictor-scoring",
+        "Handler": "scoring.lambda_handler.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "ScoringLambdaServiceRole122EB013",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "ScoringLambdaServiceRoleDefaultPolicy0DD4E42C",
+        "ScoringLambdaServiceRole122EB013"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ScoringLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "TournamentWorkerLambdaServiceRoleD387F3C6": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentWorkerLambda/ServiceRole/Resource"
+      }
+    },
+    "TournamentWorkerLambdaServiceRoleDefaultPolicyA0B2B54E": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ClaudeUsage7923EDE0",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Injuries453A92F5",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "PromptVariants557D14A0",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Retrospectives8BCDA259",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Teams577113D3",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Weather812728CF",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "SimulationPredictionsE96C09C1",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Ref": "AnthropicApiKeyC9C806DA"
+                },
+                {
+                  "Ref": "TavilyApiKeyC47DA659"
+                }
+              ]
+            },
+            {
+              "Action": [
+                "s3:GetBucket*",
+                "s3:GetObject*",
+                "s3:List*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RawScrapes2714B57E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RawScrapes2714B57E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "TournamentWorkerLambdaServiceRoleDefaultPolicyA0B2B54E",
+        "Roles": [
+          {
+            "Ref": "TournamentWorkerLambdaServiceRoleD387F3C6"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentWorkerLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "TournamentWorkerLambdaC5A584A9": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-tournament-worker",
+        "Handler": "tournament.worker_lambda.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "TournamentWorkerLambdaServiceRoleD387F3C6",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 900
+      },
+      "DependsOn": [
+        "TournamentWorkerLambdaServiceRoleDefaultPolicyA0B2B54E",
+        "TournamentWorkerLambdaServiceRoleD387F3C6"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentWorkerLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "TournamentOrchestratorLambdaServiceRole850AC1A7": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentOrchestratorLambda/ServiceRole/Resource"
+      }
+    },
+    "TournamentOrchestratorLambdaServiceRoleDefaultPolicyC2258A30": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "PromptVariants557D14A0",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TournamentWorkerLambdaC5A584A9",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TournamentWorkerLambdaC5A584A9",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "TournamentOrchestratorLambdaServiceRoleDefaultPolicyC2258A30",
+        "Roles": [
+          {
+            "Ref": "TournamentOrchestratorLambdaServiceRole850AC1A7"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentOrchestratorLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "TournamentOrchestratorLambda88BF0982": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117",
+            "TOURNAMENT_WORKER_FUNCTION_ARN": {
+              "Fn::GetAtt": [
+                "TournamentWorkerLambdaC5A584A9",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "FunctionName": "nrl-predictor-tournament-orchestrator",
+        "Handler": "tournament.orchestrator_lambda.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "TournamentOrchestratorLambdaServiceRole850AC1A7",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 120
+      },
+      "DependsOn": [
+        "TournamentOrchestratorLambdaServiceRoleDefaultPolicyC2258A30",
+        "TournamentOrchestratorLambdaServiceRole850AC1A7"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentOrchestratorLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "TournamentScorerLambdaServiceRole28C4FC82": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentScorerLambda/ServiceRole/Resource"
+      }
+    },
+    "TournamentScorerLambdaServiceRoleDefaultPolicy4245379D": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "SimulationPredictionsE96C09C1",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "VariantMetrics749C47C0",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "TournamentScorerLambdaServiceRoleDefaultPolicy4245379D",
+        "Roles": [
+          {
+            "Ref": "TournamentScorerLambdaServiceRole28C4FC82"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentScorerLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "TournamentScorerLambdaBA1969C1": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-tournament-scorer",
+        "Handler": "tournament.scorer_lambda.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "TournamentScorerLambdaServiceRole28C4FC82",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 300
+      },
+      "DependsOn": [
+        "TournamentScorerLambdaServiceRoleDefaultPolicy4245379D",
+        "TournamentScorerLambdaServiceRole28C4FC82"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentScorerLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "ApiLambdaServiceRole1CC7D0F3": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ApiLambda/ServiceRole/Resource"
+      }
+    },
+    "ApiLambdaServiceRoleDefaultPolicyF1B57697": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:UpdateItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Metrics6DBDA108",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "PredictionsD178A010",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "RateLimitsV22D73BB2A",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Retrospectives8BCDA259",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "OddsA4852A68",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "Results25575328",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "VariantMetrics749C47C0",
+                    "Arn"
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "ApiLambdaServiceRoleDefaultPolicyF1B57697",
+        "Roles": [
+          {
+            "Ref": "ApiLambdaServiceRole1CC7D0F3"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ApiLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "ApiLambda91D2282D": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-810429055117-ap-southeast-2",
+          "S3Key": "19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "TEAMS_TABLE": {
+              "Ref": "Teams577113D3"
+            },
+            "RESULTS_TABLE": {
+              "Ref": "Results25575328"
+            },
+            "PREDICTIONS_TABLE": {
+              "Ref": "PredictionsD178A010"
+            },
+            "METRICS_TABLE": {
+              "Ref": "Metrics6DBDA108"
+            },
+            "RATE_LIMITS_TABLE": {
+              "Ref": "RateLimitsV22D73BB2A"
+            },
+            "CLAUDE_USAGE_TABLE": {
+              "Ref": "ClaudeUsage7923EDE0"
+            },
+            "INJURIES_TABLE": {
+              "Ref": "Injuries453A92F5"
+            },
+            "WEATHER_TABLE": {
+              "Ref": "Weather812728CF"
+            },
+            "RETROSPECTIVES_TABLE": {
+              "Ref": "Retrospectives8BCDA259"
+            },
+            "MATCH_STATS_TABLE": {
+              "Ref": "MatchStats994E809D"
+            },
+            "ODDS_TABLE": {
+              "Ref": "OddsA4852A68"
+            },
+            "PROMPT_VARIANTS_TABLE": {
+              "Ref": "PromptVariants557D14A0"
+            },
+            "SIMULATION_PREDICTIONS_TABLE": {
+              "Ref": "SimulationPredictionsE96C09C1"
+            },
+            "VARIANT_METRICS_TABLE": {
+              "Ref": "VariantMetrics749C47C0"
+            },
+            "RAW_BUCKET": {
+              "Ref": "RawScrapes2714B57E"
+            },
+            "AWS_ACCOUNT": "810429055117"
+          }
+        },
+        "FunctionName": "nrl-predictor-api",
+        "Handler": "api.router.lambda_handler",
+        "Layers": [
+          {
+            "Ref": "DepsLayerA0D7F79A"
+          }
+        ],
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "ApiLambdaServiceRole1CC7D0F3",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 10
+      },
+      "DependsOn": [
+        "ApiLambdaServiceRoleDefaultPolicyF1B57697",
+        "ApiLambdaServiceRole1CC7D0F3"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ApiLambda/Resource",
+        "aws:asset:path": "asset.19dcb46ccc2acc60362154d7396ba26261f64a107ef5dc4b9a2b7121971b9b92",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code"
+      }
+    },
+    "HttpApiF5A9A8A7": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "CorsConfiguration": {
+          "AllowMethods": [
+            "GET"
+          ],
+          "AllowOrigins": [
+            "*"
+          ]
+        },
+        "Name": "nrl-predictor-api",
+        "ProtocolType": "HTTP"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/Resource"
+      }
+    },
+    "HttpApiDefaultStage3EEB07D6": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7"
+        },
+        "AutoDeploy": true,
+        "StageName": "$default"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/DefaultStage/Resource"
+      }
+    },
+    "HttpApiGETpredictionsroundApiIntegration59FE5540": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "ApiLambda91D2282D",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--predictions--{round}/ApiIntegration/Resource"
+      }
+    },
+    "HttpApiGETpredictionsroundApiIntegrationPermission961483D2": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiLambda91D2282D",
+            "Arn"
+          ]
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:ap-southeast-2:810429055117:",
+              {
+                "Ref": "HttpApiF5A9A8A7"
+              },
+              "/*/*/predictions/{round}"
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--predictions--{round}/ApiIntegration-Permission"
+      }
+    },
+    "HttpApiGETpredictionsround5071BB06": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7"
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "GET /predictions/{round}",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGETpredictionsroundApiIntegration59FE5540"
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--predictions--{round}/Resource"
+      }
+    },
+    "HttpApiGETaccuracyApiIntegrationPermission1A638CC1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiLambda91D2282D",
+            "Arn"
+          ]
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:ap-southeast-2:810429055117:",
+              {
+                "Ref": "HttpApiF5A9A8A7"
+              },
+              "/*/*/accuracy"
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--accuracy/ApiIntegration-Permission"
+      }
+    },
+    "HttpApiGETaccuracy7DBB3ACE": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7"
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "GET /accuracy",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGETpredictionsroundApiIntegration59FE5540"
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--accuracy/Resource"
+      }
+    },
+    "HttpApiGEThealthApiIntegrationPermissionBE15BCAA": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiLambda91D2282D",
+            "Arn"
+          ]
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:ap-southeast-2:810429055117:",
+              {
+                "Ref": "HttpApiF5A9A8A7"
+              },
+              "/*/*/health"
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--health/ApiIntegration-Permission"
+      }
+    },
+    "HttpApiGEThealthAB1F4856": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7"
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "GET /health",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGETpredictionsroundApiIntegration59FE5540"
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--health/Resource"
+      }
+    },
+    "HttpApiGETtournamentleaderboardApiIntegrationPermission77A44B33": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiLambda91D2282D",
+            "Arn"
+          ]
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:ap-southeast-2:810429055117:",
+              {
+                "Ref": "HttpApiF5A9A8A7"
+              },
+              "/*/*/tournament/leaderboard"
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--tournament--leaderboard/ApiIntegration-Permission"
+      }
+    },
+    "HttpApiGETtournamentleaderboard289445B4": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7"
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "GET /tournament/leaderboard",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGETpredictionsroundApiIntegration59FE5540"
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/HttpApi/GET--tournament--leaderboard/Resource"
+      }
+    },
+    "TueRuleE606CBD4": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-scraper-tuesday",
+        "ScheduleExpression": "cron(30 6 ? * TUE *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "DrawScraperF44D0AE1",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "ArticlesScraper08AF271E",
+                "Arn"
+              ]
+            },
+            "Id": "Target1"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WeatherScraperDBC71934",
+                "Arn"
+              ]
+            },
+            "Id": "Target2"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "OrchestratorLambdaA7A0AD32",
+                "Arn"
+              ]
+            },
+            "Id": "Target3",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TueRule/Resource"
+      }
+    },
+    "TueRuleAllowEventRuleNrlPredictorStackDrawScraperEFD269248FF311B9": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "DrawScraperF44D0AE1",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "TueRuleE606CBD4",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TueRule/AllowEventRuleNrlPredictorStackDrawScraperEFD26924"
+      }
+    },
+    "TueRuleAllowEventRuleNrlPredictorStackArticlesScraperF67C183E12F52A27": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ArticlesScraper08AF271E",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "TueRuleE606CBD4",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TueRule/AllowEventRuleNrlPredictorStackArticlesScraperF67C183E"
+      }
+    },
+    "TueRuleAllowEventRuleNrlPredictorStackWeatherScraper971F2EB7A0D5B1EC": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "WeatherScraperDBC71934",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "TueRuleE606CBD4",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TueRule/AllowEventRuleNrlPredictorStackWeatherScraper971F2EB7"
+      }
+    },
+    "TueRuleAllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571EAD0C0399": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "OrchestratorLambdaA7A0AD32",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "TueRuleE606CBD4",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TueRule/AllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E"
+      }
+    },
+    "WedDrawRule5DE4AD4C": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-scraper-wednesday",
+        "ScheduleExpression": "cron(0 8 ? * WED *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "DrawScraperF44D0AE1",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/WedDrawRule/Resource"
+      }
+    },
+    "WedDrawRuleAllowEventRuleNrlPredictorStackDrawScraperEFD2692484B78C72": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "DrawScraperF44D0AE1",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "WedDrawRule5DE4AD4C",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/WedDrawRule/AllowEventRuleNrlPredictorStackDrawScraperEFD26924"
+      }
+    },
+    "ThuRule7E284C5F": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-scraper-thursday",
+        "ScheduleExpression": "cron(0 7 ? * THU *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "LadderScraper0A5759DC",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026}"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "ArticlesScraper08AF271E",
+                "Arn"
+              ]
+            },
+            "Id": "Target1"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WeatherScraperDBC71934",
+                "Arn"
+              ]
+            },
+            "Id": "Target2"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "OrchestratorLambdaA7A0AD32",
+                "Arn"
+              ]
+            },
+            "Id": "Target3",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ThuRule/Resource"
+      }
+    },
+    "ThuRuleAllowEventRuleNrlPredictorStackLadderScraper49B655678D0329AB": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "LadderScraper0A5759DC",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ThuRule7E284C5F",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ThuRule/AllowEventRuleNrlPredictorStackLadderScraper49B65567"
+      }
+    },
+    "ThuRuleAllowEventRuleNrlPredictorStackArticlesScraperF67C183E43A3A054": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ArticlesScraper08AF271E",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ThuRule7E284C5F",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ThuRule/AllowEventRuleNrlPredictorStackArticlesScraperF67C183E"
+      }
+    },
+    "ThuRuleAllowEventRuleNrlPredictorStackWeatherScraper971F2EB7B97921F7": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "WeatherScraperDBC71934",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ThuRule7E284C5F",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ThuRule/AllowEventRuleNrlPredictorStackWeatherScraper971F2EB7"
+      }
+    },
+    "ThuRuleAllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E1B8A0A22": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "OrchestratorLambdaA7A0AD32",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ThuRule7E284C5F",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ThuRule/AllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E"
+      }
+    },
+    "FriPmRule8CD3FC68": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-scraper-friday-pm",
+        "ScheduleExpression": "cron(0 7 ? * FRI *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "ArticlesScraper08AF271E",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WeatherScraperDBC71934",
+                "Arn"
+              ]
+            },
+            "Id": "Target1"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "OrchestratorLambdaA7A0AD32",
+                "Arn"
+              ]
+            },
+            "Id": "Target2",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriPmRule/Resource"
+      }
+    },
+    "FriPmRuleAllowEventRuleNrlPredictorStackArticlesScraperF67C183E253F602F": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ArticlesScraper08AF271E",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "FriPmRule8CD3FC68",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriPmRule/AllowEventRuleNrlPredictorStackArticlesScraperF67C183E"
+      }
+    },
+    "FriPmRuleAllowEventRuleNrlPredictorStackWeatherScraper971F2EB7632C12AB": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "WeatherScraperDBC71934",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "FriPmRule8CD3FC68",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriPmRule/AllowEventRuleNrlPredictorStackWeatherScraper971F2EB7"
+      }
+    },
+    "FriPmRuleAllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E377DF112": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "OrchestratorLambdaA7A0AD32",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "FriPmRule8CD3FC68",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriPmRule/AllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E"
+      }
+    },
+    "FriNightRule1EE34753": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-scraper-friday-night",
+        "ScheduleExpression": "cron(0 12 ? * FRI *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "OrchestratorLambdaA7A0AD32",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WeatherScraperDBC71934",
+                "Arn"
+              ]
+            },
+            "Id": "Target1"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "ArticlesScraper08AF271E",
+                "Arn"
+              ]
+            },
+            "Id": "Target2"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriNightRule/Resource"
+      }
+    },
+    "FriNightRuleAllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571EDFEFD574": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "OrchestratorLambdaA7A0AD32",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "FriNightRule1EE34753",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriNightRule/AllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E"
+      }
+    },
+    "FriNightRuleAllowEventRuleNrlPredictorStackWeatherScraper971F2EB7F3C6EC09": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "WeatherScraperDBC71934",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "FriNightRule1EE34753",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriNightRule/AllowEventRuleNrlPredictorStackWeatherScraper971F2EB7"
+      }
+    },
+    "FriNightRuleAllowEventRuleNrlPredictorStackArticlesScraperF67C183E59039E41": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ArticlesScraper08AF271E",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "FriNightRule1EE34753",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/FriNightRule/AllowEventRuleNrlPredictorStackArticlesScraperF67C183E"
+      }
+    },
+    "SatAmRuleEC64895A": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-scraper-saturday-am",
+        "ScheduleExpression": "cron(0 23 ? * FRI *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "OrchestratorLambdaA7A0AD32",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WeatherScraperDBC71934",
+                "Arn"
+              ]
+            },
+            "Id": "Target1"
+          },
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "ArticlesScraper08AF271E",
+                "Arn"
+              ]
+            },
+            "Id": "Target2"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/SatAmRule/Resource"
+      }
+    },
+    "SatAmRuleAllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571EDD764DF3": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "OrchestratorLambdaA7A0AD32",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "SatAmRuleEC64895A",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/SatAmRule/AllowEventRuleNrlPredictorStackOrchestratorLambdaA5DE571E"
+      }
+    },
+    "SatAmRuleAllowEventRuleNrlPredictorStackWeatherScraper971F2EB701AA7628": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "WeatherScraperDBC71934",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "SatAmRuleEC64895A",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/SatAmRule/AllowEventRuleNrlPredictorStackWeatherScraper971F2EB7"
+      }
+    },
+    "SatAmRuleAllowEventRuleNrlPredictorStackArticlesScraperF67C183E130E19B3": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ArticlesScraper08AF271E",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "SatAmRuleEC64895A",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/SatAmRule/AllowEventRuleNrlPredictorStackArticlesScraperF67C183E"
+      }
+    },
+    "TournamentOrchestratorRule3E8FCD0E": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-tournament-saturday-am",
+        "ScheduleExpression": "cron(30 23 ? * FRI *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "TournamentOrchestratorLambda88BF0982",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentOrchestratorRule/Resource"
+      }
+    },
+    "TournamentOrchestratorRuleAllowEventRuleNrlPredictorStackTournamentOrchestratorLambda110D29F2D44C789F": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "TournamentOrchestratorLambda88BF0982",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "TournamentOrchestratorRule3E8FCD0E",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentOrchestratorRule/AllowEventRuleNrlPredictorStackTournamentOrchestratorLambda110D29F2"
+      }
+    },
+    "TournamentScorerRuleA009DC05": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "nrl-tournament-scorer-sunday",
+        "ScheduleExpression": "cron(0 10 ? * SUN *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "TournamentScorerLambdaBA1969C1",
+                "Arn"
+              ]
+            },
+            "Id": "Target0",
+            "Input": "{\"season\":2026,\"round\":\"current\"}"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentScorerRule/Resource"
+      }
+    },
+    "TournamentScorerRuleAllowEventRuleNrlPredictorStackTournamentScorerLambda773CA011BE45E23C": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "TournamentScorerLambdaBA1969C1",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "TournamentScorerRuleA009DC05",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TournamentScorerRule/AllowEventRuleNrlPredictorStackTournamentScorerLambda773CA011"
+      }
+    },
+    "DrawScraperErrorAlarm0B8B9E49": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-drawscraper-errors",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "DrawScraperF44D0AE1"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 1800,
+        "Statistic": "Sum",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/DrawScraperErrorAlarm/Resource"
+      }
+    },
+    "TeamSheetErrorAlarm9087A95D": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-teamsheet-errors",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "TeamSheetScraper687EB491"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 1800,
+        "Statistic": "Sum",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/TeamSheetErrorAlarm/Resource"
+      }
+    },
+    "LadderErrorAlarmEA4490C0": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-ladder-errors",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "LadderScraper0A5759DC"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 1800,
+        "Statistic": "Sum",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/LadderErrorAlarm/Resource"
+      }
+    },
+    "ResultsErrorAlarmF15DEEB2": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-results-errors",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ResultsScraper41044630"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 1800,
+        "Statistic": "Sum",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ResultsErrorAlarm/Resource"
+      }
+    },
+    "WeatherErrorAlarmD4D7A3F8": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-weather-errors",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "WeatherScraperDBC71934"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 1800,
+        "Statistic": "Sum",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/WeatherErrorAlarm/Resource"
+      }
+    },
+    "ArticlesErrorAlarm0DFF93B8": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-articles-errors",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ArticlesScraper08AF271E"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 1800,
+        "Statistic": "Sum",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/ArticlesErrorAlarm/Resource"
+      }
+    },
+    "AgentTimeoutAlarm3DECC59B": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmActions": [
+          {
+            "Ref": "AlertTopic2720D535"
+          }
+        ],
+        "AlarmName": "nrl-predictor-agent-duration",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "AgentLambda7DC01917"
+            }
+          }
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Duration",
+        "Namespace": "AWS/Lambda",
+        "Period": 300,
+        "Statistic": "Average",
+        "Threshold": 240000,
+        "TreatMissingData": "notBreaching"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/AgentTimeoutAlarm/Resource"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/12Q3WoCMRCFn8X7OEWXPoAWSguFyiq9ldnsdE3dTZbMRFlC3r0kq2B7db4TzvxlDevnClYLvPJSt+dlbxqIe0F9VnjlY+QK4jboM4l6+bY3mmWLTEm1k8XBtQ3EAzY95VSBpJi0J+EBLXbkIe6Lz4GZkmLLEA9uNLqUFdiHhrU3oxhnS/bBJ9Xj0LQI8QMn8l/k+Zb641+D1ffyR96RHwxzacTVEZlJGDZZlMEBYu3mA4ruXG/0VOoKJYWj6VDoitNlDfFNZNyMJgeyZLsX7EqDGfJT7YLM9G6FOo/3Zf7ZkkuKLmSFIdbhtknIP6l7F9orij5B3PTohzI0Q0qqJnbBa1LlkDzZ2C4HPoOMQZLaTXJy9qmC1RqqxQ8bs/TBihkI6ll/AWNOzecFAgAA"
+      },
+      "Metadata": {
+        "aws:cdk:path": "NrlPredictorStack/CDKMetadata/Default"
+      }
+    }
+  },
+  "Outputs": {
+    "ApiEndpoint": {
+      "Value": {
+        "Fn::GetAtt": [
+          "HttpApiF5A9A8A7",
+          "ApiEndpoint"
+        ]
+      }
+    },
+    "RawBucketName": {
+      "Value": {
+        "Ref": "RawScrapes2714B57E"
+      }
+    },
+    "AgentFunctionArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AgentLambda7DC01917",
+          "Arn"
+        ]
+      }
+    }
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+    }
+  }
+}

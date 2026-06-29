@@ -6,12 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "nrl-predictor"
 version = "0.1.0"
 requires-python = ">=3.12"
+# Union of v1 + v2 runtime deps (monorepo serves both fleets).
 dependencies = [
     "requests>=2.32",
     "boto3>=1.34",
     "beautifulsoup4>=4.12",
     "lxml>=5.2",
     "anthropic>=0.28",
+    "langchain-anthropic>=1.4",
+    "langchain-core>=0.3",
     "langgraph>=0.2",
     "tavily-python>=0.3",
 ]
@@ -26,19 +29,30 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.10",
 ]
+viz = [
+    # v2 dashboard (v2/tools/dashboard.py). Not needed for agents or tests.
+    "streamlit>=1.40",
+    "pandas>=2.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["common*", "scrapers*", "agent*", "scoring*", "api*"]
+# Shared at root (common/scrapers/scoring); version trees under v1*/v2*.
+include = ["common*", "scrapers*", "scoring*", "v1*", "v2*"]
+exclude = ["tests*", "v1.tests*", "v2.tests*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-v"
+# Both suites run from one rootdir. importlib mode avoids sys.path insertion and
+# duplicate-basename collisions across the tests/ and v2/tests/ trees, and ensures
+# bare `from scrapers/common/scoring` resolve to the ROOT copies (via the editable
+# install), not the v2/ duplicates.
+testpaths = ["tests", "v2/tests"]
+addopts = "-v --import-mode=importlib"
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["infra/cdk.out", "fetcher-spikes", ".venv"]
+extend-exclude = ["infra/cdk.out", "v2/infra/cdk.out", "fetcher-spikes", ".venv"]
 
 [tool.ruff.lint]
 # Pragmatic default set: pyflakes (F), pycodestyle errors (E), import sorting (I),
@@ -57,4 +71,7 @@ ignore_missing_imports = true
 check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-exclude = ["infra/", "fetcher-spikes/", "tests/", "build/"]
+# v2 version code (v2/agent, v2/api, …) was never type-checked pre-merge (v2 had no
+# [tool.mypy]); excluded to preserve pre-migration coverage. Typing v2 is a follow-up.
+# Shared common/scrapers/scoring (root) and all v1 code remain checked.
+exclude = ["infra/", "v2/", "fetcher-spikes/", "tests/", "build/"]

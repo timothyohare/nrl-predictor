@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.injury_list import get_injury_list
+from v1.agent.tools.injury_list import get_injury_list
 
 TABLE = "injuries"
 

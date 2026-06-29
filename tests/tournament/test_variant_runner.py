@@ -5,7 +5,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from tournament.variant_runner import run_variant_for_round, run_variant_prediction
+from v1.tournament.variant_runner import run_variant_for_round, run_variant_prediction
 
 SIM_TABLE = "simulation_predictions"
 MATCH_ID = "round-12-panthers-v-broncos"
@@ -52,7 +52,7 @@ def sim_table():
 class TestRunVariantPrediction:
     def test_calls_run_agent_with_variant_prompt(self):
         mock_client = MagicMock()
-        with patch("tournament.variant_runner.run_agent", side_effect=_fake_run_agent) as mock_run:
+        with patch("v1.tournament.variant_runner.run_agent", side_effect=_fake_run_agent) as mock_run:
             run_variant_prediction(
                 match_id=MATCH_ID,
                 variant=VARIANT,
@@ -67,7 +67,7 @@ class TestRunVariantPrediction:
         )
 
     def test_returns_simulation_prediction_record(self):
-        with patch("tournament.variant_runner.run_agent", side_effect=_fake_run_agent):
+        with patch("v1.tournament.variant_runner.run_agent", side_effect=_fake_run_agent):
             result = run_variant_prediction(MATCH_ID, VARIANT, {"round": 12})
 
         assert result["matchId"] == MATCH_ID
@@ -80,14 +80,14 @@ class TestRunVariantPrediction:
 
     def test_truncates_reasoning_to_500_chars(self):
         long_reasoning = "X" * 800
-        with patch("tournament.variant_runner.run_agent") as mock_run:
+        with patch("v1.tournament.variant_runner.run_agent") as mock_run:
             mock_run.return_value = {**_fake_run_agent("", {}), "reasoning": long_reasoning}
             result = run_variant_prediction(MATCH_ID, VARIANT, {"round": 12})
 
         assert len(result["reasoning"]) <= 500
 
     def test_writes_to_sim_table_when_provided(self, sim_table):
-        with patch("tournament.variant_runner.run_agent", side_effect=_fake_run_agent):
+        with patch("v1.tournament.variant_runner.run_agent", side_effect=_fake_run_agent):
             result = run_variant_prediction(MATCH_ID, VARIANT, {"round": 12}, sim_table=sim_table)
 
         resp = sim_table.get_item(
@@ -106,7 +106,7 @@ class TestRunVariantForRound:
             calls_made.append(match_id)
             return {"pk": f"{match_id}#{variant['variantId']}", "generatedAt": "2026-05-31T08:00:00Z"}
 
-        with patch("tournament.variant_runner.run_variant_prediction", side_effect=fake_predict):
+        with patch("v1.tournament.variant_runner.run_variant_prediction", side_effect=fake_predict):
             run_variant_for_round(
                 variant=VARIANT,
                 match_ids=match_ids,
@@ -123,8 +123,8 @@ class TestRunVariantForRound:
         def fake_predict(match_id, variant, match_context, client=None, sim_table=None):
             return {"pk": f"{match_id}#v", "generatedAt": "2026-05-31T08:00:00Z"}
 
-        with patch("tournament.variant_runner.run_variant_prediction", side_effect=fake_predict), \
-             patch("tournament.variant_runner.time") as mock_time:
+        with patch("v1.tournament.variant_runner.run_variant_prediction", side_effect=fake_predict), \
+             patch("v1.tournament.variant_runner.time") as mock_time:
             run_variant_for_round(
                 variant=VARIANT,
                 match_ids=match_ids,
@@ -142,8 +142,8 @@ class TestRunVariantForRound:
         def fake_predict(match_id, variant, match_context, client=None, sim_table=None):
             return {"pk": f"{match_id}#v", "generatedAt": "2026-05-31T08:00:00Z"}
 
-        with patch("tournament.variant_runner.run_variant_prediction", side_effect=fake_predict), \
-             patch("tournament.variant_runner.time") as mock_time:
+        with patch("v1.tournament.variant_runner.run_variant_prediction", side_effect=fake_predict), \
+             patch("v1.tournament.variant_runner.time") as mock_time:
             run_variant_for_round(
                 variant=VARIANT,
                 match_ids=match_ids,

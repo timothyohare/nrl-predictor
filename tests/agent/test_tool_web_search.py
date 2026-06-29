@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent.tools.web_search import ToolError, web_search
+from v1.agent.tools.web_search import ToolError, web_search
 
 
 def _mock_tavily(results):

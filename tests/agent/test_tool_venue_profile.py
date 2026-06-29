@@ -1,4 +1,4 @@
-from agent.tools.venue_profile import VENUE_PROFILES, get_venue_profile
+from v1.agent.tools.venue_profile import VENUE_PROFILES, get_venue_profile
 
 
 def test_exact_match():

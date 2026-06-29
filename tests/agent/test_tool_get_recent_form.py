@@ -2,7 +2,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.tools.recent_form import get_recent_form
+from v1.agent.tools.recent_form import get_recent_form
 
 TABLE = "results"
 

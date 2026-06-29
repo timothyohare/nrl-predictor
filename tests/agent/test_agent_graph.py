@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from moto import mock_aws
 
-from agent.graph import run_agent
-from agent.schema import validate_prediction
+from v1.agent.graph import run_agent
+from v1.agent.schema import validate_prediction
 
 MATCH_ID = "panthers-v-broncos-20260515"
 
@@ -85,7 +85,7 @@ def test_run_agent_calls_tool_then_produces_prediction(aws_env, monkeypatch):
         tool_calls=[{"name": "get_team_sheet", "input": {"match_id": MATCH_ID, "round_number": 12}}],
         final_text=_PREDICTION_JSON,
     )
-    with patch("agent.graph._execute_tool", return_value={"homeTeam": "Panthers", "awayTeam": "Broncos"}):
+    with patch("v1.agent.graph._execute_tool", return_value={"homeTeam": "Panthers", "awayTeam": "Broncos"}):
         result = run_agent(MATCH_ID, {"is_finals": False}, client=client)
     assert client.messages.create.call_count == 2
     validate_prediction(result)

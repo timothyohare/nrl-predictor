@@ -3,7 +3,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from agent.budget import BudgetExceeded, check_budget, get_month_to_date_spend, record_usage
+from v1.agent.budget import BudgetExceeded, check_budget, get_month_to_date_spend, record_usage
 
 TABLE = "claude_usage"
 

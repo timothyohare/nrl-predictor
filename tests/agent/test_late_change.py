@@ -1,4 +1,4 @@
-from agent.late_change import is_high_impact_change
+from v1.agent.late_change import is_high_impact_change
 
 
 def _player(number: int, name: str = "Player"):

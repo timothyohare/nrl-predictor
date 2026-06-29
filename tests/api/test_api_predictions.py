@@ -3,7 +3,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from api.predictions import lambda_handler
+from v1.api.predictions import lambda_handler
 
 TABLE = "predictions"
 RESULTS_TABLE = "results"
