@@ -52,5 +52,8 @@ clean. Check the phase checkpoint before starting the next phase. See `tasks/pla
       - v1: handlers v1.*, /health 200, LastModified bumped
       - v2: handlers v2.*, api /health 200, agent imports clean (KeyError only from empty probe payload)
       - cdk diff was exactly as predicted (Code/Handler + benign v2 IAM 34→10; no stateful changes)
-- [~] retire nrl-predictor2 remote — pending (method TBD: archive vs delete)
-- [x] **C6** monorepo is the single source of truth; both fleets live from it ✓ 2026-06-29
+- [x] retire nrl-predictor2 remote — README pointer pushed (b7c3fbd) + GitHub repo archived (read-only) 2026-06-29
+- [x] **C6** monorepo is the single source of truth; both fleets live from it; v2 remote archived ✓ 2026-06-29
+
+# 🎉 MIGRATION COMPLETE — all phases C0–C6 done. Both fleets deploy from the monorepo;
+# one copy of common/scrapers/scoring. Follow-ups (non-blocking): type-check v2; dead v2/api/tournament.py.
