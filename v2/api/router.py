@@ -34,10 +34,6 @@ def lambda_handler(event: dict, context) -> dict:
         from v2.api.accuracy import lambda_handler as accuracy_handler
         return accuracy_handler(event, context)
 
-    if path == "/tournament/leaderboard":
-        from v2.api.tournament import lambda_handler as tournament_handler
-        return tournament_handler(event, context)
-
     return {
         "statusCode": 404,
         "headers": {"Content-Type": "application/json"},
