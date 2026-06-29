@@ -76,7 +76,6 @@ ignore_missing_imports = true
 check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-# v2 version code (v2/agent, v2/api, …) was never type-checked pre-merge (v2 had no
-# [tool.mypy]); excluded to preserve pre-migration coverage. Typing v2 is a follow-up.
-# Shared common/scrapers/scoring (root) and all v1 code remain checked.
-exclude = ["infra/", "v2/", "fetcher-spikes/", "tests/", "build/"]
+# Both v1 and v2 version code + shared root are type-checked. Tests and infra
+# (CDK) are excluded for both fleets, matching the lint/test conventions.
+exclude = ["infra/", "v2/infra/", "fetcher-spikes/", "tests/", "v2/tests/", "build/"]

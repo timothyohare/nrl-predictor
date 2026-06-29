@@ -1,9 +1,10 @@
 """Venue profile tool — returns ground characteristics."""
 import re
+from typing import Any
 
 from langchain_core.tools import tool
 
-VENUE_PROFILES = {
+VENUE_PROFILES: dict[str, dict[str, Any]] = {
     "accor-stadium": {"name": "Accor Stadium", "aliases": ["stadium australia", "anz stadium", "homebush"], "city": "Sydney", "capacity": 83500, "roof": "none", "surface": "grass", "weather_impact_notes": "Large open-air venue. Wind can swirl."},
     "allianz-stadium": {"name": "Allianz Stadium", "aliases": ["sydney football stadium", "sfs", "moore park"], "city": "Sydney", "capacity": 42512, "roof": "partial", "surface": "grass", "weather_impact_notes": "Partial roof cover. Moderate wind exposure."},
     "4-pines-park": {"name": "4 Pines Park", "aliases": ["brookvale oval", "brookvale", "lottoland", "manly oval"], "city": "Sydney", "capacity": 18000, "roof": "none", "surface": "grass", "weather_impact_notes": "Notorious for swirling wind. Favours forward-dominant teams."},

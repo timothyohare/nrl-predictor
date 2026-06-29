@@ -29,7 +29,7 @@ if not os.environ.get("ANTHROPIC_API_KEY"):
 BIG_PREFIX = ("You are an NRL analyst. Reference facts:\n"
               + "\n".join(f"- Fact {i}: stable filler line for the cacheable prefix." for i in range(900)))
 
-llm = ChatAnthropic(
+llm = ChatAnthropic(  # type: ignore[call-arg]
     model=HAIKU_MODEL,
     max_tokens=64,
     cache_control={"type": "ephemeral"},  # the lever primary.py binds in the loop

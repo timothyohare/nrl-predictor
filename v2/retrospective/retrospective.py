@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import anthropic
 import boto3
 
-from v2.agent.tools.web_search import web_search
+from v2.agent.tools.web_search import _web_search
 from v2.retrospective.prompt import build_retrospective_prompt
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ def generate_retrospective(
     )
     match_stats: list[str] = []
     try:
-        match_stats = web_search(query, client=tavily_client)
+        match_stats = _web_search(query, client=tavily_client)
         logger.info("Web search returned %d results for %s", len(match_stats), match_id)
     except Exception as e:
         logger.warning("Web search failed for %s: %s", match_id, e)
@@ -113,7 +113,7 @@ def generate_retrospective(
     text_block = next((b for b in response.content if getattr(b, "type", None) == "text"), None)
     if text_block is None:
         raise ValueError(f"No text block in Claude response for {match_id}")
-    raw = text_block.text.strip()
+    raw = getattr(text_block, "text", "").strip()
     if raw.startswith("```"):
         raw = raw.split("```", 2)[1].lstrip("json").strip()
     parsed = json.loads(raw)

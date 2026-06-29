@@ -34,7 +34,7 @@ def make_challenger_node(llm=None):
             from langchain_anthropic import ChatAnthropic
 
             from v2.agent.lambda_handler import get_api_key
-            base_llm = ChatAnthropic(model=SONNET_MODEL, api_key=get_api_key(), max_tokens=2048)
+            base_llm = ChatAnthropic(model=SONNET_MODEL, api_key=get_api_key(), max_tokens=2048)  # type: ignore[call-arg, arg-type]
 
         structured = base_llm.with_structured_output(Challenge)
         primary = state["primary_prediction"]

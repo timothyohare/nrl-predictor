@@ -33,14 +33,18 @@ def _ddb_safe(obj):
     return obj
 
 
+_api_key_cache: str | None = None
+
+
 def get_api_key() -> str:
     """Fetch Anthropic API key from Secrets Manager (cached within process lifetime)."""
-    if not hasattr(get_api_key, "_key"):
+    global _api_key_cache
+    if _api_key_cache is None:
         secret = boto3.client("secretsmanager").get_secret_value(
             SecretId="nrl-predictor/anthropic-api-key"
         )
-        get_api_key._key = secret["SecretString"]
-    return get_api_key._key
+        _api_key_cache = secret["SecretString"]
+    return _api_key_cache
 
 
 def load_match_context(match_id: str, round_number: int, season: int) -> dict:

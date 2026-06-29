@@ -32,7 +32,7 @@ def make_extended_node(llm=None):
             from langchain_anthropic import ChatAnthropic
 
             from v2.agent.lambda_handler import get_api_key
-            base_llm = ChatAnthropic(model=HAIKU_MODEL, api_key=get_api_key(), max_tokens=1024)
+            base_llm = ChatAnthropic(model=HAIKU_MODEL, api_key=get_api_key(), max_tokens=1024)  # type: ignore[call-arg, arg-type]
 
         structured = base_llm.with_structured_output(ExtendedPrediction)
         final = state["final_prediction"]

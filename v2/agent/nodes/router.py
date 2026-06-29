@@ -31,7 +31,7 @@ def make_router_node(llm=None):
             from langchain_anthropic import ChatAnthropic
 
             from v2.agent.lambda_handler import get_api_key
-            model = ChatAnthropic(model=HAIKU_MODEL, api_key=get_api_key(), max_tokens=512)
+            model = ChatAnthropic(model=HAIKU_MODEL, api_key=get_api_key(), max_tokens=512)  # type: ignore[call-arg, arg-type]
 
         structured = model.with_structured_output(RouterOutput)
         context_summary = json.dumps({
