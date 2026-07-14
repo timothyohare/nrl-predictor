@@ -13,6 +13,19 @@ def _serialise(obj):
     raise TypeError(f"Not serialisable: {type(obj)}")
 
 
+def _scan_all(table, **kwargs) -> list[dict]:
+    """Full paginated scan — a single scan() call stops at the 1MB page limit,
+    which silently drops matches once the table outgrows one page."""
+    items: list[dict] = []
+    while True:
+        response = table.scan(**kwargs)
+        items.extend(response.get("Items", []))
+        last_key = response.get("LastEvaluatedKey")
+        if not last_key:
+            return items
+        kwargs["ExclusiveStartKey"] = last_key
+
+
 def lambda_handler(event: dict, context) -> dict:
     round_number = int((event.get("pathParameters") or {}).get("round", 0))
     ddb = boto3.resource("dynamodb")
@@ -20,12 +33,12 @@ def lambda_handler(event: dict, context) -> dict:
     retro_table_name = os.environ.get("RETROSPECTIVES_TABLE")
     results_table_name = os.environ.get("RESULTS_TABLE")
 
-    response = pred_table.scan(
+    items = _scan_all(
+        pred_table,
         FilterExpression="roundNumber = :r AND #s = :ok",
         ExpressionAttributeNames={"#s": "status"},
         ExpressionAttributeValues={":r": round_number, ":ok": "OK"},
     )
-    items = response.get("Items", [])
     # Only the most recent prediction per match
     by_match: dict[str, dict] = {}
     for item in items:
@@ -45,11 +58,12 @@ def lambda_handler(event: dict, context) -> dict:
     if retro_table_name:
         try:
             retro_table = ddb.Table(retro_table_name)
-            retro_resp = retro_table.scan(
+            retro_items = _scan_all(
+                retro_table,
                 FilterExpression="roundNumber = :r",
                 ExpressionAttributeValues={":r": round_number},
             )
-            for item in retro_resp.get("Items", []):
+            for item in retro_items:
                 mid = item["matchId"]
                 if mid not in retro_by_match or item["generatedAt"] > retro_by_match[mid]["generatedAt"]:
                     retro_by_match[mid] = item
@@ -63,11 +77,12 @@ def lambda_handler(event: dict, context) -> dict:
     if results_table_name:
         try:
             results_table = ddb.Table(results_table_name)
-            res_resp = results_table.scan(
+            res_items = _scan_all(
+                results_table,
                 FilterExpression="roundNumber = :r",
                 ExpressionAttributeValues={":r": round_number},
             )
-            for item in res_resp.get("Items", []):
+            for item in res_items:
                 mid = item["matchId"]
                 if mid not in result_by_match or item["scoredAt"] > result_by_match[mid]["scoredAt"]:
                     result_by_match[mid] = item
@@ -80,11 +95,12 @@ def lambda_handler(event: dict, context) -> dict:
     if odds_table_name:
         try:
             odds_table = ddb.Table(odds_table_name)
-            odds_resp = odds_table.scan(
+            odds_items = _scan_all(
+                odds_table,
                 FilterExpression="roundNumber = :r",
                 ExpressionAttributeValues={":r": round_number},
             )
-            for item in odds_resp.get("Items", []):
+            for item in odds_items:
                 mid = item["matchId"]
                 if mid not in odds_by_match or item.get("scrapedAt", "") > odds_by_match[mid].get("scrapedAt", ""):
                     odds_by_match[mid] = item
