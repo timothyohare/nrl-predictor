@@ -13,8 +13,14 @@ def _serialise(obj):
 
 def lambda_handler(event: dict, context) -> dict:
     table = boto3.resource("dynamodb").Table(os.environ["METRICS_TABLE"])
-    response = table.scan()
-    items = response.get("Items", [])
+    items = []
+    kwargs: dict = {}
+    while True:
+        response = table.scan(**kwargs)
+        items.extend(response.get("Items", []))
+        if "LastEvaluatedKey" not in response:
+            break
+        kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]
 
     season = [i for i in items if i["period"].endswith("-season")]
     rounds = [i for i in items if "-round-" in i["period"]]
