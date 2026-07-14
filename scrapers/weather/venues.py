@@ -7,6 +7,10 @@ VENUES: dict[str, tuple[float, float]] = {
     "GIO Stadium": (-35.2109, 149.1263),
     "McDonald Jones Stadium": (-32.8997, 151.7203),
     "PointsBet Stadium": (-34.0405, 151.1539),
+    # 2026 sponsorship rename of PointsBet Stadium (Shark Park, Cronulla)
+    "Ocean Protect Stadium": (-34.0405, 151.1539),
+    # Mt Smart Stadium, Auckland (Warriors) — outside BOM coverage, served by Open-Meteo fallback
+    "Go Media Stadium": (-36.9172, 174.8123),
     "Cbus Super Stadium": (-28.0057, 153.4145),
     "Queensland Country Bank Stadium": (-19.2590, 146.8169),
     "4 Pines Park": (-33.7961, 151.2898),
