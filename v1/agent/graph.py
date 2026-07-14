@@ -5,6 +5,7 @@ message history until Claude produces a text-only response.
 """
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -234,6 +235,32 @@ def _execute_tool(name: str, tool_input: dict) -> object:
     raise ValueError(f"Unknown tool: {name}")
 
 
+def _extract_prediction_json(text_blocks) -> dict | None:
+    """Find the prediction JSON object anywhere in the final text blocks."""
+    joined = "\n".join(b.text for b in text_blocks)
+    candidates = []
+    fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", joined, re.DOTALL)
+    if fence_match:
+        candidates.append(fence_match.group(1))
+    candidates.extend(b.text.strip() for b in text_blocks)
+    if "{" in joined and "}" in joined:
+        candidates.append(joined[joined.index("{"): joined.rindex("}") + 1])
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+_REPAIR_INSTRUCTION = (
+    "Return only the prediction JSON object, no other text. "
+    "Do not repeat your analysis — output the single JSON object matching the required schema."
+)
+
+
 def _serialise(obj) -> str:
     try:
         return json.dumps(obj, default=str)
@@ -271,6 +298,7 @@ def run_agent(match_id: str, match_context: dict, client=None,
     ]
 
     total_input = total_output = 0
+    repair_attempted = False
 
     for _iteration in range(MAX_ITERATIONS):
         response = client.messages.create(
@@ -287,16 +315,19 @@ def run_agent(match_id: str, match_context: dict, client=None,
         text_blocks = [b for b in response.content if getattr(b, "type", None) == "text"]
 
         if not tool_uses:
-            # Final answer — extract the first text block
-            raw_text = text_blocks[0].text if text_blocks else ""
-            try:
-                # Extract JSON from a markdown code block if present, otherwise parse directly
-                import re as _re
-                fence_match = _re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_text, _re.DOTALL)
-                clean = fence_match.group(1) if fence_match else raw_text.strip()
-                prediction = json.loads(clean)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Agent produced non-JSON output: {raw_text[:200]}") from e
+            raw_text = "\n".join(b.text for b in text_blocks)
+            prediction = _extract_prediction_json(text_blocks)
+            if prediction is None:
+                if not repair_attempted:
+                    # One follow-up turn asking for the JSON only, then give up
+                    repair_attempted = True
+                    logger.warning(
+                        "Agent emitted prose for %s — attempting JSON repair turn", match_id
+                    )
+                    messages.append({"role": "assistant", "content": raw_text or "(empty)"})
+                    messages.append({"role": "user", "content": _REPAIR_INSTRUCTION})
+                    continue
+                raise ValueError(f"Agent produced non-JSON output: {raw_text[:200]}")
 
             prediction["model_used"] = model
             prediction["generated_at"] = datetime.now(UTC).isoformat()

@@ -48,6 +48,25 @@ def test_returns_empty_list_on_empty_array():
     assert results == []
 
 
+def test_parses_json_wrapped_in_code_fences():
+    client = _mock_client(f"```json\n{_VALID_RESPONSE}\n```")
+    results = extract_injury_mentions(_ARTICLE, client)
+    assert len(results) == 2
+    assert results[0].player == "Payne Haas"
+
+
+def test_parses_empty_array_wrapped_in_code_fences():
+    client = _mock_client("```json\n[]\n```")
+    results = extract_injury_mentions(_ARTICLE, client)
+    assert results == []
+
+
+def test_parses_code_fences_without_language_tag():
+    client = _mock_client(f"```\n{_VALID_RESPONSE}\n```")
+    results = extract_injury_mentions(_ARTICLE, client)
+    assert len(results) == 2
+
+
 def test_uses_haiku_model():
     client = _mock_client(_VALID_RESPONSE)
     extract_injury_mentions(_ARTICLE, client)
