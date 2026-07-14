@@ -147,3 +147,27 @@ def test_picks_latest_result_when_multiple_scored_rows(aws_env, table):
     body = json.loads(response["body"])
     assert body[0]["result"]["winner"] == "Panthers"
     assert body[0]["result"]["homeScore"] == 24
+
+
+def test_returns_all_matches_when_table_exceeds_one_scan_page(aws_env, table):
+    """Scan pages are capped at 1MB and FilterExpression applies after the cut —
+    the handler must paginate or matches silently vanish (prod round 20, 2026-07-15)."""
+    import json
+    matches = [f"round-20-team{i}a-v-team{i}b" for i in range(8)]
+    for m in matches:
+        table.put_item(Item={
+            "matchId": m,
+            "generatedAt": "2026-07-14T23:45:00Z",
+            "roundNumber": 20,
+            "season": 2026,
+            "predicted_winner": "Panthers",
+            "predicted_margin": 8,
+            "confidence": "MEDIUM",
+            "key_factors": ["x"],
+            "reasoning": "x" * 300_000,  # ~300KB → 8 rows span multiple scan pages
+            "status": "OK",
+            "staleness_flag": False,
+        })
+    response = lambda_handler({"pathParameters": {"round": "20"}, "queryStringParameters": {}}, {})
+    body = json.loads(response["body"])
+    assert sorted(p["matchId"] for p in body) == sorted(matches)
