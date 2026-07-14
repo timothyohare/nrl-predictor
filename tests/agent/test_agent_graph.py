@@ -91,6 +91,58 @@ def test_run_agent_calls_tool_then_produces_prediction(aws_env, monkeypatch):
     validate_prediction(result)
 
 
+def _text_response(*texts):
+    resp = MagicMock()
+    blocks = []
+    for t in texts:
+        b = MagicMock()
+        b.type = "text"
+        b.text = t
+        blocks.append(b)
+    resp.content = blocks
+    resp.usage = MagicMock(input_tokens=100, output_tokens=50)
+    resp.stop_reason = "end_turn"
+    return resp
+
+
+_PROSE = "Now I have comprehensive data. Let me synthesize the analysis:\n\n## Analysis Summary ..."
+
+
+@mock_aws
+def test_run_agent_repairs_prose_output_with_followup_turn(aws_env):
+    client = MagicMock()
+    client.messages.create.side_effect = [
+        _text_response(_PROSE),
+        _text_response(_PREDICTION_JSON),
+    ]
+    result = run_agent(MATCH_ID, {"is_finals": False}, client=client)
+    validate_prediction(result)
+    assert client.messages.create.call_count == 2
+    repair_messages = client.messages.create.call_args_list[1].kwargs["messages"]
+    assert "only the prediction JSON" in json.dumps(repair_messages)
+
+
+@mock_aws
+def test_run_agent_fails_when_repair_turn_also_prose(aws_env):
+    client = MagicMock()
+    client.messages.create.side_effect = [
+        _text_response(_PROSE),
+        _text_response("Still just prose, sorry."),
+    ]
+    with pytest.raises(ValueError, match="non-JSON"):
+        run_agent(MATCH_ID, {"is_finals": False}, client=client)
+    assert client.messages.create.call_count == 2
+
+
+@mock_aws
+def test_run_agent_finds_json_in_later_text_block(aws_env):
+    client = MagicMock()
+    client.messages.create.return_value = _text_response(_PROSE, _PREDICTION_JSON)
+    result = run_agent(MATCH_ID, {"is_finals": False}, client=client)
+    validate_prediction(result)
+    assert client.messages.create.call_count == 1
+
+
 @mock_aws
 def test_run_agent_includes_match_id_in_messages(aws_env):
     client = _make_client()
