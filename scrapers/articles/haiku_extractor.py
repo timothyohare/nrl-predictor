@@ -14,13 +14,22 @@ _PROMPT_TEMPLATE = (
 )
 
 
+def _strip_code_fences(text: str) -> str:
+    if text.startswith("```") and text.endswith("```"):
+        text = text[3:-3]
+        first_line, _, rest = text.partition("\n")
+        if first_line.strip().isalpha():
+            text = rest
+    return text.strip()
+
+
 def extract_injury_mentions(article_text: str, claude_client) -> list[InjuryMention]:
     response = claude_client.messages.create(
         model=HAIKU_MODEL,
         max_tokens=512,
         messages=[{"role": "user", "content": _PROMPT_TEMPLATE.format(text=article_text)}],
     )
-    raw = response.content[0].text.strip()
+    raw = _strip_code_fences(response.content[0].text.strip())
     try:
         items = json.loads(raw)
         return [
