@@ -526,6 +526,10 @@ class NrlPredictorStack(cdk.Stack):
         odds_table.grant_read_write_data(odds_fn)
         odds_secret.grant_read(odds_fn)
 
+        # Weather scraper writes forecasts; articles scraper writes injury mentions
+        weather_table.grant_read_write_data(weather_fn)
+        injuries_table.grant_read_write_data(articles_fn)
+
         # Orchestrator: reads/writes teams + s3 (same as the scraper lambdas
         # whose work it inlines) and invokes the agent
         teams_table.grant_read_write_data(orchestrator_fn)
