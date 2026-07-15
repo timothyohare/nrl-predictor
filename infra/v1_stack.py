@@ -21,6 +21,9 @@ from aws_cdk import (
     aws_events_targets as targets,
 )
 from aws_cdk import (
+    aws_iam as iam,
+)
+from aws_cdk import (
     aws_lambda as _lambda,
 )
 from aws_cdk import (
@@ -419,6 +422,23 @@ class NrlPredictorStack(cdk.Stack):
             },
         )
 
+        # ── Lambda: coverage check ───────────────────────────────────────────
+        # Runs 1h after each orchestrator window: compares the draw's match
+        # count with the round's OK-prediction count and emits the
+        # NrlPredictor/MissingPredictions metric (alarmed below). Catches
+        # FAILED-only matches that silently disappear from the site.
+        coverage_check_fn = _lambda.Function(
+            self, "CoverageCheckLambda",
+            function_name="nrl-predictor-coverage-check",
+            runtime=LAMBDA_RUNTIME,
+            handler="v1.orchestrator.coverage_check.lambda_handler",
+            code=scraper_code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.minutes(2),
+            memory_size=256,
+            environment=_scraper_env,
+        )
+
         # ── Lambda: retrospective ────────────────────────────────────────────
         # Defined before scoring_fn so we can pass its ARN into scoring's env
         retrospective_fn = _lambda.Function(
@@ -535,6 +555,14 @@ class NrlPredictorStack(cdk.Stack):
         teams_table.grant_read_write_data(orchestrator_fn)
         raw_bucket.grant_read_write(orchestrator_fn)
         agent_fn.grant_invoke(orchestrator_fn)
+
+        # Coverage check: reads predictions, emits a custom CloudWatch metric
+        predictions_table.grant_read_data(coverage_check_fn)
+        coverage_check_fn.add_to_role_policy(iam.PolicyStatement(
+            actions=["cloudwatch:PutMetricData"],
+            resources=["*"],
+            conditions={"StringEquals": {"cloudwatch:namespace": "NrlPredictor"}},
+        ))
 
         for fn in (agent_fn,):
             for tbl in (predictions_table, teams_table, results_table, metrics_table,
@@ -707,6 +735,25 @@ class NrlPredictorStack(cdk.Stack):
             )],
         )
 
+        # Coverage check — 1h after each orchestrator window, when the staggered
+        # agent fan-out (plus repair retries) has definitely settled.
+        for rule_id, rule_name, minute, hour, week_day in [
+            ("CoverageTueRule", "nrl-coverage-tuesday", "30", "7", "TUE"),
+            ("CoverageThuRule", "nrl-coverage-thursday", "0", "8", "THU"),
+            ("CoverageFriPmRule", "nrl-coverage-friday-pm", "0", "8", "FRI"),
+            ("CoverageFriNightRule", "nrl-coverage-friday-night", "0", "13", "FRI"),
+            ("CoverageSatAmRule", "nrl-coverage-saturday-am", "0", "0", "SAT"),
+        ]:
+            events.Rule(
+                self, rule_id,
+                rule_name=rule_name,
+                schedule=events.Schedule.cron(minute=minute, hour=hour, week_day=week_day),
+                targets=[targets.LambdaFunction(
+                    coverage_check_fn,
+                    event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+                )],
+            )
+
         # ── CloudWatch Alarms ─────────────────────────────────────────────────
         for fn, name in [
             (draw_fn, "DrawScraper"), (team_sheet_fn, "TeamSheet"), (ladder_fn, "Ladder"),
@@ -733,6 +780,22 @@ class NrlPredictorStack(cdk.Stack):
             treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
         )
         agent_timeout_alarm.add_alarm_action(cw_actions.SnsAction(alert_topic))
+
+        coverage_alarm = cloudwatch.Alarm(
+            self, "PredictionCoverageAlarm",
+            alarm_name="nrl-predictor-missing-predictions",
+            metric=cloudwatch.Metric(
+                namespace="NrlPredictor",
+                metric_name="MissingPredictions",
+                statistic="Maximum",
+                period=cdk.Duration.hours(1),
+            ),
+            threshold=1,
+            evaluation_periods=1,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+        )
+        coverage_alarm.add_alarm_action(cw_actions.SnsAction(alert_topic))
 
         # ── Outputs ──────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "ApiEndpoint", value=api.api_endpoint)
