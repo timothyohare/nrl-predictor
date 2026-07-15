@@ -1,0 +1,24 @@
+# Reviewed false positives (CHG-0024 security-scanning pilot, 2026-07-15).
+# All 20 are SHA-256 CloudFormation/CDK asset hashes in the committed
+# baseline templates at commit 5fa28ada — content digests, not credentials.
+# Fingerprint format: <commit>:<file>:<rule>:<line>
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:567
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:705
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:911
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:1117
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:1323
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:1529
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:1745
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:1970
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:2236
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:2467
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:2682
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:2889
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:3158
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:3341
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:3535
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v1.template.json:generic-api-key:3749
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v2.template.json:generic-api-key:43
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v2.template.json:generic-api-key:549
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v2.template.json:generic-api-key:793
+5fa28ada55d508aba2e2d922fec16e476bdbd1c9:tasks/baseline/v2.template.json:generic-api-key:1143

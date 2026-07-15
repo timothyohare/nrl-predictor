@@ -17,6 +17,7 @@ BASE = f"http://127.0.0.1:{os.environ.get('GATE_API_PORT', '8001')}"
 def _get(path: str) -> tuple[int, dict | list]:
     req = urllib.request.Request(BASE + path)
     try:
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- fixed 127.0.0.1 base, only the port comes from GATE_API_PORT set by the gate runner
         with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
