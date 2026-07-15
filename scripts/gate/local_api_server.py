@@ -48,6 +48,24 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _method_not_allowed(self):
+        # Mirror API Gateway: unsupported methods get 405, not http.server's
+        # stdlib 501 (which reads as a server fault to fuzzers and clients).
+        body = b'{"error": "Method not allowed"}'
+        self.send_response(405)
+        self.send_header("Allow", "GET")
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def __getattr__(self, name):
+        # BaseHTTPRequestHandler dispatches on do_<METHOD>; answer 405 for any
+        # verb we don't implement (POST, TRACE, QUERY, ...) instead of 501.
+        if name.startswith("do_"):
+            return self._method_not_allowed
+        raise AttributeError(name)
+
     def log_message(self, *args):  # quieten default per-request stderr noise
         pass
 

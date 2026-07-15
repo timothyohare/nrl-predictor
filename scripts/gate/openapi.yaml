@@ -1,0 +1,84 @@
+# Contract of record for the gate API read path (CHG-0026, gate-fuzz).
+# Scope: the endpoints the gate seeds and verifies (local_setup.py round 12);
+# /accuracy and /tournament/leaderboard are unseeded and out of scope until
+# they get gate data. Schemathesis fuzzes this document — response schemas
+# are deliberately additionalProperties-tolerant (the API adds fields freely)
+# but status codes and required fields are load-bearing.
+openapi: 3.0.3
+info:
+  title: nrl-predictor gate API
+  description: Read path served by scripts/gate/local_api_server.py over the seeded round.
+  version: "1.0.0"
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+  /predictions/{round}:
+    get:
+      operationId: predictionsByRound
+      parameters:
+        - name: round
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Most-recent OK prediction per match for the round, sorted by matchId.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [matchId, predicted_winner]
+                  additionalProperties: true
+                  properties:
+                    matchId:
+                      type: string
+                    predicted_winner:
+                      type: string
+                    is_outlier:
+                      type: boolean
+                    result:
+                      type: object
+                      additionalProperties: true
+                    retrospective:
+                      type: object
+                      additionalProperties: true
+                    odds:
+                      type: object
+                      additionalProperties: true
+        "400":
+          description: Round is not a valid integer.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: No predictions seeded for the round.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: string
