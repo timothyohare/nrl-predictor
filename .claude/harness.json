@@ -12,7 +12,7 @@
   "boot": ".venv/bin/python scripts/gate/local_api_server.py",
   "ready": "http://127.0.0.1:8001/health",
   "readyMatch": "ok",
-  "acceptance": ".venv/bin/python scripts/gate/acceptance.py",
+  "acceptance": ".venv/bin/python -m pytest scripts/gate/bdd -q && .venv/bin/python scripts/gate/acceptance.py",
 
   "perfBoot": ".venv/bin/python scripts/gate/perf_boot.py",
   "perfReady": "http://127.0.0.1:8001/health",
