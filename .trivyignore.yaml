@@ -1,0 +1,12 @@
+# Reviewed suppressions (CHG-0024 security-scanning pilot, 2026-07-15).
+# tasks/baseline/v1.template.json is the committed HISTORICAL snapshot of the
+# pre-migration v1 stack, kept for the v1->v2 parity diff record — it is not
+# deployed. The current v2 template passes clean. Path-scoped so the same
+# checks still gate any live template.
+misconfigurations:
+  - id: AWS-0095 # Unencrypted SNS topic (v1 stack, retired)
+    paths:
+      - tasks/baseline/v1.template.json
+  - id: AWS-0132 # S3 encryption not using CMK (v1 stack, retired)
+    paths:
+      - tasks/baseline/v1.template.json

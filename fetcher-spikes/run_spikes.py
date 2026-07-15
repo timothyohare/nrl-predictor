@@ -26,6 +26,7 @@ def run(source_name):
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
     try:
+        # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import -- source_name comes from the hardcoded SPIKES list above, not user input
         mod = importlib.import_module(f"spike_{source_name}")
         mod.run()
     except Exception as e:
