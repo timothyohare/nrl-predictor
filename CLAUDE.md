@@ -135,21 +135,25 @@ aws lambda invoke --function-name nrl-predictor-agent \
   --cli-read-timeout 180 /dev/null
 ```
 
-**Planned fix — JSON repair retry in the agent.** When `run_agent` gets a
-non-JSON final message, do one follow-up turn ("return only the prediction JSON,
-no other text") before giving up and writing the `FAILED` row. This would absorb
-the common single-shot formatting miss without manual re-invocation. Lives in
-`agent/graph.py` / `agent/lambda_handler.py`; add a `[TEST]` first per the TDD
-workflow.
+**Fixed 2026-07-15 (PR #7) — JSON repair retry in the agent.** `run_agent` now
+searches all final text blocks for the prediction JSON (fenced / per-block /
+brace-span fallback) and, on prose output, sends one follow-up turn ("return
+only the prediction JSON") before giving up and writing the `FAILED` row. The
+repair turn rescued 4+ of 6 prose failures on its first production outing
+(round-20 re-runs). Manual re-invocation above remains the fallback if the
+repair turn also fails.
 
-### No alert when a round is under-predicted
+### Coverage alert when a round is under-predicted
 
-A `FAILED`-only match (see above) leaves the round quietly short on the site with
-no signal — these are currently only caught by eye. **Planned fix — coverage
-alert:** compare the round's OK-prediction count against the draw's match count
-(both already available) and emit a warning (CloudWatch metric / log alarm) when
-predictions < matches. Natural home is the orchestrator after its per-match
-fan-out completes, or a small post-round check alongside `scripts/score_round.py`.
+A `FAILED`-only match (see above) leaves the round quietly short on the site.
+**Implemented 2026-07-15:** `nrl-predictor-coverage-check`
+(`v1/orchestrator/coverage_check.py`) runs 1h after each orchestrator window,
+compares the draw's match count with the round's OK-prediction count, logs a
+warning listing the missing matchIds, and emits the
+`NrlPredictor/MissingPredictions` CloudWatch metric. The
+`nrl-predictor-missing-predictions` alarm (threshold ≥ 1) notifies the existing
+SNS alert topic (email). Invoke ad-hoc with
+`{"season": 2026, "round": "current"}` to spot-check a round.
 
 ---
 
