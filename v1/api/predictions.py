@@ -27,7 +27,14 @@ def _scan_all(table, **kwargs) -> list[dict]:
 
 
 def lambda_handler(event: dict, context) -> dict:
-    round_number = int((event.get("pathParameters") or {}).get("round", 0))
+    try:
+        round_number = int((event.get("pathParameters") or {}).get("round", 0))
+    except (TypeError, ValueError):
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"error": "round must be an integer"}),
+        }
     ddb = boto3.resource("dynamodb")
     pred_table = ddb.Table(os.environ["PREDICTIONS_TABLE"])
     retro_table_name = os.environ.get("RETROSPECTIVES_TABLE")

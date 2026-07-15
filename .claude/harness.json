@@ -21,6 +21,8 @@
   "perfRoutes": ["/predictions/12", "/health"],
   "perfBaseline": ".claude/perf-baseline.json",
 
+  "fuzzSchema": "scripts/gate/openapi.yaml",
+
   "env": {
     "AWS_DEFAULT_REGION": "ap-southeast-2",
     "AWS_ACCESS_KEY_ID": "test",

@@ -81,6 +81,15 @@ def test_returns_404_when_no_predictions(aws_env, table):
     assert response["statusCode"] == 404
 
 
+def test_returns_400_for_non_integer_round(aws_env, table):
+    # Found by gate-fuzz (CHG-0026): int() on the raw path param crashed the
+    # handler for any non-numeric round — API Gateway passes strings through.
+    import json
+    response = lambda_handler({"pathParameters": {"round": "null"}, "queryStringParameters": {}}, {})
+    assert response["statusCode"] == 400
+    assert "error" in json.loads(response["body"])
+
+
 def test_includes_result_when_match_is_scored(aws_env, table):
     import json
     results = boto3.resource("dynamodb", region_name="ap-southeast-2").Table(RESULTS_TABLE)
