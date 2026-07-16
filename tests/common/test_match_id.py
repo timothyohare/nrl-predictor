@@ -20,8 +20,21 @@ def test_match_id_from_fields_slugs_but_keeps_order():
     assert match_id(16, "Storm", "Sea Eagles") == "round-16-storm-v-sea-eagles"
 
 
+def test_match_id_from_url_single_segment_falls_back():
+    # a bare slug (no path) falls back to the last segment untouched
+    assert match_id_from_url("panthers-v-broncos") == "panthers-v-broncos"
+    assert match_id_from_url("panthers-v-broncos/") == "panthers-v-broncos"
+
+
 def test_is_canonical_and_round_of():
     assert is_canonical("round-16-knights-v-dragons")
     assert not is_canonical("knights-v-dragons")
     assert round_of("round-17-sea-eagles-v-storm") == 17
     assert round_of("sea-eagles-v-storm") is None
+
+
+def test_is_canonical_and_round_of_tolerate_empty():
+    assert is_canonical("") is False
+    assert is_canonical(None) is False
+    assert round_of("") is None
+    assert round_of(None) is None

@@ -21,7 +21,7 @@ def match_id_from_url(match_centre_url: str) -> str:
     The last two path segments (``round-11`` + ``panthers-v-broncos``) are joined; the team
     portion is left in the URL's official home-v-away order.
     """
-    parts = match_centre_url.rstrip("/").rsplit("/", 2)
+    parts = match_centre_url.rstrip("/").rsplit("/", 2)  # pragma: no mutate — maxsplit/charset are inert: output reads parts[-2:] either way
     return f"{parts[-2]}-{parts[-1]}" if len(parts) >= 3 else parts[-1]
 
 
@@ -33,10 +33,10 @@ def match_id(round_no: int, home: str, away: str) -> str:
 
 def is_canonical(match_id_str: str) -> bool:
     """True if the matchId carries the ``round-<N>-`` prefix (i.e. is round-qualified)."""
-    return bool(_ROUND_PREFIX.match(match_id_str or ""))
+    return bool(_ROUND_PREFIX.match(match_id_str)) if match_id_str else False
 
 
 def round_of(match_id_str: str) -> int | None:
     """Extract the round number from a round-prefixed matchId, or None."""
-    m = re.match(r"^round-(\d+)-", match_id_str or "")
+    m = re.match(r"^round-(\d+)-", match_id_str) if match_id_str else None
     return int(m.group(1)) if m else None

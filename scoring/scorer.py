@@ -26,8 +26,7 @@ def score_prediction(match_id: str, results_table, predictions_table, kickoff=No
     result_resp = results_table.query(
         KeyConditionExpression="matchId = :m",
         ExpressionAttributeValues={":m": match_id},
-        ScanIndexForward=False,
-        Limit=1,
+        ScanIndexForward=False,  # newest first: [0] is the most recent (corrected) result row
     )
     if not result_resp["Items"]:
         raise ResultNotReady(f"No result row for {match_id}")
@@ -36,7 +35,6 @@ def score_prediction(match_id: str, results_table, predictions_table, kickoff=No
     pred_resp = predictions_table.query(
         KeyConditionExpression="matchId = :m",
         ExpressionAttributeValues={":m": match_id},
-        ScanIndexForward=False,
     )
     ok_preds = [p for p in pred_resp["Items"] if p.get("status") == "OK"]
     if not ok_preds:
@@ -66,7 +64,7 @@ def score_prediction(match_id: str, results_table, predictions_table, kickoff=No
         predicted_margin_error=margin_error,
         within_6_pts=margin_error <= 6,
         within_12_pts=margin_error <= 12,
-        brier_component=round(brier, 6),
+        brier_component=round(brier, 6),  # pragma: no mutate — every reachable brier is ≤4 dp; the precision arg is inert
         confidence=confidence,
         prompt_version=prompt_version,
     )

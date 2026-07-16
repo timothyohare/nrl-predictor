@@ -23,6 +23,9 @@
 
   "fuzzSchema": "scripts/gate/openapi.yaml",
 
+  "mutation": ".venv/bin/python scripts/gate/mutation_gate.py",
+  "mutationReport": "reports/mutation/mutation.json",
+
   "env": {
     "AWS_DEFAULT_REGION": "ap-southeast-2",
     "AWS_ACCESS_KEY_ID": "test",
