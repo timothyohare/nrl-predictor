@@ -17,7 +17,7 @@ def parse_ts(ts) -> datetime | None:
     if not isinstance(ts, str) or not ts:
         return None
     try:
-        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(ts)  # Python ≥3.11 parses a trailing 'Z' natively
     except ValueError:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
@@ -43,6 +43,10 @@ def latest_before_kickoff(preds: list[dict], kickoff, ts_key: str = "generatedAt
 
 
 def is_hindsight(pred: dict, kickoff, ts_key: str = "generatedAt") -> bool:
-    """True if ``pred`` was generated at/after kickoff (i.e. the selection fell back)."""
+    """True if ``pred`` was generated strictly after kickoff (i.e. the selection fell back).
+
+    A prediction timestamped exactly at kickoff still counts as pre-KO, matching
+    ``latest_before_kickoff``'s ``pts <= ko`` selection rule.
+    """
     ko, pts = parse_ts(kickoff), parse_ts(pred.get(ts_key)) if pred else None
     return ko is not None and pts is not None and pts > ko

@@ -29,6 +29,7 @@ dev = [
     "constructs>=10.3",
     "ruff>=0.6",
     "mypy>=1.10",
+    "mutmut>=3.6",
 ]
 viz = [
     # v2 dashboard (v2/tools/dashboard.py). Not needed for agents or tests.
@@ -41,6 +42,26 @@ where = ["."]
 # Shared at root (common/scrapers/scoring); version trees under v1*/v2*.
 include = ["common*", "scrapers*", "scoring*", "v1*", "v2*"]
 exclude = ["tests*", "v1.tests*", "v2.tests*"]
+
+[tool.mutmut]
+# Mutation pilot (CHG-0027): pure shared modules with fast, self-contained unit
+# tests. Verdict + Stryker-schema report come from scripts/gate/mutation_gate.py
+# (bound as `mutation` in .claude/harness.json); mutmut is the mutation engine.
+source_paths = ["common", "scoring"]
+only_mutate = [
+    "common/match_id.py",
+    "common/teams.py",
+    "common/predictions.py",
+    "scoring/scorer.py",
+]
+pytest_add_cli_args_test_selection = [
+    "tests/common",
+    "tests/scoring/test_scorer.py",
+]
+also_copy = ["common/team_registry.json"]
+# mutmut's CST pragma visitor misses comments inside call-argument lists; this
+# line-regex fallback makes `# pragma: no mutate` effective anywhere it appears.
+do_not_mutate_patterns = ['pragma: no mutate']
 
 [tool.pytest.ini_options]
 # Both suites run from one rootdir. importlib mode avoids sys.path insertion and
@@ -58,7 +79,7 @@ addopts = "-v --import-mode=importlib"
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["infra/cdk.out", "v2/infra/cdk.out", "fetcher-spikes", ".venv"]
+extend-exclude = ["infra/cdk.out", "v2/infra/cdk.out", "fetcher-spikes", ".venv", "mutants"]
 
 [tool.ruff.lint]
 # Pragmatic default set: pyflakes (F), pycodestyle errors (E), import sorting (I),
@@ -79,4 +100,4 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 # Both v1 and v2 version code + shared root are type-checked. Tests and infra
 # (CDK) are excluded for both fleets, matching the lint/test conventions.
-exclude = ["infra/", "v2/infra/", "fetcher-spikes/", "tests/", "v2/tests/", "build/"]
+exclude = ["infra/", "v2/infra/", "fetcher-spikes/", "tests/", "v2/tests/", "build/", "mutants/"]

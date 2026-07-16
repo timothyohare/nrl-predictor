@@ -35,3 +35,7 @@ frontend/out/
 
 # Spikes venv (already exists)
 fetcher-spikes/venv/
+
+# Mutation gate (CHG-0027) — mutmut working tree + per-run report are build artifacts
+mutants/
+reports/
