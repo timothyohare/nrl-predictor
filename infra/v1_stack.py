@@ -216,6 +216,17 @@ class NrlPredictorStack(cdk.Stack):
             removal_policy=cdk.RemovalPolicy.RETAIN,
         )
 
+        # Audit trail for scripts/gather_round_context.py — the no-LLM data
+        # bundle gathered per match for manual (Claude Pro) prediction use.
+        match_context_table = dynamodb.Table(
+            self, "MatchContext",
+            table_name="match_context",
+            partition_key=dynamodb.Attribute(name="matchId", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="generatedAt", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+        )
+
         # ── Secrets Manager ──────────────────────────────────────────────────
         anthropic_secret = secretsmanager.Secret(
             self, "AnthropicApiKey",
@@ -262,6 +273,7 @@ class NrlPredictorStack(cdk.Stack):
             "PROMPT_VARIANTS_TABLE": prompt_variants_table.table_name,
             "SIMULATION_PREDICTIONS_TABLE": simulation_predictions_table.table_name,
             "VARIANT_METRICS_TABLE": variant_metrics_table.table_name,
+            "MATCH_CONTEXT_TABLE": match_context_table.table_name,
             "RAW_BUCKET": raw_bucket.bucket_name,
             "AWS_ACCOUNT": self.account,
         }

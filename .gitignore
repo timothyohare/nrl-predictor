@@ -39,3 +39,6 @@ fetcher-spikes/venv/
 # Mutation gate (CHG-0027) — mutmut working tree + per-run report are build artifacts
 mutants/
 reports/
+
+# scripts/gather_round_context.py output — paste-ready prompt files, local only
+manual_context/
