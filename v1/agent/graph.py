@@ -201,6 +201,7 @@ _TOOL_DEFINITIONS = [
             },
             "required": ["match_id", "round_number"],
         },
+        "cache_control": {"type": "ephemeral"},
     },
 ]
 
@@ -268,6 +269,28 @@ def _serialise(obj) -> str:
         return str(obj)
 
 
+def _with_cache_breakpoint(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Mark the last content block of the last message as a cache breakpoint.
+
+    Applied fresh to each request rather than persisted into ``messages`` — the
+    API allows at most 4 cache_control blocks per request, and a prior
+    breakpoint stays a valid read point for the next one without being
+    re-marked, so only the newest needs it.
+    """
+    if not messages:
+        return messages
+    *rest, last = messages
+    content = last["content"]
+    if isinstance(content, str):
+        content = [{"type": "text", "text": content}]
+    else:
+        content = [dict(block) for block in content]
+    if not content:
+        return messages
+    content[-1] = {**content[-1], "cache_control": {"type": "ephemeral"}}
+    return [*rest, {**last, "content": content}]
+
+
 def run_agent(match_id: str, match_context: dict, client=None,
               system_prompt: str | None = None) -> dict:
     model = select_model(match_context)
@@ -281,9 +304,12 @@ def run_agent(match_id: str, match_context: dict, client=None,
         api_key = secret["SecretString"]
         client = anthropic.Anthropic(api_key=api_key)
 
-    system = system_prompt if system_prompt is not None else build_system_prompt(
+    system_text = system_prompt if system_prompt is not None else build_system_prompt(
         lessons=match_context.get("lessons")
     )
+    system = [
+        {"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}},
+    ]
     messages: list[dict[str, Any]] = [
         {
             "role": "user",
@@ -306,7 +332,7 @@ def run_agent(match_id: str, match_context: dict, client=None,
             max_tokens=2048,
             system=system,
             tools=_TOOL_DEFINITIONS,
-            messages=messages,
+            messages=_with_cache_breakpoint(messages),
         )
         total_input += response.usage.input_tokens
         total_output += response.usage.output_tokens
