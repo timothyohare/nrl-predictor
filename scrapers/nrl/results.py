@@ -30,6 +30,10 @@ def parse_results(data: dict) -> list[MatchResult]:
         winner = home["nickName"] if home_score >= away_score else away["nickName"]
         url = fixture.get("matchCentreUrl", "")
         match_id = match_id_from_url(url) if url else ""
+        # venue is a plain string in the current API; guard against the legacy
+        # dict form {"name": "..."} — same handling as scrapers/nrl/draw.py.
+        venue_raw = fixture.get("venue", "")
+        venue = venue_raw if isinstance(venue_raw, str) else venue_raw.get("name", "")
         results.append(MatchResult(
             match_id=match_id,
             home_team=to_slug(home["nickName"]),
@@ -39,6 +43,7 @@ def parse_results(data: dict) -> list[MatchResult]:
             winner=to_slug(winner),
             margin=abs(home_score - away_score),
             match_state="FullTime",
+            venue=venue,
         ))
     return results
 
@@ -67,4 +72,5 @@ def lambda_handler(event: dict, context) -> None:
                 "winner": r.winner,
                 "margin": r.margin,
                 "matchState": r.match_state,
+                "venue": r.venue,
             })

@@ -1,4 +1,8 @@
+import re
+
 import requests
+
+from common.teams import display, to_slug
 
 _BASE = "https://fantasy.nrl.com/data/nrl"
 _HEADERS = {
@@ -32,10 +36,22 @@ def _fetch_players() -> list:
     return _players_cache
 
 
+def _normalise(s: str) -> str:
+    """Strip everything but letters/digits, so hyphens, spaces, and stray
+    punctuation ("St George" vs the API's "St. George") don't cause a miss."""
+    return re.sub(r"[^a-z0-9]", "", s.lower())
+
+
 def _squad_id_for(team: str, squads: list) -> int | None:
-    t = team.lower()
+    """Match against the fantasy API's own naming (e.g. "Tigers" /
+    "Wests Tigers"), which uses spaces, not our hyphenated slugs — a raw
+    slug like "sea-eagles" never appears verbatim in the API's data, so
+    resolve to our registry's display names first and compare on those."""
+    slug = to_slug(team)
+    meta = display(slug)
+    candidates = {_normalise(meta["nickname"]), _normalise(meta["full_name"]), _normalise(team)}
     for s in squads:
-        if s["name"].lower() == t or s["full_name"].lower() == t:
+        if _normalise(s["name"]) in candidates or _normalise(s["full_name"]) in candidates:
             return s["id"]
     return None
 

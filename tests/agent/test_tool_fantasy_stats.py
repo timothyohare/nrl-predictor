@@ -1,10 +1,15 @@
 from unittest.mock import patch
 
-from v1.agent.tools.fantasy_stats import get_fantasy_stats
+from v1.agent.tools.fantasy_stats import _squad_id_for, get_fantasy_stats
 
 _SQUADS = [
     {"id": 500011, "name": "Broncos", "full_name": "Brisbane Broncos", "short_name": "BRI"},
     {"id": 500010, "name": "Bulldogs", "full_name": "Canterbury Bulldogs", "short_name": "CBY"},
+    {"id": 500002, "name": "Sea Eagles", "full_name": "Manly-Warringah Sea Eagles", "short_name": "MAN"},
+    {"id": 500023, "name": "Tigers", "full_name": "Wests Tigers", "short_name": "WST"},
+    # Real fantasy.nrl.com data (confirmed live 2026-07-27): "St." with a
+    # period, unlike our registry's "St George Illawarra Dragons".
+    {"id": 500022, "name": "Dragons", "full_name": "St. George Illawarra Dragons", "short_name": "SGI"},
 ]
 
 _PLAYERS = [
@@ -30,6 +35,11 @@ _PLAYERS = [
         "id": 4, "first_name": "Tom", "last_name": "Doyle",
         "squad_id": 500010, "cost": 500000, "status": "playing", "locked": 0,
         "stats": {"prices": {"11": 500000}, "avg_points": 30, "last_3_avg": 30, "tog": 70},
+    },
+    {
+        "id": 5, "first_name": "Tom", "last_name": "Trbojevic",
+        "squad_id": 500002, "cost": 850000, "status": "injured", "locked": 0,
+        "stats": {"prices": {"11": 850000}, "avg_points": 65, "last_3_avg": 60, "tog": 78},
     },
 ]
 
@@ -84,3 +94,36 @@ def test_unknown_team_returns_empty(*_):
     result = get_fantasy_stats("Unknown FC")
     assert result["unavailable"] == []
     assert result["price_alerts"] == []
+
+
+@_patched
+def test_matches_slugged_team_argument(*_):
+    """Regression test for the confirmed production bug: get_fantasy_stats
+    never matched a slugged input ("sea-eagles") against the fantasy API's
+    own space-separated naming ("Sea Eagles") — a plain .lower() comparison
+    of the raw arg against squad name/full_name can never bridge the two
+    formats."""
+    result = get_fantasy_stats("sea-eagles")
+    names = [p["name"] for p in result["unavailable"]]
+    assert "Tom Trbojevic" in names
+
+
+def test_squad_id_for_matches_nickname_and_slug_input():
+    assert _squad_id_for("Sea Eagles", _SQUADS) == 500002
+    assert _squad_id_for("sea-eagles", _SQUADS) == 500002
+
+
+def test_squad_id_for_matches_when_api_name_is_shortened():
+    # Fantasy API's squad "name" is "Tigers", not "Wests Tigers" — our
+    # registry's nickname/full_name are both "Wests Tigers", so the match
+    # has to land on full_name.
+    assert _squad_id_for("wests-tigers", _SQUADS) == 500023
+    assert _squad_id_for("Wests Tigers", _SQUADS) == 500023
+
+
+def test_squad_id_for_tolerates_punctuation_mismatch():
+    # Confirmed live against fantasy.nrl.com (2026-07-27): its full_name has
+    # a period ("St. George..."), our registry's doesn't ("St George...") —
+    # a plain .lower() equality check would miss this.
+    assert _squad_id_for("dragons", _SQUADS) == 500022
+    assert _squad_id_for("St George Illawarra Dragons", _SQUADS) == 500022

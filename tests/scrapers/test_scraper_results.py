@@ -42,6 +42,29 @@ def test_parse_away_team_win(draw_data):
     assert storm_match.margin == 16
 
 
+def test_parse_captures_venue(draw_data):
+    """Regression test: get_head_to_head's venue filter (v1/agent/tools/
+    head_to_head.py) always returned empty in production because MatchResult
+    never carried venue at all — the fixture's dict-form venue must be
+    unwrapped, matching scrapers/nrl/draw.py's handling."""
+    results = parse_results(draw_data)
+    assert all(r.venue for r in results)
+
+
+def test_parse_handles_string_form_venue():
+    """Current live API returns venue as a plain string, not {"name": ...}."""
+    data = {"fixtures": [{
+        "matchCentreUrl": "/draw/nrl-premiership/2026/round-11/panthers-v-storm/",
+        "homeTeam": {"nickName": "Panthers", "score": 28},
+        "awayTeam": {"nickName": "Storm", "score": 16},
+        "venue": "BlueBet Stadium",
+        "matchState": "FullTime",
+        "roundNumber": 11,
+    }]}
+    results = parse_results(data)
+    assert results[0].venue == "BlueBet Stadium"
+
+
 def test_parse_empty_fixtures():
     assert parse_results({"fixtures": []}) == []
 
@@ -78,3 +101,4 @@ def test_lambda_handler_writes_results_to_dynamo(draw_data, monkeypatch):
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("results")
     assert table.scan()["Count"] == 3
+    assert all(item.get("venue") for item in table.scan()["Items"])

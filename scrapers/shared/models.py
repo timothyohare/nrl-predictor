@@ -65,6 +65,7 @@ class MatchResult:
     winner: str
     margin: int
     match_state: str
+    venue: str = ""
 
 
 @dataclass
