@@ -55,12 +55,20 @@ def ddb_table():
             "roundNumber": 5,
             "season": 2025,
         })
+        tbl.put_item(Item={
+            "matchId": "round-8-sea-eagles-v-sharks",
+            "generatedAt": "2026-04-26T10:00:00Z",
+            "lesson": "Brookvale wind disrupted the kicking game more than expected.",
+            "verdict": "Prediction wrong.",
+            "roundNumber": 8,
+            "season": 2026,
+        })
         yield tbl
 
 
 def test_returns_lessons_for_season(ddb_table):
     results = get_lessons(season=2026, table=ddb_table)
-    assert len(results) == 3
+    assert len(results) == 4
 
 
 def test_returns_sorted_by_recency(ddb_table):
@@ -91,3 +99,17 @@ def test_returns_only_lesson_fields(ddb_table):
 def test_empty_when_no_matches(ddb_table):
     results = get_lessons(season=2024, table=ddb_table)
     assert results == []
+
+
+def test_filters_by_multi_word_team_nickname(ddb_table):
+    """Regression test: team.lower() alone turns "Sea Eagles" into "sea
+    eagles" (a space), which never matches "sea-eagles" inside a matchId —
+    to_slug() is required for multi-word nicknames."""
+    results = get_lessons(season=2026, team="Sea Eagles", table=ddb_table)
+    assert len(results) == 1
+    assert results[0]["matchId"] == "round-8-sea-eagles-v-sharks"
+
+
+def test_filters_by_already_slugged_team(ddb_table):
+    results = get_lessons(season=2026, team="sea-eagles", table=ddb_table)
+    assert len(results) == 1

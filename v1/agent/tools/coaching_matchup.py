@@ -1,4 +1,11 @@
-"""Coaching matchup tool — returns coach-vs-coach record filtered to current tenures."""
+"""Coaching matchup tool — returns coach-vs-coach record filtered to current tenures.
+
+COACH_MAP is keyed by nickname (for readable display), but the results table
+stores canonical slugs (to_slug()'d at scrape time). Every comparison against
+results rows below goes through to_slug() — the same scan-then-slug-filter
+pattern used in recent_form.py/head_to_head.py, since a DynamoDB
+FilterExpression can't apply to_slug() to what's actually stored.
+"""
 
 import os
 
@@ -34,7 +41,7 @@ def _get_coach(team: str) -> dict | None:
     slug = to_slug(team)
     for t, info in COACH_MAP.items():
         if to_slug(t) == slug:
-            return {"team": t, **info}
+            return {"team": t, "team_slug": slug, **info}
     return None
 
 
@@ -50,20 +57,22 @@ def get_coaching_matchup(team_a: str, team_b: str, table=None) -> dict:
     # Determine the relevant period — both coaches must have been in charge
     tenure_start = max(coach_a["from"], coach_b["from"])
 
-    # Query results table for matches between these teams
+    # Query results table for matches between these teams — scan then
+    # slug-filter client-side (results rows store canonical slugs).
     tbl = table or boto3.resource("dynamodb").Table(os.environ["RESULTS_TABLE"])
-    response = tbl.scan(
-        FilterExpression="(homeTeam = :a AND awayTeam = :b) OR (homeTeam = :b AND awayTeam = :a)",
-        ExpressionAttributeValues={":a": coach_a["team"], ":b": coach_b["team"]},
-    )
-    items = response.get("Items", [])
+    a_slug, b_slug = coach_a["team_slug"], coach_b["team_slug"]
+    pair = {a_slug, b_slug}
+    items = [
+        i for i in tbl.scan().get("Items", [])
+        if {to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", ""))} == pair
+    ]
 
     # Filter to current tenure period
     items = [i for i in items if i.get("scoredAt", "") >= tenure_start]
     items.sort(key=lambda x: x.get("scoredAt", ""), reverse=True)
 
-    a_wins = sum(1 for i in items if i.get("winner") == coach_a["team"])
-    b_wins = sum(1 for i in items if i.get("winner") == coach_b["team"])
+    a_wins = sum(1 for i in items if to_slug(i.get("winner", "")) == a_slug)
+    b_wins = sum(1 for i in items if to_slug(i.get("winner", "")) == b_slug)
     draws = len(items) - a_wins - b_wins
 
     last_3 = []

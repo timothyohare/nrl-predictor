@@ -9,10 +9,12 @@ from v1.agent.tools.injury_list import get_injury_list
 TABLE = "injuries"
 
 
-def _seed(table, team="Panthers", hours_old=5):
+def _seed(table, team="panthers", hours_old=5):
+    """team defaults to the slugged form — scrapers/articles/lambda_handler.py
+    always slugs the team before writing the pk."""
     scraped_at = (datetime.now(UTC) - timedelta(hours=hours_old)).isoformat()
     table.put_item(Item={
-        "pk": f"injury#{team}#Payne Haas",
+        "pk": f"injury#{team}#payne-haas",
         "sk": scraped_at,
         "player": "Payne Haas",
         "team": team,
@@ -56,3 +58,19 @@ def test_filters_records_older_than_48h(ddb_table):
     _seed(ddb_table, hours_old=50)
     results = get_injury_list("Panthers", table=ddb_table)
     assert results == []
+
+
+def test_matches_real_slugged_pk_with_nickname_cased_arg(ddb_table):
+    """Regression test for the confirmed production bug: the articles
+    scraper always slugs the team before writing the pk, but the agent's
+    tool schema documents "team nickname, e.g. Panthers" as the arg —
+    get_injury_list must slug its own arg to match."""
+    _seed(ddb_table, team="sea-eagles")
+    results = get_injury_list("Sea Eagles", table=ddb_table)
+    assert len(results) == 1
+
+
+def test_already_slugged_arg_still_matches(ddb_table):
+    _seed(ddb_table, team="sea-eagles")
+    results = get_injury_list("sea-eagles", table=ddb_table)
+    assert len(results) == 1

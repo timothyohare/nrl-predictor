@@ -3,6 +3,8 @@ from typing import Any
 
 import boto3
 
+from common.teams import to_slug
+
 
 def get_lessons(season: int, team: str | None = None, limit: int = 10, table=None) -> list[dict]:
     """Return recent retrospective lessons for a season, optionally filtered by team slug."""
@@ -13,7 +15,10 @@ def get_lessons(season: int, team: str | None = None, limit: int = 10, table=Non
 
     if team:
         filter_expr += " AND contains(matchId, :t)"
-        expr_values[":t"] = team.lower()
+        # matchId is round-{N}-{home-slug}-v-{away-slug} (hyphenated slugs) —
+        # .lower() alone breaks multi-word nicknames ("Sea Eagles" -> "sea
+        # eagles", a space, never matches "sea-eagles" in the matchId).
+        expr_values[":t"] = to_slug(team)
 
     response = tbl.scan(
         FilterExpression=filter_expr,
