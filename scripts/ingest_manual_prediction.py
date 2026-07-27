@@ -20,6 +20,7 @@ predicted_margin, confidence, key_factors, reasoning, data_freshness, ...).
 import argparse
 import json
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -34,8 +35,31 @@ REGION = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or
 _DEFAULT_MODEL_USED = "manual-claude-pro"
 
 
+def _extract_json_object(text: str) -> dict[str, Any]:
+    """Find the prediction JSON object even when it's wrapped in a markdown
+    code fence or has prose before/after — a copy-paste from a Claude Pro
+    chat is at least as likely to include that as the automated agent's raw
+    output (see v1/agent/graph.py's _extract_prediction_json, the same
+    problem there)."""
+    candidates = []
+    fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if fence_match:
+        candidates.append(fence_match.group(1))
+    candidates.append(text.strip())
+    if "{" in text and "}" in text:
+        candidates.append(text[text.index("{"): text.rindex("}") + 1])
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    raise ValueError("Could not find a JSON prediction object in the file")
+
+
 def load_prediction(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text())
+    return _extract_json_object(path.read_text())
 
 
 def next_generation(table, match_id: str) -> int:

@@ -11,6 +11,7 @@ from moto import mock_aws
 from scripts.ingest_manual_prediction import (
     build_prediction_row,
     ingest_prediction,
+    load_prediction,
     next_generation,
 )
 from v1.agent.schema import ValidationError
@@ -44,6 +45,37 @@ def _valid_raw(**overrides):
     }
     raw.update(overrides)
     return raw
+
+
+def test_load_prediction_reads_plain_json(tmp_path):
+    path = tmp_path / "prediction.json"
+    path.write_text(json.dumps(_valid_raw()))
+    assert load_prediction(path)["predicted_winner"] == "Panthers"
+
+
+def test_load_prediction_unwraps_markdown_code_fence(tmp_path):
+    """A copy-paste from a Claude Pro chat almost always wraps the JSON in a
+    ```json fence — the automated agent has the exact same problem
+    (see v1/agent/graph.py's _extract_prediction_json), so this must be at
+    least as tolerant."""
+    path = tmp_path / "prediction.json"
+    path.write_text(f"```json\n{json.dumps(_valid_raw())}\n```")
+    assert load_prediction(path)["predicted_winner"] == "Panthers"
+
+
+def test_load_prediction_strips_surrounding_prose(tmp_path):
+    path = tmp_path / "prediction.json"
+    path.write_text(
+        "Here's my prediction:\n\n" + json.dumps(_valid_raw()) + "\n\nLet me know if you need anything else!"
+    )
+    assert load_prediction(path)["predicted_winner"] == "Panthers"
+
+
+def test_load_prediction_raises_clear_error_on_no_json(tmp_path):
+    path = tmp_path / "prediction.json"
+    path.write_text("I couldn't find enough information to make a prediction.")
+    with pytest.raises(ValueError, match="Could not find"):
+        load_prediction(path)
 
 
 def test_next_generation_counts_only_ok_rows(predictions_table):
