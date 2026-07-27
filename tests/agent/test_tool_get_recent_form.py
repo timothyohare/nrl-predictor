@@ -60,3 +60,35 @@ def test_includes_momentum(ddb_table):
     assert result["momentum"]["weighted_win_rate"] == 1.0
     assert result["momentum"]["streak"] == "W6"
     assert result["momentum"]["momentum_direction"] == "stable"
+
+
+def test_excludes_current_match_from_its_own_recent_form(ddb_table):
+    """Regression test for a real data-leakage bug: if the match currently
+    being analysed already has a row in the results table (e.g. re-running
+    against an already-completed round), get_recent_form must not include
+    that match's own result in the team's "recent form" — otherwise the
+    tool hands the model the answer it's supposed to be predicting."""
+    ddb_table.put_item(Item={
+        "matchId": "round-21-panthers-v-knights",
+        "scoredAt": "2026-07-27T11:00:00Z",
+        "homeTeam": "Panthers",
+        "awayTeam": "Knights",
+        "homeScore": 30,
+        "awayScore": 10,
+        "winner": "Panthers",
+        "margin": 20,
+        "matchState": "FullTime",
+    })
+
+    result = get_recent_form(
+        "Panthers", n=6, table=ddb_table, exclude_match_id="round-21-panthers-v-knights",
+    )
+
+    match_ids = [r["matchId"] for r in result["results"]]
+    assert "round-21-panthers-v-knights" not in match_ids
+
+
+def test_exclude_match_id_defaults_to_no_exclusion(ddb_table):
+    """Backward compatible: omitting exclude_match_id changes nothing."""
+    result = get_recent_form("Panthers", n=6, table=ddb_table)
+    assert len(result["results"]) == 6

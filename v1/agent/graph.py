@@ -206,13 +206,17 @@ _TOOL_DEFINITIONS = [
 ]
 
 
-def _execute_tool(name: str, tool_input: dict) -> object:
+def _execute_tool(name: str, tool_input: dict, match_id: str) -> object:
     if name == "get_team_sheet":
         return get_team_sheet(**tool_input)
     if name == "get_injury_list":
         return get_injury_list(**tool_input)
     if name == "get_recent_form":
-        return get_recent_form(**tool_input)
+        # Exclude the match currently being predicted from its own "recent
+        # form" — otherwise, if this match already has a result (e.g. a
+        # late-running/backfill generation), the tool hands the model the
+        # answer it's supposed to be predicting.
+        return get_recent_form(**tool_input, exclude_match_id=match_id)
     if name == "get_head_to_head":
         return get_head_to_head(**tool_input)
     if name == "get_weather":
@@ -372,7 +376,7 @@ def run_agent(match_id: str, match_context: dict, client=None,
         tool_results = []
         for block in tool_uses:
             try:
-                result = _execute_tool(block.name, block.input)
+                result = _execute_tool(block.name, block.input, match_id)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,

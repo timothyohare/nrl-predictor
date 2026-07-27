@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from moto import mock_aws
 
-from v1.agent.graph import run_agent
+from v1.agent.graph import _execute_tool, run_agent
 from v1.agent.schema import validate_prediction
 
 MATCH_ID = "panthers-v-broncos-20260515"
@@ -77,6 +77,15 @@ def test_run_agent_returns_valid_prediction(aws_env, monkeypatch):
     client = _make_client()
     result = run_agent(MATCH_ID, {"is_finals": False}, client=client)
     validate_prediction(result)
+
+
+def test_execute_tool_excludes_current_match_from_recent_form():
+    """Regression test: get_recent_form must never see the match_id it's
+    currently predicting, or a re-run against an already-scored match would
+    leak the real result into "recent form"."""
+    with patch("v1.agent.graph.get_recent_form") as mock_get_recent_form:
+        _execute_tool("get_recent_form", {"team": "Panthers"}, MATCH_ID)
+    mock_get_recent_form.assert_called_once_with(team="Panthers", exclude_match_id=MATCH_ID)
 
 
 @mock_aws

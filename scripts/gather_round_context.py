@@ -89,8 +89,8 @@ def gather_match_data(
             "away": _safe_call(get_injury_list, away, table=injuries_table),
         },
         "recent_form": {
-            "home": _safe_call(get_recent_form, home, table=results_table),
-            "away": _safe_call(get_recent_form, away, table=results_table),
+            "home": _safe_call(get_recent_form, home, table=results_table, exclude_match_id=match.match_id),
+            "away": _safe_call(get_recent_form, away, table=results_table, exclude_match_id=match.match_id),
         },
         "head_to_head": _safe_call(
             get_head_to_head, home, away, venue=match.venue, table=results_table
