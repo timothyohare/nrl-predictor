@@ -93,16 +93,26 @@ def build_prediction_row(
     return prediction
 
 
-def ingest_prediction(
-    table, path: Path, match_id: str, round_number: int, *, dry_run: bool = False,
+def ingest_prediction_dict(
+    table, raw: dict[str, Any], match_id: str, round_number: int, *, dry_run: bool = False,
 ) -> dict[str, Any]:
-    raw = load_prediction(path)
+    """Validate and write a prediction that's already an in-memory dict — no
+    file needed. The entry point for generating a prediction directly in a
+    Claude Code session (covered by its Pro/Max subscription, not the
+    production Lambda's metered API) instead of pasting into a separate
+    Claude Pro chat and saving the response to a file."""
     generated_at = datetime.now(UTC).isoformat()
     generation = next_generation(table, match_id)
     row = build_prediction_row(raw, match_id, round_number, generated_at, generation)
     if not dry_run:
         table.put_item(Item=row)
     return row
+
+
+def ingest_prediction(
+    table, path: Path, match_id: str, round_number: int, *, dry_run: bool = False,
+) -> dict[str, Any]:
+    return ingest_prediction_dict(table, load_prediction(path), match_id, round_number, dry_run=dry_run)
 
 
 def main() -> None:

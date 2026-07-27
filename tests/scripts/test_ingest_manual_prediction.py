@@ -11,6 +11,7 @@ from moto import mock_aws
 from scripts.ingest_manual_prediction import (
     build_prediction_row,
     ingest_prediction,
+    ingest_prediction_dict,
     load_prediction,
     next_generation,
 )
@@ -183,3 +184,38 @@ def test_ingest_prediction_increments_generation_across_calls(predictions_table,
 
     assert first["generation"] == 1
     assert second["generation"] == 2
+
+
+def test_ingest_prediction_dict_writes_without_any_file(predictions_table):
+    """No file I/O at all — for a caller (or Claude, generating the
+    prediction directly in a Claude Code session) that already has the
+    prediction as an in-memory dict."""
+    row = ingest_prediction_dict(
+        predictions_table, _valid_raw(), match_id="round-11-panthers-v-broncos", round_number=11,
+    )
+
+    items = predictions_table.scan()["Items"]
+    assert len(items) == 1
+    assert items[0]["matchId"] == "round-11-panthers-v-broncos"
+    assert row["generation"] == 1
+
+
+def test_ingest_prediction_dict_dry_run_skips_write(predictions_table):
+    row = ingest_prediction_dict(
+        predictions_table, _valid_raw(), match_id="m", round_number=11, dry_run=True,
+    )
+    assert predictions_table.scan()["Items"] == []
+    assert row["matchId"] == "m"
+
+
+def test_ingest_prediction_delegates_to_dict_version(predictions_table, tmp_path):
+    """ingest_prediction(path=...) and ingest_prediction_dict(raw=...) must
+    produce identical rows — the file-based path is just a thin loader."""
+    path = tmp_path / "prediction.json"
+    path.write_text(json.dumps(_valid_raw()))
+
+    from_file = ingest_prediction(predictions_table, path, match_id="m", round_number=11, dry_run=True)
+    from_dict = ingest_prediction_dict(predictions_table, _valid_raw(), match_id="m", round_number=11, dry_run=True)
+
+    assert from_file["predicted_winner"] == from_dict["predicted_winner"]
+    assert from_file["roundNumber"] == from_dict["roundNumber"]
