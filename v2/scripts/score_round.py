@@ -22,14 +22,20 @@ REGION = "ap-southeast-2"
 def get_match_ids(round_number: int, season: int) -> list[str]:
     ddb = boto3.resource("dynamodb", region_name=REGION)
     table = ddb.Table("predictions")
-    resp = table.scan(
-        FilterExpression="roundNumber = :r",
-        ExpressionAttributeValues={":r": round_number},
-        ProjectionExpression="matchId",
-    )
     seen = set()
-    for item in resp.get("Items", []):
-        seen.add(item["matchId"])
+    scan_kwargs = {
+        "FilterExpression": "roundNumber = :r",
+        "ExpressionAttributeValues": {":r": round_number},
+        "ProjectionExpression": "matchId",
+    }
+    while True:
+        resp = table.scan(**scan_kwargs)
+        for item in resp.get("Items", []):
+            seen.add(item["matchId"])
+        last_key = resp.get("LastEvaluatedKey")
+        if not last_key:
+            break
+        scan_kwargs["ExclusiveStartKey"] = last_key
     return sorted(seen)
 
 
