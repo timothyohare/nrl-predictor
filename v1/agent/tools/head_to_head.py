@@ -2,6 +2,7 @@ import os
 
 import boto3
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 
@@ -10,7 +11,7 @@ def get_head_to_head(team_a: str, team_b: str, venue: str | None = None, table=N
     # Compare on canonical slugs so any inbound form resolves and mixed stored forms match.
     a, b = to_slug(team_a), to_slug(team_b)
     items = [
-        i for i in tbl.scan().get("Items", [])
+        i for i in scan_all(tbl)
         if {to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", ""))} == {a, b}
     ]
     if venue:

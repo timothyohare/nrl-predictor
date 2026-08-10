@@ -11,6 +11,7 @@ import os
 
 import boto3
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 # Static mapping of team → current head coach with tenure start.
@@ -63,7 +64,7 @@ def get_coaching_matchup(team_a: str, team_b: str, table=None) -> dict:
     a_slug, b_slug = coach_a["team_slug"], coach_b["team_slug"]
     pair = {a_slug, b_slug}
     items = [
-        i for i in tbl.scan().get("Items", [])
+        i for i in scan_all(tbl)
         if {to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", ""))} == pair
     ]
 

@@ -3,6 +3,7 @@ from typing import Any
 
 import boto3
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 
@@ -20,11 +21,11 @@ def get_lessons(season: int, team: str | None = None, limit: int = 10, table=Non
         # eagles", a space, never matches "sea-eagles" in the matchId).
         expr_values[":t"] = to_slug(team)
 
-    response = tbl.scan(
+    items = scan_all(
+        tbl,
         FilterExpression=filter_expr,
         ExpressionAttributeValues=expr_values,
     )
-    items = response.get("Items", [])
     items = [i for i in items if i.get("lesson")]
     items.sort(key=lambda x: x.get("generatedAt", ""), reverse=True)
     return [

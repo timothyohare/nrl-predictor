@@ -4,6 +4,7 @@ import os
 import boto3
 from langchain_core.tools import tool
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 _SPINE_NUMBERS = {1, 6, 7, 9}
@@ -21,11 +22,8 @@ def _extract_spine(players: list[dict]) -> dict[int, str]:
 
 def _analyse_team(team: str, current_spine: dict[int, str], current_round: int, teams_table, results_table) -> dict:
     slug = to_slug(team)
-    response = teams_table.scan(
-        FilterExpression="attribute_exists(homePlayers)",
-    )
     historical = [
-        i for i in response.get("Items", [])
+        i for i in scan_all(teams_table, FilterExpression="attribute_exists(homePlayers)")
         if _safe_round(i) < current_round
         and slug in (to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", "")))
     ]

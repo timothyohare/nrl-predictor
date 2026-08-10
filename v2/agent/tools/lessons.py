@@ -4,6 +4,8 @@ from typing import Any
 import boto3
 from langchain_core.tools import tool
 
+from common.dynamo import scan_all
+
 
 def _get_lessons(season: int, team: str | None = None, limit: int = 10, table=None) -> list[dict]:
     tbl = table or boto3.resource("dynamodb").Table(os.environ["RETROSPECTIVES_TABLE"])
@@ -12,8 +14,7 @@ def _get_lessons(season: int, team: str | None = None, limit: int = 10, table=No
     if team:
         filter_expr += " AND contains(matchId, :t)"
         expr_values[":t"] = team.lower()
-    response = tbl.scan(FilterExpression=filter_expr, ExpressionAttributeValues=expr_values)
-    items = [i for i in response.get("Items", []) if i.get("lesson")]
+    items = [i for i in scan_all(tbl, FilterExpression=filter_expr, ExpressionAttributeValues=expr_values) if i.get("lesson")]
     items.sort(key=lambda x: x.get("generatedAt", ""), reverse=True)
     return [
         {"matchId": i["matchId"], "roundNumber": i.get("roundNumber"), "lesson": i["lesson"], "generatedAt": i.get("generatedAt", "")}

@@ -3,6 +3,7 @@ import os
 import boto3
 from langchain_core.tools import tool
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 from v2.agent.tools.momentum import calculate_momentum
 
@@ -13,7 +14,7 @@ def _get_recent_form(team: str, n: int = 5, table=None) -> dict:
     # forms (nickname pre-migration, slug after) both match. Filter client-side.
     slug = to_slug(team)
     items = [
-        i for i in tbl.scan().get("Items", [])
+        i for i in scan_all(tbl)
         if slug in (to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", "")))
     ]
     items = sorted(items, key=lambda x: x["scoredAt"], reverse=True)

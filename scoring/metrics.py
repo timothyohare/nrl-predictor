@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from decimal import Decimal
 
+from common.dynamo import scan_all
 from scoring.odds_accuracy import score_market
 
 logger = logging.getLogger(__name__)
@@ -52,11 +53,11 @@ def _prompt_version_pick_rates(items: list[dict]) -> dict[str, tuple[int, int]]:
 
 
 def aggregate_round(round_number: int, season: int, results_table, metrics_table) -> RoundMetrics:
-    response = results_table.scan(
+    items = scan_all(
+        results_table,
         FilterExpression="roundNumber = :r AND season = :s",
         ExpressionAttributeValues={":r": round_number, ":s": season},
     )
-    items = response.get("Items", [])
     # Deduplicate: keep only scored items (those with correct_pick field)
     scored = [i for i in items if "correct_pick" in i]
     # Further deduplicate per matchId: keep most recent scoredAt
@@ -96,11 +97,11 @@ def aggregate_round(round_number: int, season: int, results_table, metrics_table
 
 
 def aggregate_season(season: int, results_table, metrics_table) -> None:
-    response = results_table.scan(
+    items = scan_all(
+        results_table,
         FilterExpression="season = :s",
         ExpressionAttributeValues={":s": season},
     )
-    items = response.get("Items", [])
     # Keep only scored items, deduplicated per matchId
     scored = [i for i in items if "correct_pick" in i]
     by_match: dict[str, dict] = {}
@@ -148,11 +149,11 @@ def aggregate_season(season: int, results_table, metrics_table) -> None:
 
 def aggregate_market_season(season: int, odds_table, results_table, metrics_table) -> None:
     """Compute and persist betting market accuracy for the season."""
-    odds_resp = odds_table.scan(
+    odds_items = scan_all(
+        odds_table,
         FilterExpression="season = :s",
         ExpressionAttributeValues={":s": season},
     )
-    odds_items = odds_resp.get("Items", [])
     # Deduplicate: most recent scraped odds per match
     by_match: dict[str, dict] = {}
     for item in odds_items:

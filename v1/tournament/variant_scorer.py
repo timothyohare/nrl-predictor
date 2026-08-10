@@ -3,6 +3,8 @@ import logging
 from decimal import Decimal
 from typing import Any
 
+from common.dynamo import scan_all
+
 logger = logging.getLogger(__name__)
 
 _CONFIDENCE_PROB = {"HIGH": 0.85, "MEDIUM": 0.65, "LOW": 0.55}
@@ -31,19 +33,20 @@ def score_round(
 ) -> dict[str, dict]:
     """Score all variants for a round. Returns {variant_id: metrics_dict}."""
     # Scan simulation predictions for this round
-    sim_resp = sim_preds_table.scan(
+    sim_items = scan_all(
+        sim_preds_table,
         FilterExpression="roundNumber = :r AND season = :s",
         ExpressionAttributeValues={":r": round_number, ":s": season},
     )
-    sim_items = sim_resp.get("Items", [])
 
     # Scan results for this round (only scored items)
-    results_resp = results_table.scan(
+    results_items = scan_all(
+        results_table,
         FilterExpression="roundNumber = :r",
         ExpressionAttributeValues={":r": round_number},
     )
     result_by_match: dict[str, Any] = {}
-    for item in results_resp.get("Items", []):
+    for item in results_items:
         mid = item["matchId"]
         if mid not in result_by_match or item.get("scoredAt", "") > result_by_match[mid].get("scoredAt", ""):
             result_by_match[mid] = item
@@ -96,18 +99,19 @@ def aggregate_variant_season(
     variant_metrics_table,
 ) -> None:
     """Aggregate season-to-date metrics across all variants."""
-    sim_resp = sim_preds_table.scan(
+    sim_items = scan_all(
+        sim_preds_table,
         FilterExpression="season = :s",
         ExpressionAttributeValues={":s": season},
     )
-    sim_items = sim_resp.get("Items", [])
 
-    results_resp = results_table.scan(
+    results_items = scan_all(
+        results_table,
         FilterExpression="season = :s",
         ExpressionAttributeValues={":s": season},
     )
     result_by_match: dict[str, Any] = {}
-    for item in results_resp.get("Items", []):
+    for item in results_items:
         mid = item["matchId"]
         if mid not in result_by_match or item.get("scoredAt", "") > result_by_match[mid].get("scoredAt", ""):
             result_by_match[mid] = item
@@ -153,12 +157,12 @@ def aggregate_variant_season(
 
 def get_leaderboard(season: int, variant_metrics_table) -> list[dict]:
     """Return variants ranked by season pick rate."""
-    resp = variant_metrics_table.scan(
+    items = scan_all(
+        variant_metrics_table,
         FilterExpression="#p = :p",
         ExpressionAttributeNames={"#p": "period"},
         ExpressionAttributeValues={":p": f"{season}-season"},
     )
-    items = resp.get("Items", [])
     ranked = sorted(items, key=lambda x: float(x.get("pick_rate", 0)), reverse=True)
     return [
         {

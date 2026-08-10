@@ -4,6 +4,8 @@ import os
 import boto3
 from langchain_core.tools import tool
 
+from common.dynamo import scan_all
+
 _DEAD_RUBBER_MIN_ROUND = 18
 _TRAP_THRESHOLD = 2.0
 
@@ -17,11 +19,11 @@ def _get_ladder_positions(season: int, teams_table) -> dict[str, int]:
 
 
 def _get_previous_result(team: str, results_table) -> dict | None:
-    response = results_table.scan(
+    items = scan_all(
+        results_table,
         FilterExpression="homeTeam = :t OR awayTeam = :t",
         ExpressionAttributeValues={":t": team},
     )
-    items = response.get("Items", [])
     if not items:
         return None
     items.sort(key=lambda x: x.get("scoredAt", ""), reverse=True)
@@ -29,11 +31,12 @@ def _get_previous_result(team: str, results_table) -> dict | None:
 
 
 def _get_earlier_meetings(home_team: str, away_team: str, current_match_id: str, results_table) -> list[dict]:
-    response = results_table.scan(
+    items = scan_all(
+        results_table,
         FilterExpression="(homeTeam = :a AND awayTeam = :b) OR (homeTeam = :b AND awayTeam = :a)",
         ExpressionAttributeValues={":a": home_team, ":b": away_team},
     )
-    return [i for i in response.get("Items", []) if i.get("matchId") != current_match_id]
+    return [i for i in items if i.get("matchId") != current_match_id]
 
 
 def _ordinal(n: int) -> str:

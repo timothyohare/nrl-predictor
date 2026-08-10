@@ -4,6 +4,7 @@ import os
 import boto3
 from langchain_core.tools import tool
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 COACH_MAP = {
@@ -43,11 +44,12 @@ def _get_coaching_matchup(team_a: str, team_b: str, table=None) -> dict:
         return {"error": f"No coach found for {missing}", "coaches": COACH_MAP}
     tenure_start = max(coach_a["from"], coach_b["from"])
     tbl = table or boto3.resource("dynamodb").Table(os.environ["RESULTS_TABLE"])
-    response = tbl.scan(
+    items = scan_all(
+        tbl,
         FilterExpression="(homeTeam = :a AND awayTeam = :b) OR (homeTeam = :b AND awayTeam = :a)",
         ExpressionAttributeValues={":a": coach_a["team"], ":b": coach_b["team"]},
     )
-    items = [i for i in response.get("Items", []) if i.get("scoredAt", "") >= tenure_start]
+    items = [i for i in items if i.get("scoredAt", "") >= tenure_start]
     items.sort(key=lambda x: x.get("scoredAt", ""), reverse=True)
     a_wins = sum(1 for i in items if i.get("winner") == coach_a["team"])
     b_wins = sum(1 for i in items if i.get("winner") == coach_b["team"])

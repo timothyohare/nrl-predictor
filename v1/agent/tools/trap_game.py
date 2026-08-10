@@ -12,6 +12,7 @@ import os
 
 import boto3
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 # Minimum round for dead rubber detection (late season)
@@ -38,12 +39,13 @@ def _find_team_fixture(team_slug: str, round_number: int, teams_table) -> dict |
     mirroring ``recent_form.py``'s scan-then-slug-filter pattern, since the
     stored casing can't be matched with a DynamoDB-side expression.
     """
-    response = teams_table.scan(
+    items = scan_all(
+        teams_table,
         FilterExpression="#r = :r",
         ExpressionAttributeNames={"#r": "round"},
         ExpressionAttributeValues={":r": str(round_number)},
     )
-    for item in response.get("Items", []):
+    for item in items:
         if team_slug in (to_slug(item.get("homeTeam", "")), to_slug(item.get("awayTeam", ""))):
             return item
     return None
@@ -63,7 +65,7 @@ def _opponent_from_fixture(team_slug: str, fixture: dict) -> str | None:
 def _get_previous_result(team_slug: str, results_table) -> dict | None:
     """Get the most recent result involving this team."""
     items = [
-        i for i in results_table.scan().get("Items", [])
+        i for i in scan_all(results_table)
         if team_slug in (to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", "")))
     ]
     if not items:
@@ -76,7 +78,7 @@ def _get_earlier_meetings(home_slug: str, away_slug: str, current_match_id: str,
     """Get earlier results between these two teams this season."""
     pair = {home_slug, away_slug}
     items = [
-        i for i in results_table.scan().get("Items", [])
+        i for i in scan_all(results_table)
         if {to_slug(i.get("homeTeam", "")), to_slug(i.get("awayTeam", ""))} == pair
     ]
     # Exclude current match if it somehow exists

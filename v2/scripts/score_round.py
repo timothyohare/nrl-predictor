@@ -15,6 +15,8 @@ import time
 
 import boto3
 
+from common.dynamo import scan_all
+
 SCORING_FUNCTION = "nrl-predictor-scoring"
 REGION = "ap-southeast-2"
 
@@ -22,21 +24,13 @@ REGION = "ap-southeast-2"
 def get_match_ids(round_number: int, season: int) -> list[str]:
     ddb = boto3.resource("dynamodb", region_name=REGION)
     table = ddb.Table("predictions")
-    seen = set()
-    scan_kwargs = {
-        "FilterExpression": "roundNumber = :r",
-        "ExpressionAttributeValues": {":r": round_number},
-        "ProjectionExpression": "matchId",
-    }
-    while True:
-        resp = table.scan(**scan_kwargs)
-        for item in resp.get("Items", []):
-            seen.add(item["matchId"])
-        last_key = resp.get("LastEvaluatedKey")
-        if not last_key:
-            break
-        scan_kwargs["ExclusiveStartKey"] = last_key
-    return sorted(seen)
+    items = scan_all(
+        table,
+        FilterExpression="roundNumber = :r",
+        ExpressionAttributeValues={":r": round_number},
+        ProjectionExpression="matchId",
+    )
+    return sorted({item["matchId"] for item in items})
 
 
 def invoke_scoring(match_id: str, round_number: int, season: int, dry_run: bool) -> None:

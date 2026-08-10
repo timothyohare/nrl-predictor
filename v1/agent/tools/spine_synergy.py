@@ -4,6 +4,7 @@ import os
 
 import boto3
 
+from common.dynamo import scan_all
 from common.teams import to_slug
 
 _SPINE_NUMBERS = {1, 6, 7, 9}
@@ -24,9 +25,9 @@ def _get_historical_team_sheets(team: str, current_round: int, teams_table) -> l
     """Get all team sheet entries where this team played, for rounds before current."""
     # Match on the canonical slug (robust to mixed nickname/slug storage); filter client-side.
     slug = to_slug(team)
-    response = teams_table.scan(FilterExpression="attribute_exists(homePlayers)")
+    items = scan_all(teams_table, FilterExpression="attribute_exists(homePlayers)")
     results = []
-    for item in response.get("Items", []):
+    for item in items:
         if slug not in (to_slug(item.get("homeTeam", "")), to_slug(item.get("awayTeam", ""))):
             continue
         try:
