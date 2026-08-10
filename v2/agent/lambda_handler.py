@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import boto3
 
+from common.match_id import REGULAR_SEASON_ROUNDS
 from common.teams import to_slug
 from v2.agent.budget import BudgetExceeded, check_budget
 from v2.agent.graph import get_app
@@ -75,7 +76,8 @@ def load_match_context(match_id: str, round_number: int, season: int) -> dict:
         "away_team": away_team,
         "venue": sheet.get("venue", ""),
         "kick_off": sheet.get("kickOff", ""),
-        "is_finals": round_number >= 27,
+        # REGULAR_SEASON_ROUNDS is the last normal round; finals start the round after.
+        "is_finals": round_number > REGULAR_SEASON_ROUNDS,
         "home_ladder_pos": positions.get(home_team),
         "away_ladder_pos": positions.get(away_team),
         "spine_injuries": [],  # populated by agent via get_injury_list tool

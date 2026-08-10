@@ -11,6 +11,7 @@ class Match:
     kick_off: str | None
     match_state: str
     match_centre_url: str = ""
+    is_finals: bool = False
 
 
 @dataclass

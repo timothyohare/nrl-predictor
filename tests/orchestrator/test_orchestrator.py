@@ -9,11 +9,17 @@ from moto import mock_aws
 from scrapers.nrl.team_sheet import TeamSheetNotFound
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_round12.json"
+FINALS_FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_finals_week1.json"
 
 
 @pytest.fixture
 def draw_data():
     return json.loads(FIXTURE.read_text())
+
+
+@pytest.fixture
+def finals_draw_data():
+    return json.loads(FINALS_FIXTURE.read_text())
 
 
 @pytest.fixture
@@ -73,6 +79,24 @@ def test_orchestrator_writes_draw_and_invokes_agent_per_match(
     payload = json.loads(first_call.kwargs["Payload"])
     assert "matchId" in payload
     assert payload["round"] == 12
+    assert payload["is_finals"] is False
+
+
+def test_orchestrator_passes_is_finals_true_for_finals_matches(
+    aws_env, ddb_and_s3, finals_draw_data
+):
+    from v1.orchestrator.lambda_handler import lambda_handler
+
+    lambda_mock = MagicMock()
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=finals_draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")), \
+         patch("v1.orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
+        lambda_handler({"season": 2026, "round": 28}, {})
+
+    first_call = lambda_mock.invoke.call_args_list[0]
+    payload = json.loads(first_call.kwargs["Payload"])
+    assert payload["round"] == 28
+    assert payload["is_finals"] is True
 
 
 def test_orchestrator_continues_when_team_sheet_unavailable(

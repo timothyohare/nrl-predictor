@@ -10,11 +10,17 @@ from scrapers.nrl.draw import lambda_handler, parse_draw, slug_from_match_centre
 from scrapers.shared.models import Match
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_round12.json"
+FINALS_FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_finals_week1.json"
 
 
 @pytest.fixture
 def draw_data():
     return json.loads(FIXTURE.read_text())
+
+
+@pytest.fixture
+def finals_draw_data():
+    return json.loads(FINALS_FIXTURE.read_text())
 
 
 def test_slug_from_match_centre_url():
@@ -39,6 +45,23 @@ def test_parse_draw_correct_field_mapping(draw_data):
     assert first.round_number == 12
     assert first.kick_off == "2026-05-16T09:50:00Z"
     assert first.match_state == "Pre"
+    assert first.is_finals is False
+
+
+def test_parse_draw_finals_week_round_number_and_flag(finals_draw_data):
+    matches = parse_draw(finals_draw_data)
+    finals_week_1 = matches[0]
+    assert finals_week_1.match_id == "round-28-storm-v-bulldogs"
+    assert finals_week_1.round_number == 28
+    assert finals_week_1.is_finals is True
+
+
+def test_parse_draw_grand_final_round_number_and_flag(finals_draw_data):
+    matches = parse_draw(finals_draw_data)
+    grand_final = matches[1]
+    assert grand_final.match_id == "round-31-storm-v-broncos"
+    assert grand_final.round_number == 31
+    assert grand_final.is_finals is True
 
 
 def test_parse_draw_kick_off_none_when_missing(draw_data):

@@ -104,7 +104,11 @@ def lambda_handler(event: dict, context) -> dict:
             lambda_client.invoke(
                 FunctionName=agent_fn_name,
                 InvocationType="Event",
-                Payload=json.dumps({"matchId": match.match_id, "round": match.round_number}),
+                Payload=json.dumps({
+                    "matchId": match.match_id,
+                    "round": match.round_number,
+                    "is_finals": match.is_finals,
+                }),
             )
             agent_triggered.append(match.match_id)
         except Exception as e:

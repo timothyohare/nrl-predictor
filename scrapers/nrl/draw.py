@@ -1,14 +1,17 @@
 import json
+import logging
 import os
 from datetime import UTC, datetime
 
 import boto3
 
-from common.match_id import match_id_from_url
+from common.match_id import match_id_from_url, round_number_from_title
 from common.teams import to_slug
 from scrapers.shared.http_client import get_with_retry
 from scrapers.shared.models import Match
 from scrapers.shared.s3_cache import save_raw
+
+logger = logging.getLogger(__name__)
 
 _DRAW_URL = "https://www.nrl.com/draw/data?competition=111&season={season}&round={round}"
 
@@ -35,12 +38,18 @@ def parse_draw(data: dict) -> list[Match]:
         # venue is a plain string in current API; guard against legacy dict form
         venue_raw = fixture.get("venue", "")
         venue = venue_raw if isinstance(venue_raw, str) else venue_raw.get("name", "")
-        # Current API: roundTitle = "Round 11"; legacy fixture: roundNumber int
+        # Current API: roundTitle = "Round 11" / "Finals Week 1" / "Grand Final";
+        # legacy fixture: bare roundNumber int, no finals distinction available.
         round_title = fixture.get("roundTitle") or ""
-        try:
-            round_number = int(round_title.split()[-1])
-        except (ValueError, IndexError):
-            round_number = fixture.get("roundNumber", 0)
+        is_finals = False
+        if round_title:
+            try:
+                round_number, is_finals = round_number_from_title(round_title)
+            except ValueError:
+                logger.warning("Unrecognised roundTitle %r, falling back to roundNumber", round_title)
+                round_number = fixture.get("roundNumber", 0) or 0
+        else:
+            round_number = fixture.get("roundNumber", 0) or 0
         matches.append(Match(
             match_id=match_id,
             home_team=to_slug(fixture["homeTeam"]["nickName"]),
@@ -50,6 +59,7 @@ def parse_draw(data: dict) -> list[Match]:
             kick_off=kick_off,
             match_state=fixture.get("matchState", ""),
             match_centre_url=url,
+            is_finals=is_finals,
         ))
     return matches
 

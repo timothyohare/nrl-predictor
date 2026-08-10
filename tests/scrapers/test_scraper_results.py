@@ -6,15 +6,22 @@ import boto3
 import pytest
 from moto import mock_aws
 
+from scrapers.nrl.draw import parse_draw
 from scrapers.nrl.results import lambda_handler, parse_results
 from scrapers.shared.models import MatchResult
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_round11_completed.json"
+FINALS_FIXTURE = Path(__file__).parent.parent / "fixtures" / "nrl_draw_finals_week1_completed.json"
 
 
 @pytest.fixture
 def draw_data():
     return json.loads(FIXTURE.read_text())
+
+
+@pytest.fixture
+def finals_draw_data():
+    return json.loads(FINALS_FIXTURE.read_text())
 
 
 def test_parse_returns_only_fulltime_matches(draw_data):
@@ -49,6 +56,16 @@ def test_parse_captures_venue(draw_data):
     unwrapped, matching scrapers/nrl/draw.py's handling."""
     results = parse_results(draw_data)
     assert all(r.venue for r in results)
+
+
+def test_parse_finals_match_id_is_round_qualified(finals_draw_data):
+    """Regression test: results.py and draw.py both derive matchId from
+    match_id_from_url() — they must agree on the same canonical, round-qualified
+    id for a finals fixture, or the scoring lambda's matchId join between the
+    predictions and results tables silently finds nothing."""
+    [result] = parse_results(finals_draw_data)
+    [match] = parse_draw(finals_draw_data)
+    assert result.match_id == match.match_id == "round-28-storm-v-bulldogs"
 
 
 def test_parse_handles_string_form_venue():

@@ -1,0 +1,25 @@
+{
+    "fixtures": [
+        {
+            "matchCentreUrl": "/draw/nrl-premiership/2026/finals-week-1/storm-v-bulldogs/",
+            "homeTeam": {
+                "nickName": "Storm",
+                "teamId": "500009",
+                "score": 24
+            },
+            "awayTeam": {
+                "nickName": "Bulldogs",
+                "teamId": "500004",
+                "score": 12
+            },
+            "venue": {
+                "name": "AAMI Park"
+            },
+            "roundTitle": "Finals Week 1",
+            "clock": {
+                "kickOffTimeLong": "2026-09-05T09:50:00Z"
+            },
+            "matchState": "FullTime"
+        }
+    ]
+}
