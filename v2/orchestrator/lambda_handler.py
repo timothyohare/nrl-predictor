@@ -75,6 +75,18 @@ def lambda_handler(event: dict, context) -> dict:
     save_raw(bucket, f"raw-scrapes/draw/{season}/round-{actual_round}.json", json.dumps(raw_draw))
     logger.info("Parsed %d matches for round %s", len(matches), actual_round)
 
+    # NRL.com's `round=current` draw endpoint stays pinned to the just-finished round
+    # until the following week's draw is published, and the daily cron fires this
+    # handler with round="current" every day regardless. Without this guard, that
+    # window re-runs the team-sheet scrape (which returns the final score once a match
+    # is FullTime) and the agent fan-out for a match whose result is already known.
+    matches = [m for m in matches if m.match_state != "FullTime"]
+    if not matches:
+        logger.info(
+            "All matches in round %s are already FullTime — nothing to predict", actual_round,
+        )
+        return {"round": actual_round, "matches": 0, "agent_triggered": [], "skipped": "already_played"}
+
     teams_table = boto3.resource("dynamodb").Table(teams_table_name)
 
     # Idempotency guard: skip the team-sheet scrape + agent fan-out if another orchestrator
