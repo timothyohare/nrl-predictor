@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from common.predictions import latest_before_kickoff
+from common.predictions import is_hindsight, latest_before_kickoff
 from common.teams import to_slug
 
 _CONFIDENCE_PROB = {"HIGH": 0.85, "MEDIUM": 0.65, "LOW": 0.55}
@@ -16,6 +16,7 @@ class ScoredResult:
     brier_component: float
     confidence: str
     prompt_version: str
+    used_hindsight: bool = False
 
 
 class ResultNotReady(Exception):
@@ -43,6 +44,7 @@ def score_prediction(match_id: str, results_table, predictions_table, kickoff=No
     # regenerated post-kickoff, and scoring those would reward hindsight.
     prediction = latest_before_kickoff(ok_preds, kickoff)
     assert prediction is not None  # ok_preds is non-empty, guaranteed above
+    hindsight = is_hindsight(prediction, kickoff)
 
     actual_winner = result["winner"]
     actual_margin = int(result["margin"])
@@ -67,4 +69,5 @@ def score_prediction(match_id: str, results_table, predictions_table, kickoff=No
         brier_component=round(brier, 6),  # pragma: no mutate — every reachable brier is ≤4 dp; the precision arg is inert
         confidence=confidence,
         prompt_version=prompt_version,
+        used_hindsight=hindsight,
     )

@@ -13,16 +13,32 @@ logger.setLevel(logging.INFO)
 
 
 def _get_kickoff(match_id: str, round_number, teams_table) -> str | None:
-    """Kickoff time for a match from its draw entry in the teams table, or None."""
+    """Kickoff time for a match from its draw entry in the teams table, or None.
+
+    A missing/failed lookup silently degrades score_prediction to hindsight-fallback
+    mode (see common/predictions.py), so every path that returns None here logs why —
+    without this, diagnosing a bad score is pure CloudWatch archaeology (see the
+    2026-08-12 v2-orchestrator-leak investigation, where several rounds' original
+    scoring passes had silently used a post-kickoff prediction and there was no signal
+    to say which case caused it).
+    """
     if teams_table is None:
+        logger.warning("_get_kickoff(%s): no teams_table configured", match_id)
         return None
     try:
         item = teams_table.get_item(
             Key={"teamId": f"{match_id}#home", "round": str(round_number)}
         ).get("Item")
-    except Exception:
+    except Exception as e:
+        logger.warning("_get_kickoff(%s): teams_table.get_item failed: %s", match_id, e)
         return None
-    return (item or {}).get("kickOff") or None
+    kickoff = (item or {}).get("kickOff") or None
+    if kickoff is None:
+        logger.warning(
+            "_get_kickoff(%s): no kickOff value found (round=%s, item_found=%s)",
+            match_id, round_number, item is not None,
+        )
+    return kickoff
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -42,6 +58,12 @@ def lambda_handler(event: dict, context) -> dict:
     try:
         kickoff = _get_kickoff(match_id, round_number, teams_table)
         scored = score_prediction(match_id, results_table, pred_table, kickoff=kickoff)
+        if scored.used_hindsight:
+            logger.warning(
+                "Scored %s using a hindsight (post-kickoff) prediction — kickoff=%s. "
+                "correct_pick/brier for this match are not an honest forecast.",
+                match_id, kickoff,
+            )
 
         # Read result item to carry homeTeam/score fields into scoring record
         result_resp = results_table.query(
@@ -71,6 +93,7 @@ def lambda_handler(event: dict, context) -> dict:
             "brier_component": str(scored.brier_component),
             "confidence": scored.confidence,
             "prompt_version": scored.prompt_version,
+            "is_hindsight": scored.used_hindsight,
             "roundNumber": round_number,
             "season": season,
         })

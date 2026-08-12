@@ -236,3 +236,29 @@ def test_scores_last_prediction_before_kickoff(tables):
     _seed_result(results_tbl, home_score=24, away_score=18)  # Panthers win
     scored = score_prediction(MATCH_ID, results_tbl, pred_tbl, kickoff=ko)
     assert scored.correct_pick is False  # scored pre-KO 'Broncos', not hindsight 'Panthers'
+    assert scored.used_hindsight is False
+
+
+def test_used_hindsight_true_when_only_post_kickoff_predictions_exist(tables):
+    """No pre-kickoff prediction exists (or kickoff is unknown) -> the fallback choice must
+    be flagged so callers/observability can tell the score isn't an honest forecast."""
+    pred_tbl, results_tbl = tables
+    ko = "2026-05-16T08:00:00Z"
+    pred_tbl.put_item(Item={"matchId": MATCH_ID, "generatedAt": "2026-05-16T20:00:00Z",
+                            "predicted_winner": "Panthers", "predicted_margin": 10,
+                            "confidence": "HIGH", "status": "OK"})
+    _seed_result(results_tbl, home_score=24, away_score=18)
+    scored = score_prediction(MATCH_ID, results_tbl, pred_tbl, kickoff=ko)
+    assert scored.used_hindsight is True
+
+
+def test_used_hindsight_false_when_kickoff_unknown_but_only_one_prediction(tables):
+    """kickoff=None (e.g. teams-table lookup failed) with a single, honestly pre-game
+    prediction must NOT be flagged — only an actual post-kickoff fallback counts."""
+    pred_tbl, results_tbl = tables
+    pred_tbl.put_item(Item={"matchId": MATCH_ID, "generatedAt": "2026-05-14T09:00:00Z",
+                            "predicted_winner": "Panthers", "predicted_margin": 10,
+                            "confidence": "HIGH", "status": "OK"})
+    _seed_result(results_tbl, home_score=24, away_score=18)
+    scored = score_prediction(MATCH_ID, results_tbl, pred_tbl, kickoff=None)
+    assert scored.used_hindsight is False
