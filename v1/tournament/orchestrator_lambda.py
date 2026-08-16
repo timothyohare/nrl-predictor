@@ -59,7 +59,7 @@ def lambda_handler(event: dict, context) -> dict:
     for i, variant in enumerate(variants):
         payload = {
             "variantId": variant["variantId"],
-            "variantVersion": int(variant["version"]),
+            "variantVersion": variant["version"],
             "matchIds": match_ids,
             "round": round_number,
             "season": season,

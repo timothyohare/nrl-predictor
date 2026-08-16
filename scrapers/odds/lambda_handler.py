@@ -3,9 +3,11 @@
 import logging
 import os
 from datetime import UTC, datetime
+from decimal import Decimal
 
 import boto3
 
+from scrapers.nrl.draw import fetch_draw, parse_draw
 from scrapers.odds.scraper import fetch_odds, parse_odds
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,14 @@ def lambda_handler(event: dict, context) -> dict:
     season = event.get("season", datetime.now(UTC).year)
     round_number = event.get("round")
     scraped_at = datetime.now(UTC).isoformat()
+
+    if round_number == "current":
+        # Same resolution the orchestrator/coverage-check schedules use: the
+        # teams-table round field is a real round number, so "current" must
+        # be resolved via the draw API before it can be used to filter it.
+        raw_draw = fetch_draw(season, round_number)
+        matches = parse_draw(raw_draw)
+        round_number = matches[0].round_number if matches else None
 
     # Get API key from env (set from Secrets Manager via CDK)
     api_key = os.environ.get("ODDS_API_KEY")
@@ -68,7 +78,10 @@ def lambda_handler(event: dict, context) -> dict:
         odds["season"] = season
         if round_number:
             odds["roundNumber"] = round_number
-        odds_table.put_item(Item=odds)
+        odds_table.put_item(Item={
+            k: Decimal(str(v)) if isinstance(v, float) else v
+            for k, v in odds.items()
+        })
 
     logger.info("Wrote %d odds entries for round %s", len(parsed), round_number)
     return {"matches": len(parsed), "round": round_number}

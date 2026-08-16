@@ -1,8 +1,16 @@
 """Tests for the tournament orchestrator Lambda.
 
-Regression coverage for the bug where the scheduled (EventBridge) invocation
-never supplies matchIds, so the orchestrator silently no-op'd every week
-instead of scraping the draw itself like the main orchestrator does.
+Regression coverage for two bugs:
+- The scheduled (EventBridge) invocation never supplies matchIds, so the
+  orchestrator silently no-op'd every week instead of scraping the draw
+  itself like the main orchestrator does.
+- `variant["version"]` was wrapped in `int(...)` before being sent to the
+  worker payload, but the real `prompt_variants` table's `version` sort key
+  is a STRING (an ISO timestamp written by seed_variants.py), not a number.
+  Every scheduled run crashed with `ValueError` and the tournament never
+  produced a single result. This file's table fixture below intentionally
+  mirrors the real table's schema (STRING version) so this class of bug
+  fails a test instead of only failing silently in production.
 """
 import json
 from pathlib import Path
@@ -28,26 +36,34 @@ def aws_env(monkeypatch):
     monkeypatch.setenv("TOURNAMENT_WORKER_FUNCTION_ARN", "arn:aws:lambda:ap-southeast-2:123:function:worker")
 
 
+def _create_variants_table(client):
+    client.create_table(
+        TableName=VARIANTS_TABLE,
+        KeySchema=[
+            {"AttributeName": "variantId", "KeyType": "HASH"},
+            {"AttributeName": "version", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "variantId", "AttributeType": "S"},
+            {"AttributeName": "version", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+
 @pytest.fixture
 def variants_table():
     with mock_aws():
         client = boto3.client("dynamodb", region_name="ap-southeast-2")
-        client.create_table(
-            TableName=VARIANTS_TABLE,
-            KeySchema=[
-                {"AttributeName": "variantId", "KeyType": "HASH"},
-                {"AttributeName": "version", "KeyType": "RANGE"},
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "variantId", "AttributeType": "S"},
-                {"AttributeName": "version", "AttributeType": "N"},
-            ],
-            BillingMode="PAY_PER_REQUEST",
-        )
+        _create_variants_table(client)
         table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table(VARIANTS_TABLE)
-        table.put_item(Item={"variantId": "baseline", "version": 1, "active": True})
-        table.put_item(Item={"variantId": "heavy-home-advantage", "version": 1, "active": True})
-        table.put_item(Item={"variantId": "retired-variant", "version": 1, "active": False})
+        table.put_item(Item={"variantId": "baseline", "version": "2026-06-03T21:03:30.181841+00:00", "active": True})
+        table.put_item(
+            Item={"variantId": "heavy-home-advantage", "version": "2026-06-03T21:03:30.181841+00:00", "active": True}
+        )
+        table.put_item(
+            Item={"variantId": "retired-variant", "version": "2026-06-03T21:03:30.181841+00:00", "active": False}
+        )
         yield table
 
 
@@ -73,6 +89,9 @@ def test_scheduled_event_with_no_matchids_scrapes_the_draw_and_launches_workers(
     assert len(first_payload["matchIds"]) == 3
     assert "round-12-panthers-v-broncos" in first_payload["matchIds"]
     assert first_payload["variantId"] in {"baseline", "heavy-home-advantage"}
+    # variantVersion must round-trip as the same string used for the table's
+    # sort key — int(...) here throws ValueError against the real schema.
+    assert first_payload["variantVersion"] == "2026-06-03T21:03:30.181841+00:00"
 
 
 def test_explicit_matchids_skip_the_draw_scrape(aws_env, variants_table):
@@ -108,18 +127,7 @@ def test_no_active_variants_returns_without_launching_workers(aws_env, draw_data
 
     with mock_aws():
         client = boto3.client("dynamodb", region_name="ap-southeast-2")
-        client.create_table(
-            TableName=VARIANTS_TABLE,
-            KeySchema=[
-                {"AttributeName": "variantId", "KeyType": "HASH"},
-                {"AttributeName": "version", "KeyType": "RANGE"},
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "variantId", "AttributeType": "S"},
-                {"AttributeName": "version", "AttributeType": "N"},
-            ],
-            BillingMode="PAY_PER_REQUEST",
-        )
+        _create_variants_table(client)
 
         lambda_mock = MagicMock()
         with patch("v1.tournament.orchestrator_lambda.fetch_draw", return_value=draw_data), \

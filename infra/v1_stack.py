@@ -658,6 +658,10 @@ class NrlPredictorStack(cdk.Stack):
             orchestrator_fn,
             event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
         ))
+        tue_rule.add_target(targets.LambdaFunction(
+            odds_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
 
         # Wednesday 08:00 UTC (18:00 AEST) — draw scraper
         events.Rule(
@@ -681,6 +685,10 @@ class NrlPredictorStack(cdk.Stack):
             orchestrator_fn,
             event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
         ))
+        thu_rule.add_target(targets.LambdaFunction(
+            odds_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
 
         # Friday 07:00 UTC (17:00 AEST) — orchestrator refresh so predictions
         # are ready before any Friday 6pm AEST game.
@@ -693,6 +701,10 @@ class NrlPredictorStack(cdk.Stack):
         fri_pm_rule.add_target(targets.LambdaFunction(weather_fn))
         fri_pm_rule.add_target(targets.LambdaFunction(
             orchestrator_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
+        fri_pm_rule.add_target(targets.LambdaFunction(
+            odds_fn,
             event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
         ))
 
@@ -709,6 +721,10 @@ class NrlPredictorStack(cdk.Stack):
         ))
         fri_night_rule.add_target(targets.LambdaFunction(weather_fn))
         fri_night_rule.add_target(targets.LambdaFunction(articles_fn))
+        fri_night_rule.add_target(targets.LambdaFunction(
+            odds_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
 
         # Saturday 23:00 UTC Friday (09:00 AEST Sat) — orchestrator re-run + tournament
         sat_am_rule = events.Rule(
@@ -722,6 +738,10 @@ class NrlPredictorStack(cdk.Stack):
         ))
         sat_am_rule.add_target(targets.LambdaFunction(weather_fn))
         sat_am_rule.add_target(targets.LambdaFunction(articles_fn))
+        sat_am_rule.add_target(targets.LambdaFunction(
+            odds_fn,
+            event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+        ))
         # Tournament runs 30 min after main orchestrator to avoid concurrent rate limit pressure
         # (use a separate rule at :30 for the offset)
         events.Rule(
@@ -770,6 +790,7 @@ class NrlPredictorStack(cdk.Stack):
         for fn, name in [
             (draw_fn, "DrawScraper"), (team_sheet_fn, "TeamSheet"), (ladder_fn, "Ladder"),
             (results_fn, "Results"), (weather_fn, "Weather"), (articles_fn, "Articles"),
+            (odds_fn, "Odds"),
         ]:
             alarm = cloudwatch.Alarm(
                 self, f"{name}ErrorAlarm",
