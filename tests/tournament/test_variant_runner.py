@@ -78,6 +78,18 @@ class TestRunVariantPrediction:
         assert result["confidence"] == "HIGH"
         assert "generatedAt" in result
 
+    def test_record_includes_round_and_season_for_scoring(self):
+        # score_round()/aggregate_variant_season() in variant_scorer.py filter
+        # simulation_predictions on `roundNumber = :r AND season = :s` — a
+        # record missing either field is silently invisible to scoring.
+        with patch("v1.tournament.variant_runner.run_agent", side_effect=_fake_run_agent):
+            result = run_variant_prediction(
+                MATCH_ID, VARIANT, {"round": 12, "season": 2026}
+            )
+
+        assert result["roundNumber"] == 12
+        assert result["season"] == 2026
+
     def test_truncates_reasoning_to_500_chars(self):
         long_reasoning = "X" * 800
         with patch("v1.tournament.variant_runner.run_agent") as mock_run:

@@ -81,3 +81,14 @@ def round_of(match_id_str: str) -> int | None:
     """Extract the round number from a round-prefixed matchId, or None."""
     m = re.match(r"^round-(\d+)-", match_id_str) if match_id_str else None
     return int(m.group(1)) if m else None
+
+
+def teams_of(match_id_str: str) -> tuple[str, str] | None:
+    """(home_slug, away_slug) from a matchId, round-qualified or legacy. None if unparseable."""
+    if not match_id_str:
+        return None
+    teams_segment = _ROUND_PREFIX.sub("", match_id_str)
+    if "-v-" not in teams_segment:
+        return None
+    home, away = teams_segment.split("-v-", 1)
+    return home, away

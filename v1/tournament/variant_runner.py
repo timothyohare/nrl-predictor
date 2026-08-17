@@ -27,6 +27,10 @@ def run_variant_prediction(
         "pk": f"{match_id}#{variant['variantId']}",
         "matchId": match_id,
         "variantId": variant["variantId"],
+        # score_round()/aggregate_variant_season() in variant_scorer.py filter on
+        # these two fields — omitting either makes this record invisible to scoring.
+        "roundNumber": match_context.get("round"),
+        "season": match_context.get("season"),
         "generatedAt": datetime.now(UTC).isoformat(),
         "predicted_winner": prediction.get("predicted_winner", ""),
         "predicted_margin": int(prediction.get("predicted_margin", 0)),

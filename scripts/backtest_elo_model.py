@@ -15,6 +15,10 @@ Scope: only round-qualified matchIds are used (see the Phase 1 [SPIKE] note
 in the plan doc) — legacy unqualified matchIds from before the identity
 migration can silently collide and are excluded.
 
+Uses the same common.stats_model.ratings/confidence modules as the live
+tournament stats variant (v1/tournament/stats_variant_runner.py) — this
+script exists to validate that shared core, not a separate implementation.
+
 Usage:
     AWS_DEFAULT_REGION=ap-southeast-2 python3 scripts/backtest_elo_model.py
     AWS_DEFAULT_REGION=ap-southeast-2 python3 scripts/backtest_elo_model.py --n-simulations 20000 --seed 7
@@ -28,14 +32,14 @@ from dataclasses import dataclass
 
 import boto3
 
-from common.dynamo import scan_all
-from common.match_id import is_canonical, round_of
-from common.stats_model.elo import DEFAULT_HOME_ADVANTAGE, update_ratings
+from common.match_id import round_of
+from common.stats_model.confidence import confidence_for
+from common.stats_model.elo import DEFAULT_HOME_ADVANTAGE
+from common.stats_model.ratings import compute_ratings_as_of, load_canonical_results
 from common.stats_model.simulate import simulate_match
 from common.teams import to_slug
 
 RESULTS_TABLE = "results"
-STARTING_RATING = 1500.0
 
 # Same mapping scoring/scorer.py uses, kept in sync so Brier scores here are
 # directly comparable to the LLM's scored predictions.
@@ -51,41 +55,9 @@ class BacktestRow:
     confidence: str
 
 
-def load_canonical_results() -> list[dict]:
-    """One row per round-qualified matchId (latest scoredAt), sorted by round."""
-    table = boto3.resource("dynamodb").Table(RESULTS_TABLE)
-    rows = scan_all(table)
-    latest: dict[str, dict] = {}
-    for row in rows:
-        match_id = row["matchId"]
-        if not is_canonical(match_id):
-            continue
-        if match_id not in latest or row["scoredAt"] > latest[match_id]["scoredAt"]:
-            latest[match_id] = row
-    return sorted(latest.values(), key=lambda r: (round_of(r["matchId"]), r["matchId"]))
-
-
-def confidence_for(win_probability: float) -> str:
-    """Fitted 2026-08-17 against the same 92-match backtest window: tercile
-    boundaries of |win_probability - 0.5| that produced monotonically
-    increasing pick accuracy (60% -> 73% -> 75% low/medium/high). This
-    model's probabilities are far more compressed than a hand-picked
-    "sports betting intuition" threshold assumes — the observed max
-    distance from a toss-up was 0.326, not ~0.5 — so thresholds tuned for
-    an LLM's confidence language don't transfer here. Refit alongside the
-    margin model in simulate.py as more data accumulates."""
-    distance_from_toss_up = abs(win_probability - 0.5)
-    if distance_from_toss_up >= 0.12:
-        return "HIGH"
-    if distance_from_toss_up >= 0.06:
-        return "MEDIUM"
-    return "LOW"
-
-
 def run_backtest(
     results: list[dict], home_advantage: float, n_simulations: int, seed: int
 ) -> list[BacktestRow]:
-    ratings: dict[str, float] = defaultdict(lambda: STARTING_RATING)
     rows_by_round: dict[int, list[dict]] = defaultdict(list)
     for row in results:
         # round_of() is Optional in general, but load_canonical_results() already
@@ -96,10 +68,8 @@ def run_backtest(
 
     backtest_rows: list[BacktestRow] = []
     for round_number in sorted(rows_by_round):
-        round_matches = rows_by_round[round_number]
-        # Predict every match in this round off ratings as they stood BEFORE
-        # this round — no team's rating moves until every match is predicted.
-        for row in round_matches:
+        ratings = compute_ratings_as_of(results, round_number, home_advantage)
+        for row in rows_by_round[round_number]:
             home, away = to_slug(row["homeTeam"]), to_slug(row["awayTeam"])
             rng = random.Random(f"{seed}:{row['matchId']}")
             sim = simulate_match(
@@ -118,16 +88,6 @@ def run_backtest(
                 margin_error=abs(predicted_margin - actual_margin),
                 confidence=confidence,
             ))
-
-        # Now apply this round's actual results to move ratings forward.
-        for row in round_matches:
-            home, away = to_slug(row["homeTeam"]), to_slug(row["awayTeam"])
-            home_new, away_new = update_ratings(
-                ratings[home], ratings[away],
-                int(row["homeScore"]), int(row["awayScore"]),
-                home_advantage=home_advantage,
-            )
-            ratings[home], ratings[away] = home_new, away_new
 
     return backtest_rows
 
@@ -153,14 +113,15 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
-    results = load_canonical_results()
+    results_table = boto3.resource("dynamodb").Table(RESULTS_TABLE)
+    results = load_canonical_results(results_table)
     if not results:
         print("No round-qualified results found — nothing to backtest.")
         return
     rounds = sorted({r for r in (round_of(row["matchId"]) for row in results) if r is not None})
     print(f"Backtest window: rounds {rounds[0]}-{rounds[-1]} ({len(results)} matches)")
-    print(f"All teams start at rating {STARTING_RATING} — round-{rounds[0]} form is not")
-    print("captured, since reliable per-team history doesn't exist before this window.")
+    print(f"All teams start at rating 1500.0 — round-{rounds[0]} form is not captured,")
+    print("since reliable per-team history doesn't exist before this window.")
 
     with_advantage = run_backtest(results, DEFAULT_HOME_ADVANTAGE, args.n_simulations, args.seed)
     summarize(f"Elo + Monte Carlo (home_advantage={DEFAULT_HOME_ADVANTAGE})", with_advantage)

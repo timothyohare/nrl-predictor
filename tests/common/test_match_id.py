@@ -7,6 +7,7 @@ from common.match_id import (
     match_id_from_url,
     round_number_from_title,
     round_of,
+    teams_of,
 )
 
 
@@ -68,3 +69,18 @@ def test_is_canonical_and_round_of_tolerate_empty():
     assert is_canonical(None) is False
     assert round_of("") is None
     assert round_of(None) is None
+
+
+def test_teams_of_splits_round_qualified_id():
+    assert teams_of("round-17-sea-eagles-v-storm") == ("sea-eagles", "storm")
+    assert teams_of("round-24-wests-tigers-v-dragons") == ("wests-tigers", "dragons")
+
+
+def test_teams_of_handles_legacy_unqualified_id():
+    assert teams_of("panthers-v-broncos") == ("panthers", "broncos")
+
+
+def test_teams_of_tolerates_bad_input():
+    assert teams_of("not-a-match-id") is None
+    assert teams_of("") is None
+    assert teams_of(None) is None

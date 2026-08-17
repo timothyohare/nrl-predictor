@@ -102,27 +102,53 @@ _VARIANTS = [
             "At least 35% of NRL matches are won by the underdog — do not default to the favourite.",
         ),
     },
+    {
+        "variantId": "stats-elo-v1",
+        "hypothesis": (
+            "A fully local Elo + Monte Carlo model (no LLM, no team-sheet/injury/news/weather "
+            "signal) is competitive with the prompt-based agent on pick accuracy, and is immune "
+            "to Anthropic API outages/rate limits/credit exhaustion. See "
+            "docs/plans/10-elo-monte-carlo-predictor.md — Phase 1 backtest: 69.6% pick rate vs "
+            "the season LLM's 63.3%, Brier 0.2188 vs 0.2313, margin error 11.96 vs 10.14."
+        ),
+        "dimensions": ["stats_model"],
+        "variant_type": "stats_model",
+    },
 ]
 
 
-def seed(table_name: str, dry_run: bool = False) -> None:
+def seed(table_name: str, dry_run: bool = False, variant_ids: list[str] | None = None) -> None:
+    """Seed variants into `table_name`. Each run writes a NEW version for every
+    variant seeded — variants aren't overwritten, they accumulate versions (the
+    orchestrator scans for `active=True` regardless of version, so an unfiltered
+    re-seed makes every existing variant run twice next round). Pass
+    `variant_ids` to seed only specific variants (e.g. a newly-added one)
+    without touching the others already live in the table.
+    """
+    variants = _VARIANTS if variant_ids is None else [v for v in _VARIANTS if v["variantId"] in variant_ids]
+    if variant_ids is not None:
+        missing = set(variant_ids) - {v["variantId"] for v in variants}
+        if missing:
+            raise ValueError(f"Unknown variantId(s): {sorted(missing)}")
+
     version = datetime.now(UTC).isoformat()
-    print(f"Seeding {len(_VARIANTS)} variants to {table_name} (version={version})")
+    print(f"Seeding {len(variants)} variant(s) to {table_name} (version={version})")
 
     if not dry_run:
         table = boto3.resource("dynamodb").Table(table_name)
 
-    for v in _VARIANTS:
+    for v in variants:
         item = {
             "variantId": v["variantId"],
             "version": version,
-            "prompt_template": v["prompt_template"],
+            "prompt_template": v.get("prompt_template", ""),
             "hypothesis": v["hypothesis"],
             "dimensions": v["dimensions"],
+            "variant_type": v.get("variant_type", "prompt"),
             "active": True,
         }
         if dry_run:
-            print(f"  [dry-run] would write: {v['variantId']} ({len(v['prompt_template'])} chars)")
+            print(f"  [dry-run] would write: {v['variantId']} (variant_type={item['variant_type']})")
         else:
             table.put_item(Item=item)
             print(f"  wrote: {v['variantId']}")
@@ -134,5 +160,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed prompt variants")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--table", default=os.environ.get("PROMPT_VARIANTS_TABLE", "prompt_variants"))
+    parser.add_argument(
+        "--only", nargs="+", metavar="VARIANT_ID",
+        help="Seed only these variantIds, leaving all others untouched (avoids "
+             "re-versioning — and thus double-running — variants already live).",
+    )
     args = parser.parse_args()
-    seed(args.table, dry_run=args.dry_run)
+    seed(args.table, dry_run=args.dry_run, variant_ids=args.only)
