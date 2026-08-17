@@ -155,13 +155,72 @@ baseline (no home advantage) as a sanity check.
 green before moving to Phase 2. `.venv/bin/ruff check common/stats_model
 scripts/backtest_elo_model.py` and `.venv/bin/mypy common/stats_model` clean.
 
-### Phase 2 — Tournament variant (not started until Phase 1 backtest numbers are reviewed)
+### Phase 2 — Tournament variant — DEPLOYED 2026-08-17
 
-Register the Elo/Monte Carlo model as one more variant in the existing
-prompt-tournament infrastructure (`tournament/variant_runner.py`,
-`variant_metrics` table) so it is scored against the market baseline and the
-existing 8 prompt variants using tooling that already exists — no new
-evaluation infra, no production risk.
+Registered as variant `stats-elo-v1` in the existing prompt-tournament
+infrastructure. Implementation:
+
+- `common/match_id.py::teams_of()` — splits a matchId into (home, away)
+  slugs (needed since this variant has no team-sheet/agent context to read
+  teams from).
+- `common/stats_model/ratings.py` — `load_canonical_results()` and
+  `compute_ratings_as_of()` extracted from the backtest script into a
+  shared module, so the offline backtest and the live variant run the exact
+  same rating-replay code, not two implementations that could drift.
+- `common/stats_model/confidence.py` — the Phase 1 calibrated thresholds,
+  likewise extracted for reuse.
+- `v1/tournament/stats_variant_runner.py` — runs the variant for a round.
+  No persisted rating table: ratings are recomputed from `results` on every
+  call (a full season is a few hundred matches — a walk-forward replay is
+  effectively instant, and it avoids a rating-update hook wired into the
+  scoring Lambda plus the risk of ratings drifting out of sync with
+  `results`). Revisit only if this becomes a real cost/latency problem.
+- `v1/tournament/worker_lambda.py` — dispatches on the variant's new
+  `variant_type` field (`"stats_model"` vs the default `"prompt"` for the
+  8 variants seeded before this field existed). The stats path skips the
+  LLM rate-limit stagger entirely, since it makes no external API calls.
+- `v1/tournament/seed_variants.py` — added `stats-elo-v1`, plus a `--only`
+  flag so it could be seeded without re-versioning (and thus double-running)
+  the 8 variants already live in production.
+
+**Bug found and fixed along the way:** `run_variant_prediction()` never
+wrote `roundNumber`/`season` onto `simulation_predictions` records, but
+`variant_scorer.py`'s `score_round()`/`aggregate_variant_season()` filter on
+exactly those fields — every variant's scoring would have silently produced
+zero results forever. Undetected because the scorer's own tests seed
+fixtures directly rather than going through the real writer. This would
+have hit at the tournament's first live scored run (2026-08-21 per
+CLAUDE.md's pending-verification note) — fixed for all 9 variants, not
+just the new one.
+
+**No CDK changes needed.** The worker Lambda already had `results` table
+read access and `RESULTS_TABLE` in its environment (granted for the LLM
+path's tools), and ships from the whole-repo code asset — `cdk deploy
+NrlPredictorStack` picked up the new modules automatically. `cdk diff`
+showed only Lambda code-content-hash churn (every function sharing the
+asset) — no IAM, table, or route changes.
+
+**Deploy steps taken:** `cdk deploy NrlPredictorStack` (61s, clean) →
+`python3 -m v1.tournament.seed_variants --only stats-elo-v1` (dry-run
+reviewed first; confirmed the other 8 variants' versions were untouched
+before and after) → smoke-tested the deployed worker Lambda directly
+(`nrl-predictor-tournament-worker`, bypassing the orchestrator) against the
+already-completed `round-24-broncos-v-warriors`: correct pick (warriors),
+predicted_margin=9 (actual 34 — normal variance, not a bug), 1.1s runtime,
+clean CloudWatch logs, then deleted that manual test row so it doesn't
+pollute the live season data ahead of the real automated run. Did **not**
+invoke the live orchestrator — that would fan out real LLM calls to the 8
+prompt variants, spending Anthropic credit with no visibility into the
+current account balance after the 2026-08-16 outage. First real run is the
+already-scheduled `nrl-tournament-saturday-am` cron, 2026-08-21 23:30 UTC.
+
+**Verify after 2026-08-21:** `aws dynamodb scan --table-name
+simulation_predictions --filter-expression "variantId = :v"
+--expression-attribute-values '{":v":{"S":"stats-elo-v1"}}' --region
+ap-southeast-2` should show one row per round-25(+) match, and after the
+following Sunday scorer run, `variant_metrics` should carry a
+`stats-elo-v1` row alongside the other 8 — compare its `pick_rate` against
+theirs and the market baseline on the leaderboard (`/tournament/leaderboard`).
 
 ### Phase 3 — Production cutover (decision point, not scheduled)
 
