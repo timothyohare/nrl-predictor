@@ -2,6 +2,54 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🔴 Active incident: Anthropic credit balance exhausted (delete once resolved)
+
+Discovered 2026-08-23. **The entire prediction pipeline has been down since
+2026-08-18.** Every `nrl-predictor-agent` invocation from 2026-08-18T06:30 UTC
+through 2026-08-21T23:02 UTC failed with `anthropic.BadRequestError: ... Your
+credit balance is too low to access the Anthropic API`. Round 25 ended with
+**0/8 matches** ever getting an OK prediction — the round was invisible on
+the live site for its entire duration. Same failure hit 7 of 8 prompt
+tournament variants on the 2026-08-21 run (only `stats-elo-v1`, the local
+Elo/Monte Carlo variant, kept working — it doesn't call Claude).
+
+This has happened before (2026-07-14, see `docs/lessons/2026-07-14-missing-lambda-handlers.md`)
+and self-resolved once credits were topped up, but recovery surfaced latent
+bugs each time, so don't assume topping up alone is sufficient — re-check
+after the next scheduled orchestrator run (Tuesday) rather than closing this
+out on the top-up alone.
+
+**Also broken, found in the same investigation:** the
+`nrl-predictor-missing-predictions` CloudWatch alarm never fired despite
+`nrl-predictor-coverage-check` correctly detecting and logging the
+under-prediction every single run ("Round 25 under-predicted: 0/8..."). The
+alarm sat in state OK the whole time, reason "no datapoints were received...
+treated as NonBreaching" — the metric the coverage-check emits isn't reaching
+the alarm. Not yet root-caused; start from the metric emission in
+`v1/orchestrator/coverage_check.py` vs. the alarm definition in
+`infra/v1_stack.py`.
+
+**Separately:** the odds API key (the-odds-api.com, unrelated service) has
+been returning 401 `INVALID_KEY` since the 2026-08-18 run — a second,
+independent credential lapse. The original odds-scraper crash bug
+(`TypeError: Float types are not supported`, commit `4e7b80f`) is confirmed
+fixed — it now fails cleanly on the auth error instead of crash-looping, but
+the `odds` table is still empty because of this separate issue.
+
+**Action needed (not code — requires the user):** top up the Anthropic
+account credit balance, and rotate/renew the the-odds-api.com key.
+
+---
+
+Prompt tournament hindsight-schedule fix (`v1/tournament/orchestrator_lambda.py`
++ `infra/v1_stack.py`, docs/plans Phase 2 work) is confirmed **deployed and
+live** as of 2026-08-23 — `aws events list-rules` shows all 4 tournament
+schedules (Tue/Thu/Fri/Sat) plus the Sunday scorer, all ENABLED.
+`simulation_predictions` has rows again (8, all `stats-elo-v1`, from the
+pre-deploy 2026-08-21 run — the Claude variants failed due to the credit
+issue above, not this bug). Round 25 was mid-flight when this deployed, so
+judge `variant_metrics` cleanliness from round 26 onward.
+
 ## Monorepo layout (v1 + v2 coexist)
 
 This repo hosts **both** the v1 (single-loop) and v2 (LangGraph multi-agent) predictors,

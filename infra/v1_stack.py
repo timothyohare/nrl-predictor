@@ -608,8 +608,10 @@ class NrlPredictorStack(cdk.Stack):
         tavily_secret.grant_read(tournament_worker_fn)
         raw_bucket.grant_read(tournament_worker_fn)
 
-        # Tournament orchestrator: reads variants, invokes workers
+        # Tournament orchestrator: reads variants, invokes workers, and reads
+        # sim predictions to skip matches an earlier run this week already covered
         prompt_variants_table.grant_read_data(tournament_orchestrator_fn)
+        simulation_predictions_table.grant_read_data(tournament_orchestrator_fn)
         tournament_worker_fn.grant_invoke(tournament_orchestrator_fn)
 
         # Tournament scorer: reads sim predictions + results, writes metrics
@@ -662,6 +664,22 @@ class NrlPredictorStack(cdk.Stack):
             odds_fn,
             event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
         ))
+        # Tournament runs 30 min after the main orchestrator to avoid concurrent
+        # rate limit pressure. Previously the tournament only ran once, Saturday
+        # morning — any round with an earlier match (e.g. Thursday night) would
+        # have that match already finished by then, producing a hindsight-
+        # contaminated "prediction". Mirroring the main predictor's cadence here
+        # (plus the kickoff/already-predicted guards in orchestrator_lambda.py)
+        # fixes that.
+        events.Rule(
+            self, "TournamentOrchestratorTueRule",
+            rule_name="nrl-tournament-tuesday",
+            schedule=events.Schedule.cron(minute="0", hour="7", week_day="TUE"),
+            targets=[targets.LambdaFunction(
+                tournament_orchestrator_fn,
+                event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+            )],
+        )
 
         # Wednesday 08:00 UTC (18:00 AEST) — draw scraper
         events.Rule(
@@ -689,6 +707,16 @@ class NrlPredictorStack(cdk.Stack):
             odds_fn,
             event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
         ))
+        # Tournament, 30 min after (see TueRule comment for why this schedule exists)
+        events.Rule(
+            self, "TournamentOrchestratorThuRule",
+            rule_name="nrl-tournament-thursday",
+            schedule=events.Schedule.cron(minute="30", hour="7", week_day="THU"),
+            targets=[targets.LambdaFunction(
+                tournament_orchestrator_fn,
+                event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+            )],
+        )
 
         # Friday 07:00 UTC (17:00 AEST) — orchestrator refresh so predictions
         # are ready before any Friday 6pm AEST game.
@@ -707,6 +735,16 @@ class NrlPredictorStack(cdk.Stack):
             odds_fn,
             event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
         ))
+        # Tournament, 30 min after (see TueRule comment for why this schedule exists)
+        events.Rule(
+            self, "TournamentOrchestratorFriRule",
+            rule_name="nrl-tournament-friday",
+            schedule=events.Schedule.cron(minute="30", hour="7", week_day="FRI"),
+            targets=[targets.LambdaFunction(
+                tournament_orchestrator_fn,
+                event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
+            )],
+        )
 
         # Friday 12:00 UTC (22:00 AEST) — orchestrator fans out per-match work
         # (draw + team sheets + agent) then weather + articles for refresh.
