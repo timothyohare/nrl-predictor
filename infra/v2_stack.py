@@ -202,11 +202,21 @@ class NrlPredictorV2Stack(cdk.Stack):
         api.add_routes(path="/health", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
 
         # ── EventBridge (shadow mode — same schedule as v1 but staggered +4s) ─
+        # DISABLED 2026-08-23: v1's main predictor cut over to the local
+        # stats-elo-v1 model (see docs/plans/10-elo-monte-carlo-predictor.md,
+        # Phase 3) in response to the 2026-08-18/-21 Anthropic credit
+        # exhaustion incident. v2's whole point is its 5-node LLM pipeline
+        # (Router/Primary/Challenger/Judge/Extended) — without Claude it has
+        # nothing distinct to offer and would just recompute the same stats
+        # model v1 already writes to this shared `predictions` table. Rules
+        # stay defined (not deleted) so re-enabling later is a one-line flip
+        # of `enabled` back to True, once Anthropic credit is healthy again.
         # Tuesday 06:30 UTC
         tue_rule = events.Rule(
             self, "TueRule",
             rule_name="nrl-v2-tuesday",
             schedule=events.Schedule.cron(minute="34", hour="6", week_day="TUE"),
+            enabled=False,
         )
         tue_rule.add_target(targets.LambdaFunction(
             orchestrator_fn,
@@ -218,6 +228,7 @@ class NrlPredictorV2Stack(cdk.Stack):
             self, "ThuRule",
             rule_name="nrl-v2-thursday",
             schedule=events.Schedule.cron(minute="4", hour="7", week_day="THU"),
+            enabled=False,
             targets=[targets.LambdaFunction(
                 orchestrator_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
@@ -229,6 +240,7 @@ class NrlPredictorV2Stack(cdk.Stack):
             self, "FriRule",
             rule_name="nrl-v2-friday",
             schedule=events.Schedule.cron(minute="4", hour="7", week_day="FRI"),
+            enabled=False,
             targets=[targets.LambdaFunction(
                 orchestrator_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),

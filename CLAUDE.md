@@ -50,6 +50,17 @@ the 7 Claude-based tournament variants and manual/backfill agent
 invocations, but not the site's primary predictions. The two action items
 above (credits, odds key) still stand on their own merits.
 
+**2026-08-23 update — v2's EventBridge schedules disabled, not cut over.**
+v2's whole design (Router/Primary/Challenger/Judge/Extended, 5 LLM calls per
+match) only exists to be a richer alternative to v1 — without Claude it has
+nothing distinct to offer, and cutting it over the same way as v1 would just
+mean it recomputes the identical stats-elo-v1 prediction v1 already writes
+to the same `predictions` table. Decision (explicit user call): pause v2's
+`nrl-v2-tuesday`/`-thursday`/`-friday` EventBridge rules (`enabled=False` in
+`infra/v2_stack.py`, not deleted — a one-line flip re-enables them) rather
+than cut it over. v2's Lambdas/code stay deployed for manual invocation and
+for whenever Anthropic credit is healthy again. **Not yet `cdk deploy`'d.**
+
 ---
 
 Prompt tournament hindsight-schedule fix (`v1/tournament/orchestrator_lambda.py`
