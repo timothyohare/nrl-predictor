@@ -222,12 +222,51 @@ following Sunday scorer run, `variant_metrics` should carry a
 `stats-elo-v1` row alongside the other 8 — compare its `pick_rate` against
 theirs and the market baseline on the leaderboard (`/tournament/leaderboard`).
 
-### Phase 3 — Production cutover (decision point, not scheduled)
+### Phase 3 — Production cutover — DEPLOYED 2026-08-23
 
-Only after Phase 2 shows the variant is competitive over multiple live
-rounds. Options at that point: replace the agent path outright, keep it as a
-fallback when Claude is rate-limited/out of credit, or run both as an
-ensemble. Decide with real numbers in hand, not now.
+Triggered early by the 2026-08-18 to -21 Anthropic credit exhaustion incident
+(round 25 finished with 0/8 matches predicted — see CLAUDE.md's incident
+section) rather than waiting for further live rounds of Phase 2 comparison.
+Decision: **full replacement**, not fallback or ensemble — `v1/orchestrator`
+no longer invokes the Claude agent at all.
+
+- `common/stats_model/predictor.py` — new shared adapter,
+  `predict_match(home, away, ratings, home_advantage, n_simulations, rng) ->
+  StatsPrediction` (winner, margin, confidence, key_factors, reasoning).
+  Extracted so the main path and the tournament variant compute a prediction
+  through one code path — `v1/tournament/stats_variant_runner.py` refactored
+  to call it too, rather than duplicating the Monte Carlo → winner/margin/
+  confidence logic a second time.
+- `v1/orchestrator/stats_predictor.py` — new `predict_round()`, called
+  synchronously from `v1/orchestrator/lambda_handler.py` after the draw/team-
+  sheet scrape. Computes ratings once per round (`compute_ratings_as_of`,
+  no look-ahead) and writes directly to `predictions` — same schema shape as
+  the old agent path (`status`, `staleness_flag`, `generation`, `key_factors`,
+  `reasoning`, `data_freshness`), with `model_used`/`prompt_version` both set
+  to `"stats-elo-v1"` so `scoring/metrics.py`'s prompt-version pick-rate
+  bucketing keeps working unchanged.
+- Removed: the async `agent_fn.invoke()` fan-out, the 8-15s inter-match
+  stagger (no longer needed — no external API, no rate limit), and the
+  `AGENT_FUNCTION_NAME`/`AGENT_INVOKE_STAGGER_SECONDS` orchestrator env vars.
+  `infra/v1_stack.py`: `orchestrator_fn` lost its `agent_fn.grant_invoke`
+  and gained `results_table.grant_read_data` +
+  `predictions_table.grant_read_write_data`.
+- `agent_fn` (the Claude ReAct Lambda) is **not deleted** — it stays deployed
+  for manual/backfill invocation (`aws lambda invoke --function-name
+  nrl-predictor-agent ...`), just no longer wired into the automatic
+  per-round path. The retrospective Lambda (Sonnet + Tavily, low volume,
+  scored-match analysis) is unaffected — out of scope, as originally noted
+  above.
+- Tests: `tests/common/test_predictor.py` (new), `tests/orchestrator/
+  test_stats_predictor.py` (new), `tests/orchestrator/test_orchestrator.py`
+  (rewritten — asserted agent-invoke behavior before, now asserts direct
+  `predictions` writes), `tests/tournament/test_stats_variant_runner.py`
+  (unchanged, still green after the refactor onto the shared adapter).
+  `cdk synth NrlPredictorStack` clean; full gate (lint/typecheck/606
+  tests/build) and `gate-verify` both green.
+
+**Not yet deployed to AWS as of this doc's last edit** — see CLAUDE.md for
+live-deploy status and the first live-round check.
 
 ## Success Criteria (Phase 1)
 

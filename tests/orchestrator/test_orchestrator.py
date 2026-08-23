@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import boto3
 import pytest
@@ -26,9 +26,8 @@ def finals_draw_data():
 def aws_env(monkeypatch):
     monkeypatch.setenv("TEAMS_TABLE", "teams")
     monkeypatch.setenv("RAW_BUCKET", "test-bucket")
-    monkeypatch.setenv("AGENT_FUNCTION_NAME", "nrl-predictor-agent")
-    # Disable the rate-limit stagger so tests run instantly
-    monkeypatch.setenv("AGENT_INVOKE_STAGGER_SECONDS", "0")
+    monkeypatch.setenv("PREDICTIONS_TABLE", "predictions")
+    monkeypatch.setenv("RESULTS_TABLE", "results")
 
 
 @pytest.fixture
@@ -47,6 +46,30 @@ def ddb_and_s3():
             ],
             BillingMode="PAY_PER_REQUEST",
         )
+        client.create_table(
+            TableName="predictions",
+            KeySchema=[
+                {"AttributeName": "matchId", "KeyType": "HASH"},
+                {"AttributeName": "generatedAt", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "matchId", "AttributeType": "S"},
+                {"AttributeName": "generatedAt", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        client.create_table(
+            TableName="results",
+            KeySchema=[
+                {"AttributeName": "matchId", "KeyType": "HASH"},
+                {"AttributeName": "scoredAt", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "matchId", "AttributeType": "S"},
+                {"AttributeName": "scoredAt", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
         boto3.client("s3", region_name="ap-southeast-2").create_bucket(
             Bucket="test-bucket",
             CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"},
@@ -54,96 +77,54 @@ def ddb_and_s3():
         yield
 
 
-def test_orchestrator_writes_draw_and_invokes_agent_per_match(
-    aws_env, ddb_and_s3, draw_data
-):
+def test_orchestrator_predicts_every_match(aws_env, ddb_and_s3, draw_data):
     from v1.orchestrator.lambda_handler import lambda_handler
 
-    lambda_mock = MagicMock()
     with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")), \
-         patch("v1.orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")):
         result = lambda_handler({"season": 2026, "round": 12}, {})
 
     # 3 fixtures have matchCentreUrl
     assert result["matches"] == 3
-    # Each match should trigger one agent invocation
-    assert len(result["agent_triggered"]) == 3
-    assert "round-12-panthers-v-broncos" in result["agent_triggered"]
+    assert len(result["predicted"]) == 3
+    assert "round-12-panthers-v-broncos" in result["predicted"]
 
-    # Verify the Lambda invoke calls
-    assert lambda_mock.invoke.call_count == 3
-    first_call = lambda_mock.invoke.call_args_list[0]
-    assert first_call.kwargs["FunctionName"] == "nrl-predictor-agent"
-    assert first_call.kwargs["InvocationType"] == "Event"
-    payload = json.loads(first_call.kwargs["Payload"])
-    assert "matchId" in payload
-    assert payload["round"] == 12
-    assert payload["is_finals"] is False
+    predictions_table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("predictions")
+    items = predictions_table.scan()["Items"]
+    assert len(items) == 3
+    for item in items:
+        assert item["status"] == "OK"
+        assert item["model_used"] == "stats-elo-v1"
+        assert item["roundNumber"] == 12
 
 
-def test_orchestrator_passes_is_finals_true_for_finals_matches(
-    aws_env, ddb_and_s3, finals_draw_data
-):
+def test_orchestrator_predicts_finals_matches(aws_env, ddb_and_s3, finals_draw_data):
     from v1.orchestrator.lambda_handler import lambda_handler
 
-    lambda_mock = MagicMock()
     with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=finals_draw_data), \
-         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")), \
-         patch("v1.orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
-        lambda_handler({"season": 2026, "round": 28}, {})
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip in test")):
+        result = lambda_handler({"season": 2026, "round": 28}, {})
 
-    first_call = lambda_mock.invoke.call_args_list[0]
-    payload = json.loads(first_call.kwargs["Payload"])
-    assert payload["round"] == 28
-    assert payload["is_finals"] is True
+    assert result["round"] == 28
+    assert len(result["predicted"]) == result["matches"]
 
 
-def test_orchestrator_continues_when_team_sheet_unavailable(
-    aws_env, ddb_and_s3, draw_data
-):
+def test_orchestrator_continues_when_team_sheet_unavailable(aws_env, ddb_and_s3, draw_data):
     """Team sheets may not be available yet (e.g. early in the week);
-    orchestrator must still trigger the agent — agent will use cached/stale
-    team sheet data or fail per-match without blocking the whole round."""
+    orchestrator must still predict every match."""
     from v1.orchestrator.lambda_handler import lambda_handler
 
-    lambda_mock = MagicMock()
     with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
          patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page",
-               side_effect=TeamSheetNotFound("not posted yet")), \
-         patch("v1.orchestrator.lambda_handler.boto3.client", return_value=lambda_mock):
+               side_effect=TeamSheetNotFound("not posted yet")):
         result = lambda_handler({"season": 2026, "round": 12}, {})
 
-    # All matches still trigger agent invocations
-    assert len(result["agent_triggered"]) == 3
-
-
-def test_orchestrator_staggers_agent_invocations(ddb_and_s3, draw_data, monkeypatch):
-    """Anthropic enforces 50K input tokens/min; firing all agent invokes at once
-    blows past that. The orchestrator sleeps between invokes when the stagger
-    env var is set."""
-    monkeypatch.setenv("TEAMS_TABLE", "teams")
-    monkeypatch.setenv("RAW_BUCKET", "test-bucket")
-    monkeypatch.setenv("AGENT_FUNCTION_NAME", "nrl-predictor-agent")
-    monkeypatch.setenv("AGENT_INVOKE_STAGGER_SECONDS", "8")
-
-    from v1.orchestrator.lambda_handler import lambda_handler
-
-    sleep_mock = MagicMock()
-    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
-         patch("v1.orchestrator.lambda_handler.boto3.client"), \
-         patch("v1.orchestrator.lambda_handler.time.sleep", sleep_mock):
-        lambda_handler({"season": 2026, "round": 12}, {})
-
-    # 3 invocations → 2 sleeps (no sleep before the first one)
-    assert sleep_mock.call_count == 2
-    assert sleep_mock.call_args_list[0].args == (8.0,)
+    assert len(result["predicted"]) == 3
 
 
 def test_orchestrator_writes_team_sheet_under_slug(aws_env, ddb_and_s3, draw_data):
     """The team sheet row must be keyed by the round-qualified slug (the same id
-    the agent is invoked with and queries by), not the numerical q-data matchId.
+    the API/agent tooling queries by), not the numerical q-data matchId.
     """
     from v1.agent.tools.team_sheet import get_team_sheet
     from v1.orchestrator.lambda_handler import lambda_handler
@@ -153,8 +134,7 @@ def test_orchestrator_writes_team_sheet_under_slug(aws_env, ddb_and_s3, draw_dat
     )
 
     with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data), \
-         patch("v1.orchestrator.lambda_handler.boto3.client"):
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data):
         lambda_handler({"season": 2026, "round": 12}, {})
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
@@ -168,8 +148,7 @@ def test_orchestrator_writes_teams_entries_to_dynamo(aws_env, ddb_and_s3, draw_d
     from v1.orchestrator.lambda_handler import lambda_handler
 
     with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
-         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")), \
-         patch("v1.orchestrator.lambda_handler.boto3.client"):
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", side_effect=TeamSheetNotFound("skip")):
         lambda_handler({"season": 2026, "round": 12}, {})
 
     table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")

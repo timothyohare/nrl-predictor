@@ -39,6 +39,17 @@ the `odds` table is still empty because of this separate issue.
 **Action needed (not code — requires the user):** top up the Anthropic
 account credit balance, and rotate/renew the the-odds-api.com key.
 
+**2026-08-23 update — main path no longer depends on this.** In direct
+response to this incident, the main prediction path was cut over to the
+local `stats-elo-v1` Elo/Monte Carlo model as primary — the orchestrator no
+longer calls the Claude agent at all (see "Phase 3 cutover" under
+Architecture, and `docs/plans/10-elo-monte-carlo-predictor.md`). Gate green
+locally; **not yet `cdk deploy`'d**. Once deployed, a repeat of this credit
+exhaustion can no longer take down main predictions — it would still affect
+the 7 Claude-based tournament variants and manual/backfill agent
+invocations, but not the site's primary predictions. The two action items
+above (credits, odds key) still stand on their own merits.
+
 ---
 
 Prompt tournament hindsight-schedule fix (`v1/tournament/orchestrator_lambda.py`
@@ -160,6 +171,10 @@ Retrospective analyses appear in the predictions API response (under `retrospect
 
 ### Agent occasionally emits prose instead of prediction JSON
 
+**Scope note (2026-08-23):** the automatic per-round path no longer calls the
+agent at all — see "Phase 3 cutover" below. This whole section now only
+applies to **manual/backfill invocations** of `nrl-predictor-agent`.
+
 The agent sometimes ends a run on its analysis summary (prose) rather than the
 final prediction JSON object. The handler catches this and writes a `FAILED`
 prediction row with `error: "Agent produced non-JSON output: ..."`. Because the
@@ -233,11 +248,21 @@ NRL Predictor is a serverless event-driven system on AWS. The data pipeline flow
 
 ```
 EventBridge cron → Orchestrator Lambda → (draw + team-sheet scrape inline)
-                                       → fan-out: Agent Lambda per match (8s stagger)
+                                       → predict every match locally (Elo + Monte Carlo, stats-elo-v1)
                                        → predictions DynamoDB → API Lambda → Next.js front end
 ```
 
-Standalone scrapers (`ladder`, `articles`, `weather`, `results`) run on their own EventBridge schedules. The orchestrator owns the per-match fan-out — agent, draw, and team-sheet Lambdas are still callable directly for backfill/debugging, but the production path is always through the orchestrator.
+**Phase 3 cutover (2026-08-23):** the orchestrator predicts synchronously in-Lambda via
+`v1/orchestrator/stats_predictor.py` (`common/stats_model/`) — no more async Claude agent
+invocation on this path, no rate limit, no Anthropic credit dependency. See
+`docs/plans/10-elo-monte-carlo-predictor.md` (Phase 3) for the full history: this replaced
+the "fan-out: Agent Lambda per match (8s stagger)" design after the agent path went down
+for round 25's entire duration (2026-08-18 to -21, Anthropic credit exhaustion — see the
+incident section above). `agent_fn` (`nrl-predictor-agent`, the Claude ReAct loop) is
+**not deleted** — it stays deployed for manual/backfill invocation, just no longer wired
+into the automatic per-round path.
+
+Standalone scrapers (`ladder`, `articles`, `weather`, `results`) run on their own EventBridge schedules. The orchestrator owns the per-match fan-out — the agent, draw, and team-sheet Lambdas are still callable directly for backfill/debugging, but the automatic prediction path no longer goes through the agent.
 
 Predictions run multiple times per week: first on Tuesday after team lists drop (~4pm AEST), then updated Thursday/Friday/Saturday as new data arrives (late changes, injury news, weather). Each run generates a new prediction row; the API serves the most recent OK prediction per match. The `generation` field tracks which run produced each prediction (1 = Tuesday early, 2+ = updates).
 
@@ -253,8 +278,9 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 | `scrapers/odds/` | Betting market odds from the-odds-api.com — comparison only, never agent input |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
 | `tournament/` | Prompt tournament: `variant_runner.py` (run agent with variant prompt), `variant_scorer.py` (score variants vs results), `orchestrator_lambda.py` (fan-out to workers), `worker_lambda.py` (per-variant), `scorer_lambda.py`, `seed_variants.py` (seed initial 8 variants) |
-| `agent/` | LangGraph ReAct graph (`graph.py`), 14 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`) |
-| `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then async-invokes the agent per match (staggered to respect Anthropic rate limit) |
+| `agent/` | LangGraph ReAct graph (`graph.py`), 14 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`). No longer on the automatic prediction path (2026-08-23 cutover) — kept for manual/backfill invocation |
+| `common/stats_model/` | The local Elo + Monte Carlo predictor (`elo.py`, `simulate.py`, `ratings.py`, `confidence.py`, `predictor.py`) — no LLM, no external API. `predictor.py::predict_match()` is the single shared adapter used by both the main predictions path and the tournament's `stats-elo-v1` variant |
+| `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then predicts every match synchronously via `stats_predictor.py` (Elo + Monte Carlo, no external API) |
 | `retrospective/` | Post-match retrospective: Tavily search + Claude Sonnet analysis of prediction vs result |
 | `scoring/` | `scorer.py` (Brier + margin error), `metrics.py` (round/season aggregation incl. confidence calibration + prompt versioning) |
 | `api/` | API Gateway Lambda handlers — joins predictions ⨝ results ⨝ retrospectives ⨝ odds by matchId for the front end |
@@ -279,6 +305,8 @@ The agent prompt version is tracked in `agent/prompt.py` as `PROMPT_VERSION`. Ev
 To bump the version: update `PROMPT_VERSION` and add an entry to `PROMPT_CHANGELOG` in `agent/prompt.py`.
 
 Current version: `v1.2` — injected retrospective lessons into system prompt; added coaching matchup, trap game detection, spine synergy, and venue profile tools; expanded chain-of-thought to 8 steps (team sheets + synergy → form + momentum → H2H + coaching → home/away → venue + weather → news → trap game → verdict).
+
+**Since the 2026-08-23 Phase 3 cutover**, the automatic path stamps `prompt_version`/`model_used` as `"stats-elo-v1"` instead — the `pick_rate_prompt_*` metrics bucketing works unchanged (it just buckets on whatever string is in `prompt_version`), so pre- and post-cutover accuracy stay directly comparable in the `metrics` table. `v1.2` above only applies to manual/backfill agent invocations now.
 
 ### Key scraping facts (from completed spikes)
 
@@ -373,7 +401,7 @@ Plans: `docs/team-identity-plan-v1.md`, `docs/matchid-identity-plan-v1.md`. One-
 - Every DynamoDB write must include a `scraped_at` timestamp.
 - The agent's budget check runs at the start of `lambda_handler` — if over budget, serve the cached prediction with `staleness_flag: true` rather than calling Claude.
 - The rate limiter (`api/rate_limit.py`) must **fail open** if DynamoDB is unavailable — never block legitimate traffic due to infrastructure issues.
-- **Anthropic account rate limit: 50,000 input tokens/minute** on Haiku 4.5. The orchestrator staggers agent invokes by 8s (configurable via `AGENT_INVOKE_STAGGER_SECONDS` env on `nrl-predictor-orchestrator`) to stay under this. Any new batch that calls Claude (scoring backfills, multi-match retrospectives, etc.) needs the same treatment.
+- **Anthropic account rate limit: 50,000 input tokens/minute** on Haiku 4.5. No longer relevant to the automatic prediction path since the 2026-08-23 Phase 3 cutover (`nrl-predictor-orchestrator` predicts locally now, no `AGENT_INVOKE_STAGGER_SECONDS`/agent invoke). Still applies to any batch that calls Claude directly — manual/backfill agent invocations, scoring backfills, multi-match retrospectives, the 7 Claude-based tournament variants — stagger those the same way the old orchestrator did.
 - Do not add `output: 'export'` to `next.config.js` — this breaks SSR/ISR and causes Googlebot to receive an empty shell.
 - **Do not delete `frontend/postcss.config.mjs`.** Without it, Tailwind directives in `globals.css` pass through unprocessed and the entire site renders as unstyled HTML (this was the production state until 2026-05-23 — easy to miss because the build succeeds).
 - AWS region: `ap-southeast-2` (Sydney).

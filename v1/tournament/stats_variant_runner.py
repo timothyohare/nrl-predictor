@@ -10,10 +10,9 @@ import random
 from datetime import UTC, datetime
 
 from common.match_id import teams_of
-from common.stats_model.confidence import confidence_for
 from common.stats_model.elo import DEFAULT_HOME_ADVANTAGE
+from common.stats_model.predictor import predict_match
 from common.stats_model.ratings import compute_ratings_as_of, load_canonical_results
-from common.stats_model.simulate import simulate_match
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +43,7 @@ def run_stats_variant_for_round(
         home, away = teams
 
         rng = random.Random(f"{variant_id}:{match_id}")
-        sim = simulate_match(ratings[home], ratings[away], DEFAULT_HOME_ADVANTAGE, _N_SIMULATIONS, rng)
-        predicted_winner = home if sim.home_win_probability >= 0.5 else away
-        predicted_margin = round(abs(sim.expected_margin))
-        confidence = confidence_for(sim.home_win_probability)
-        reasoning = (
-            f"Elo ratings: {home}={ratings[home]:.0f}, {away}={ratings[away]:.0f} "
-            f"(home advantage {DEFAULT_HOME_ADVANTAGE:.0f} applied). Simulated home win "
-            f"probability {sim.home_win_probability:.1%} over {_N_SIMULATIONS} Monte Carlo trials. "
-            "No LLM, team-sheet, injury, or weather signal used — see docs/plans/10."
-        )
+        pred = predict_match(home, away, ratings, DEFAULT_HOME_ADVANTAGE, _N_SIMULATIONS, rng)
 
         record = {
             "pk": f"{match_id}#{variant_id}",
@@ -62,10 +52,11 @@ def run_stats_variant_for_round(
             "roundNumber": round_number,
             "season": season,
             "generatedAt": datetime.now(UTC).isoformat(),
-            "predicted_winner": predicted_winner,
-            "predicted_margin": predicted_margin,
-            "confidence": confidence,
-            "reasoning": reasoning[:500],
+            "predicted_winner": pred.predicted_winner,
+            "predicted_margin": pred.predicted_margin,
+            "confidence": pred.confidence,
+            "key_factors": pred.key_factors,
+            "reasoning": pred.reasoning[:500],
         }
 
         if sim_table is not None:

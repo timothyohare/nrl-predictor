@@ -415,9 +415,12 @@ class NrlPredictorStack(cdk.Stack):
 
         # ── Lambda: orchestrator ─────────────────────────────────────────────
         # Fans out per-match work: scrapes draw + team sheets inline, then
-        # invokes agent_fn async per match. EventBridge calls this on Friday/
-        # Saturday/Thursday windows (per-match Lambdas can still be invoked
-        # ad-hoc for backfill/debugging).
+        # predicts every match locally via the Elo + Monte Carlo model
+        # (v1/orchestrator/stats_predictor.py) — no Claude call, no rate limit,
+        # no Anthropic credit dependency on this path (Phase 3 cutover, see
+        # docs/plans/10-elo-monte-carlo-predictor.md). EventBridge calls this on
+        # Friday/Saturday/Thursday windows. agent_fn stays available for manual/
+        # backfill invocation but is no longer invoked from this path.
         orchestrator_fn = _lambda.Function(
             self, "OrchestratorLambda",
             function_name="nrl-predictor-orchestrator",
@@ -427,11 +430,7 @@ class NrlPredictorStack(cdk.Stack):
             layers=[deps_layer],
             timeout=cdk.Duration.minutes(10),
             memory_size=512,
-            environment={
-                **_scraper_env,
-                "AGENT_FUNCTION_NAME": agent_fn.function_name,
-                "AGENT_INVOKE_STAGGER_SECONDS": "15",
-            },
+            environment=_scraper_env,
         )
 
         # ── Lambda: coverage check ───────────────────────────────────────────
@@ -563,10 +562,12 @@ class NrlPredictorStack(cdk.Stack):
         injuries_table.grant_read_write_data(articles_fn)
 
         # Orchestrator: reads/writes teams + s3 (same as the scraper lambdas
-        # whose work it inlines) and invokes the agent
+        # whose work it inlines), reads results (Elo rating replay) and
+        # writes predictions directly (Phase 3 cutover — no more agent invoke)
         teams_table.grant_read_write_data(orchestrator_fn)
         raw_bucket.grant_read_write(orchestrator_fn)
-        agent_fn.grant_invoke(orchestrator_fn)
+        results_table.grant_read_data(orchestrator_fn)
+        predictions_table.grant_read_write_data(orchestrator_fn)
 
         # Coverage check: reads predictions, emits a custom CloudWatch metric
         predictions_table.grant_read_data(coverage_check_fn)

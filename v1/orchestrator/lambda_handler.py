@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import time
 from datetime import UTC, datetime
 
 import boto3
@@ -13,6 +12,7 @@ from scrapers.nrl.team_sheet import (
     parse_team_sheet,
 )
 from scrapers.shared.s3_cache import save_raw
+from v1.orchestrator.stats_predictor import predict_round
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -27,7 +27,6 @@ def lambda_handler(event: dict, context) -> dict:
 
     bucket = os.environ["RAW_BUCKET"]
     teams_table_name = os.environ["TEAMS_TABLE"]
-    agent_fn_name = os.environ["AGENT_FUNCTION_NAME"]
     scraped_at = datetime.now(UTC).isoformat()
 
     # 1. Scrape draw
@@ -35,7 +34,7 @@ def lambda_handler(event: dict, context) -> dict:
     matches = parse_draw(raw_draw)
     if not matches:
         logger.warning("No matches parsed for season=%s round=%s", season, round_input)
-        return {"matches": 0, "agent_triggered": []}
+        return {"matches": 0, "predicted": []}
 
     actual_round = matches[0].round_number
     save_raw(bucket, f"raw-scrapes/draw/{season}/round-{actual_round}.json", json.dumps(raw_draw))
@@ -58,7 +57,9 @@ def lambda_handler(event: dict, context) -> dict:
                     "scraped_at": scraped_at,
                 })
 
-    # 3. Scrape team sheets inline (best-effort — agent runs regardless)
+    # 3. Scrape team sheets inline (best-effort — prediction runs regardless;
+    # the stats model doesn't currently read team sheets, but scraping stays
+    # here since other consumers — API display, future signals — rely on it)
     for match in matches:
         if not match.match_centre_url:
             continue
@@ -91,32 +92,19 @@ def lambda_handler(event: dict, context) -> dict:
         except Exception as e:
             logger.error("Team sheet scrape failed for %s: %s", match.match_id, e, exc_info=True)
 
-    # 4. Fan out: invoke agent async per match, staggered to stay under the
-    # Anthropic 50K input-tokens/minute rate limit. Each agent run uses
-    # roughly 8-12K input tokens, so 8s between starts keeps us well below.
-    stagger_s = float(os.environ.get("AGENT_INVOKE_STAGGER_SECONDS", "8"))
-    lambda_client = boto3.client("lambda")
-    agent_triggered: list[str] = []
-    for i, match in enumerate(matches):
-        if i > 0 and stagger_s > 0:
-            time.sleep(stagger_s)
-        try:
-            lambda_client.invoke(
-                FunctionName=agent_fn_name,
-                InvocationType="Event",
-                Payload=json.dumps({
-                    "matchId": match.match_id,
-                    "round": match.round_number,
-                    "is_finals": match.is_finals,
-                }),
-            )
-            agent_triggered.append(match.match_id)
-        except Exception as e:
-            logger.error("Failed to invoke agent for %s: %s", match.match_id, e, exc_info=True)
+    # 4. Predict every match locally via the Elo + Monte Carlo model — no
+    # external API call, no rate limit, no Anthropic credit dependency. See
+    # docs/plans/10-elo-monte-carlo-predictor.md, Phase 3 cutover.
+    predictions_table = boto3.resource("dynamodb").Table(os.environ["PREDICTIONS_TABLE"])
+    results_table = boto3.resource("dynamodb").Table(os.environ["RESULTS_TABLE"])
+    predicted = predict_round(
+        matches, round_number=actual_round, season=season,
+        predictions_table=predictions_table, results_table=results_table,
+    )
 
-    logger.info("Triggered agent for %d/%d matches", len(agent_triggered), len(matches))
+    logger.info("Predicted %d/%d matches", len(predicted), len(matches))
     return {
         "round": actual_round,
         "matches": len(matches),
-        "agent_triggered": agent_triggered,
+        "predicted": predicted,
     }
