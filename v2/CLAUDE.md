@@ -116,6 +116,20 @@ aws logs tail /aws/lambda/nrl-predictor-v2-agent --follow --region ap-southeast-
 
 ## Shadow mode
 
+**Paused 2026-08-23** (see root `CLAUDE.md`'s incident section): v2's three
+EventBridge schedules (`nrl-v2-tuesday`/`-thursday`/`-friday`) are
+`enabled=False` in `infra/v2_stack.py` — v2 does not run automatically right
+now. This followed v1's cutover to the local `stats-elo-v1` model after the
+Anthropic credit exhaustion incident; v2's whole point is its 5-node LLM
+pipeline (Router/Primary/Challenger/Judge/Extended), so without Claude it had
+nothing distinct to offer and pausing was chosen over cutting it over to the
+same local model (which would've just duplicated v1's writes to this shared
+table). Re-enable by flipping `enabled` back on those 3 rules and
+`cdk deploy` once Anthropic credit is healthy again. Manual invocation
+(`aws lambda invoke --function-name nrl-predictor-v2-orchestrator ...`)
+still works — only the automatic schedule is off. The description below is
+otherwise still accurate for how v2 behaves when invoked:
+
 v2 runs alongside v1 for 2-3 rounds:
 1. v2 orchestrator fires 4 minutes after v1 orchestrator (staggered EventBridge rules)
 2. v2 predictions land in the same `predictions` table (identifiable by `prompt_version = "v2.0"`)

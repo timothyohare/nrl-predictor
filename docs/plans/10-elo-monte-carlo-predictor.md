@@ -265,8 +265,16 @@ no longer invokes the Claude agent at all.
   `cdk synth NrlPredictorStack` clean; full gate (lint/typecheck/606
   tests/build) and `gate-verify` both green.
 
-**Not yet deployed to AWS as of this doc's last edit** — see CLAUDE.md for
-live-deploy status and the first live-round check.
+**Deployed to AWS 2026-08-23** — `cdk deploy` confirmed live: the orchestrator's
+IAM policy no longer grants `lambda:InvokeFunction` on `AgentLambda`, and now
+grants `predictions`/`results` table access instead. See CLAUDE.md for the
+first live-round check (a full round predicted end-to-end via the new path,
+not yet separately confirmed beyond the IAM/env verification above).
+
+Also as of 2026-08-23: v2's automatic EventBridge schedules were paused
+(`enabled=False`, not deleted) rather than cut over the same way — see
+CLAUDE.md's incident section for why (v2's whole value is its 5-node LLM
+pipeline, which has nothing distinct to offer without Claude).
 
 ## Success Criteria (Phase 1)
 

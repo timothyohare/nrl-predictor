@@ -1,6 +1,6 @@
 # NRL Predictor
 
-AI-powered predictions for every NRL match. Scrapes official team sheets, runs Claude to produce a written prediction with confidence level and key factors, and publishes results on a Next.js frontend.
+Predictions for every NRL match, published on a Next.js frontend. Scrapes official team sheets and results, then predicts each match with a local Elo + Monte Carlo model (`stats-elo-v1`) — no external LLM call on the live path.
 
 Live at **https://nrl-predictor.ohare.id.au/**.
 
@@ -11,14 +11,20 @@ EventBridge cron
   → Orchestrator Lambda
       ├─ scrapes draw                              (writes teams)
       ├─ scrapes team sheets inline (per match)    (writes teams)
-      └─ async-invokes Agent Lambda per match      (8s stagger ↓ rate limit)
-            └─ Anthropic Claude, ReAct loop
-               → predictions DynamoDB
-                  → API Gateway (joins predictions + results + retrospectives)
-                     → Next.js frontend (Amplify)
+      └─ predicts every match locally               (Elo + Monte Carlo, stats-elo-v1)
+            → predictions DynamoDB
+               → API Gateway (joins predictions + results + retrospectives)
+                  → Next.js frontend (Amplify)
 ```
 
-Standalone scrapers (`ladder`, `articles`, `weather`, `results`, `odds`) are wired to their own EventBridge schedules. The agent Lambda still exists and is callable ad-hoc per match for backfill — the orchestrator just orchestrates the per-match fan-out.
+**2026-08-23:** cut over from an Anthropic Claude ReAct-loop agent to the local
+stats-elo-v1 model after an Anthropic account credit exhaustion incident left
+main predictions down for several days. See `docs/plans/10-elo-monte-carlo-predictor.md`
+(Phase 3) for the full history. The Claude agent Lambda still exists and is
+callable ad-hoc per match for manual backfill — it's just no longer on the
+automatic per-round path.
+
+Standalone scrapers (`ladder`, `articles`, `weather`, `results`, `odds`) are wired to their own EventBridge schedules.
 
 A prompt tournament runs 8 prompt variants in parallel per match. The tournament scorer runs Sunday evening to compare variant accuracy and find the best prompt configuration.
 
@@ -241,7 +247,7 @@ All times converted to AEST for readability. AEDT = UTC+11 (summer), AEST = UTC+
 | Saturday | 09:00 | Articles + weather + **orchestrator** (refresh for Sat / Sun games) |
 | Sunday | 20:00 | **Tournament scorer** (score variant predictions after weekend results) |
 
-The orchestrator scrapes the draw, scrapes team sheets inline, and async-invokes the agent once per match (8-second stagger between invokes to stay under the Anthropic 50K input-tokens/minute rate limit).
+The orchestrator scrapes the draw, scrapes team sheets inline, and predicts every match synchronously via the local Elo + Monte Carlo model — no external API call, so no rate limit or stagger on this path (2026-08-23 cutover; see Architecture above).
 
 The odds scraper and tournament orchestrator also run alongside the main orchestrator on Tuesday/Thursday/Friday schedules.
 
@@ -272,7 +278,7 @@ AWS_DEFAULT_REGION=ap-southeast-2 aws lambda invoke \
   /tmp/orch_out.json && cat /tmp/orch_out.json
 ```
 
-Returns `{"round": N, "matches": K, "agent_triggered": [...matchIds]}`. The orchestrator itself completes in 3–5 min (draw + team-sheet scrapes inline). Each async agent invocation then takes ~30–60s; predictions land in the `predictions` table progressively.
+Returns `{"round": N, "matches": K, "predicted": [...matchIds]}`. Predictions are written synchronously (local Elo + Monte Carlo model, no external API call) — the orchestrator invocation itself completes with every match already in the `predictions` table, typically a few minutes (draw + team-sheet scrapes inline dominate the runtime).
 
 Use `"round": "current"` to let the NRL API decide which round is in progress.
 
@@ -287,7 +293,9 @@ aws lambda invoke \
   --region ap-southeast-2 \
   /tmp/response.json
 
-# Just the agent for one match — matchId is round-qualified, e.g. round-12-broncos-v-raiders
+# Just the Claude agent for one match (manual/backfill only — not on the
+# automatic path since the 2026-08-23 stats-elo-v1 cutover) — matchId is
+# round-qualified, e.g. round-12-broncos-v-raiders
 aws lambda invoke \
   --function-name nrl-predictor-agent \
   --payload '{"matchId": "round-12-broncos-v-raiders", "round": 12}' \

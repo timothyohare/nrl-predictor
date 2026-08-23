@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🔴 Active incident: Anthropic credit balance exhausted (delete once resolved)
+## 🟡 Anthropic credit balance exhausted — main site no longer at risk, action items still open (delete once resolved)
 
 Discovered 2026-08-23. **The entire prediction pipeline has been down since
 2026-08-18.** Every `nrl-predictor-agent` invocation from 2026-08-18T06:30 UTC
@@ -39,27 +39,37 @@ the `odds` table is still empty because of this separate issue.
 **Action needed (not code — requires the user):** top up the Anthropic
 account credit balance, and rotate/renew the the-odds-api.com key.
 
-**2026-08-23 update — main path no longer depends on this.** In direct
-response to this incident, the main prediction path was cut over to the
-local `stats-elo-v1` Elo/Monte Carlo model as primary — the orchestrator no
-longer calls the Claude agent at all (see "Phase 3 cutover" under
-Architecture, and `docs/plans/10-elo-monte-carlo-predictor.md`). Gate green
-locally; **not yet `cdk deploy`'d**. Once deployed, a repeat of this credit
-exhaustion can no longer take down main predictions — it would still affect
-the 7 Claude-based tournament variants and manual/backfill agent
-invocations, but not the site's primary predictions. The two action items
-above (credits, odds key) still stand on their own merits.
+**2026-08-23 update — main path no longer depends on this. DEPLOYED and
+confirmed live.** In direct response to this incident, the main prediction
+path was cut over to the local `stats-elo-v1` Elo/Monte Carlo model as
+primary — the orchestrator no longer calls the Claude agent at all (see
+"Phase 3 cutover" under Architecture, and
+`docs/plans/10-elo-monte-carlo-predictor.md`). `cdk deploy` confirmed:
+`nrl-predictor-orchestrator`'s IAM policy has no `lambda:InvokeFunction` on
+`AgentLambda` and now grants `predictions`/`results` table access instead;
+`AGENT_FUNCTION_NAME`/`AGENT_INVOKE_STAGGER_SECONDS` env vars are gone. A
+repeat of this credit exhaustion can no longer take down main predictions —
+it would still affect the 7 Claude-based tournament variants and
+manual/backfill agent invocations, but not the site's primary predictions.
+**Still worth confirming after the next scheduled orchestrator run** (a live
+round predicted end-to-end via the new path, not just IAM/env verification)
+before treating this as fully proven in production. The two action items
+above (credits, odds key) still stand on their own merits — they're no
+longer site-critical, but the tournament's 7 Claude variants and manual
+agent backfill still depend on them.
 
-**2026-08-23 update — v2's EventBridge schedules disabled, not cut over.**
-v2's whole design (Router/Primary/Challenger/Judge/Extended, 5 LLM calls per
-match) only exists to be a richer alternative to v1 — without Claude it has
-nothing distinct to offer, and cutting it over the same way as v1 would just
-mean it recomputes the identical stats-elo-v1 prediction v1 already writes
-to the same `predictions` table. Decision (explicit user call): pause v2's
+**2026-08-23 update — v2's EventBridge schedules disabled, not cut over.
+DEPLOYED and confirmed live.** v2's whole design
+(Router/Primary/Challenger/Judge/Extended, 5 LLM calls per match) only
+exists to be a richer alternative to v1 — without Claude it has nothing
+distinct to offer, and cutting it over the same way as v1 would just mean it
+recomputes the identical stats-elo-v1 prediction v1 already writes to the
+same `predictions` table. Decision (explicit user call): pause v2's
 `nrl-v2-tuesday`/`-thursday`/`-friday` EventBridge rules (`enabled=False` in
 `infra/v2_stack.py`, not deleted — a one-line flip re-enables them) rather
-than cut it over. v2's Lambdas/code stay deployed for manual invocation and
-for whenever Anthropic credit is healthy again. **Not yet `cdk deploy`'d.**
+than cut it over. `cdk deploy` confirmed: `aws events list-rules` shows all
+3 rules in state `DISABLED`. v2's Lambdas/code stay deployed for manual
+invocation and for whenever Anthropic credit is healthy again.
 
 ---
 
