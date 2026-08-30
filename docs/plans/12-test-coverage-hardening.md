@@ -210,8 +210,10 @@ fixture draw via the scraper's parse function, or stub the HTTP client).
 - Re-invoke → `generation: 2`, prior rows retained (supersede, not overwrite).
 - `v1.orchestrator.coverage_check.lambda_handler` on a deliberately
   short-predicted round → emits `NrlPredictor/MissingPredictions` = shortfall,
-  logs the missing matchIds. *(Also re-checks the still-open alarm-wiring gap
-  from the incident section of `CLAUDE.md`.)*
+  logs the missing matchIds. *(This write-path scenario confirmed the metric
+  value is emitted correctly, which localised the alarm-wiring gap to the alarm
+  config — root-caused and fixed in PR #32, see
+  `docs/lessons/2026-08-30-sparse-metric-alarm.md`.)*
 - `scoring.lambda_handler` over the seeded round → `results` scored rows +
   `metrics` aggregation; retrospective Lambda invoked (mocked).
 
