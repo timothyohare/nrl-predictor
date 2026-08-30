@@ -40,14 +40,22 @@ def lambda_handler(event: dict, context) -> dict:
     missing = [m.match_id for m in matches if not _has_ok_prediction(table, m.match_id)]
     ok_count = len(matches) - len(missing)
 
-    boto3.client("cloudwatch").put_metric_data(
-        Namespace=METRIC_NAMESPACE,
-        MetricData=[{
-            "MetricName": METRIC_NAME,
-            "Value": len(missing),
-            "Unit": "Count",
-        }],
-    )
+    # The log line below is the source of truth for an under-predicted round; a
+    # CloudWatch hiccup here must not abort the handler before it logs. (The
+    # alarm on this metric is configured with a 24h period + IGNORE missing-data
+    # so a single daily pulse is enough to trip and hold it — see
+    # PredictionCoverageAlarm in infra/v1_stack.py.)
+    try:
+        boto3.client("cloudwatch").put_metric_data(
+            Namespace=METRIC_NAMESPACE,
+            MetricData=[{
+                "MetricName": METRIC_NAME,
+                "Value": len(missing),
+                "Unit": "Count",
+            }],
+        )
+    except Exception:
+        logger.exception("Failed to emit %s/%s metric", METRIC_NAMESPACE, METRIC_NAME)
 
     if missing:
         logger.warning(

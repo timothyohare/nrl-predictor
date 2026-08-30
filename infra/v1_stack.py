@@ -857,6 +857,19 @@ class NrlPredictorStack(cdk.Stack):
         )
         agent_timeout_alarm.add_alarm_action(cw_actions.SnsAction(alert_topic))
 
+        # MissingPredictions is a sparse "pulse" metric — the coverage-check
+        # Lambda emits exactly one datapoint per run, at most ~once a day
+        # (Tue/Thu/Fri x2/Sat). The other alarms in this stack watch
+        # fn.metric_errors(), a continuous built-in metric, so their
+        # period=30min + NOT_BREACHING config is fine; that pattern does NOT
+        # transfer here. With period=1h the daily datapoint routinely lands
+        # after the alarm has already evaluated (and moved past) its hour —
+        # combined with custom-metric ingestion lag — so the breaching hour is
+        # never seen; and NOT_BREACHING then forces the state back to OK on the
+        # very next empty hour. Net effect: the alarm sat in OK through the
+        # entire round-25 outage. Fix: a 24h period so the pulse always lands
+        # in the evaluated window, and IGNORE so missing data holds the last
+        # state — once tripped it stays ALARM until a later run emits 0.
         coverage_alarm = cloudwatch.Alarm(
             self, "PredictionCoverageAlarm",
             alarm_name="nrl-predictor-missing-predictions",
@@ -864,12 +877,13 @@ class NrlPredictorStack(cdk.Stack):
                 namespace="NrlPredictor",
                 metric_name="MissingPredictions",
                 statistic="Maximum",
-                period=cdk.Duration.hours(1),
+                period=cdk.Duration.hours(24),
             ),
             threshold=1,
             evaluation_periods=1,
+            datapoints_to_alarm=1,
             comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            treat_missing_data=cloudwatch.TreatMissingData.IGNORE,
         )
         coverage_alarm.add_alarm_action(cw_actions.SnsAction(alert_topic))
 
