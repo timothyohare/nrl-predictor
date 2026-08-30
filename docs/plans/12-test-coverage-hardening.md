@@ -1,6 +1,8 @@
 # Plan 12 — Test-coverage hardening
 
-**Status:** proposed
+**Status:** done — phases 1–8 shipped 2026-08-30 (PRs #22–#30). Main at 95.75%
+line+branch / 758 tests; `--cov-fail-under=93` enforced via `gate-ci`. Remaining
+work is the ratchet toward 96 (see `tasks/todo-12-test-coverage.md` follow-ups).
 **Author:** 2026-08-30
 **Motivation:** A coverage audit (`coverage run -m pytest tests`) put v1 line
 coverage at **88%** overall, but that average hides several near-zero pockets on

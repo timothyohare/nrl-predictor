@@ -45,6 +45,7 @@ PRs #24–#29 in any order, then **#30 last** (`--cov-fail-under=93` fails on ba
 
 ## Rollup
 - [x] All 8 phases implemented and pushed
-- [ ] All phase PRs merged
-- [ ] Post-merge: bump `--cov-fail-under` toward 96 as follow-ups land
-- [ ] `docs/plans/12-*.md` status → done
+- [x] All phase PRs merged (#22–#30, 2026-08-30)
+- [x] Post-merge: `--cov-fail-under` raised 85 → 93 (main at 95.75%)
+- [x] `docs/plans/12-*.md` status → done
+- [ ] Continue the ratchet toward 96 as the sub-90 files above get covered

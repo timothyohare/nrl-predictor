@@ -75,7 +75,7 @@ do_not_mutate_patterns = ['pragma: no mutate']
 # `from scripts...` even though local `python -m pytest` (adds cwd) passed.
 testpaths = ["tests", "v2/tests"]
 pythonpath = ["."]
-addopts = "-v --import-mode=importlib --cov --cov-report=term-missing --cov-fail-under=85"
+addopts = "-v --import-mode=importlib --cov --cov-report=term-missing --cov-fail-under=93"
 
 [tool.coverage.run]
 branch = true
@@ -95,11 +95,11 @@ omit = [
 
 [tool.coverage.report]
 show_missing = true
-# --cov-fail-under is 85 here so this PR is mergeable on its own (main alone sits
-# at 86%). Phases 1-7 (PRs #24-#29) take the integrated suite to ~96% line/branch;
-# a follow-up bumps the floor to 93 once those are merged, then ratchets toward 96
-# as the remaining sub-90 files (v1/agent/*, v1/retrospective/*,
-# v1/orchestrator/lambda_handler.py, scrapers/articles/body.py,
+# Achieved on main: 95.75% line+branch, 758 tests (plan 12, phases 1-8 merged).
+# Floor is 93 — a ~2.75pt buffer so an ordinary change doesn't red the gate,
+# high enough to catch a real regression. Ratchet toward 96 as the remaining
+# sub-90 files (v1/agent/lambda_handler.py, v1/agent/tools/web_search.py,
+# v1/retrospective/*, v1/orchestrator/lambda_handler.py, scrapers/articles/body.py,
 # scrapers/nrl/team_sheet.py) get covered. Never lower it to make a run pass.
 exclude_also = [
     "if TYPE_CHECKING:",
