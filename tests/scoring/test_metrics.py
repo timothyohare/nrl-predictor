@@ -1,11 +1,19 @@
+from decimal import Decimal
+
 import boto3
 import pytest
 from moto import mock_aws
 
-from scoring.metrics import RoundMetrics, aggregate_round, aggregate_season
+from scoring.metrics import (
+    RoundMetrics,
+    aggregate_market_season,
+    aggregate_round,
+    aggregate_season,
+)
 
 RESULTS_TABLE = "results"
 METRICS_TABLE = "metrics"
+ODDS_TABLE = "odds"
 
 
 @pytest.fixture
@@ -130,3 +138,136 @@ def test_aggregate_season_writes_prompt_version_calibration(tables):
     assert "Item" in pv
     assert pv["Item"]["total"] == 10
     assert pv["Item"]["correct_picks"] == 7
+
+
+def test_aggregate_round_no_results_returns_zeroed_metrics_and_writes_nothing(tables):
+    """A round with no scored rows short-circuits before any metric write (metrics.py:73)."""
+    results_tbl, metrics_tbl = tables
+    m = aggregate_round(99, 2026, results_tbl, metrics_tbl)
+    assert (m.total, m.correct_picks, m.pick_rate) == (0, 0, 0.0)
+    assert "Item" not in metrics_tbl.get_item(
+        Key={"period": "2026-round-99", "metricName": "pick_rate"}
+    )
+
+
+def test_aggregate_season_no_results_writes_nothing(tables):
+    """An empty season short-circuits before any metric write (metrics.py:116)."""
+    results_tbl, metrics_tbl = tables
+    aggregate_season(season=2099, results_table=results_tbl, metrics_table=metrics_tbl)
+    assert "Item" not in metrics_tbl.get_item(
+        Key={"period": "2099-season", "metricName": "pick_rate"}
+    )
+
+
+# --- aggregate_market_season (betting-market accuracy) --------------------------
+
+
+@pytest.fixture
+def market_tables():
+    with mock_aws():
+        ddb = boto3.resource("dynamodb", region_name="ap-southeast-2")
+        client = boto3.client("dynamodb", region_name="ap-southeast-2")
+        for name, pk, sk in [
+            (ODDS_TABLE, "matchId", "scrapedAt"),
+            (RESULTS_TABLE, "matchId", "scoredAt"),
+            (METRICS_TABLE, "period", "metricName"),
+        ]:
+            client.create_table(
+                TableName=name,
+                KeySchema=[
+                    {"AttributeName": pk, "KeyType": "HASH"},
+                    {"AttributeName": sk, "KeyType": "RANGE"},
+                ],
+                AttributeDefinitions=[
+                    {"AttributeName": pk, "AttributeType": "S"},
+                    {"AttributeName": sk, "AttributeType": "S"},
+                ],
+                BillingMode="PAY_PER_REQUEST",
+            )
+        yield ddb.Table(ODDS_TABLE), ddb.Table(RESULTS_TABLE), ddb.Table(METRICS_TABLE)
+
+
+def _put_odds(odds_tbl, match_id, *, favourite="Panthers", margin="8.5",
+              scraped_at="2026-05-16T08:00:00Z", season=2026):
+    odds_tbl.put_item(Item={
+        "matchId": match_id,
+        "scrapedAt": scraped_at,
+        "market_favourite": favourite,
+        "market_margin": Decimal(margin),
+        "implied_home_prob": Decimal("0.62"),
+        "implied_away_prob": Decimal("0.38"),
+        "roundNumber": 12,
+        "season": season,
+    })
+
+
+def _put_result(results_tbl, match_id, *, winner="Panthers", margin=10,
+                home_team="Panthers", season=2026):
+    results_tbl.put_item(Item={
+        "matchId": match_id,
+        "scoredAt": "2026-05-17T11:30:00Z",
+        "winner": winner,
+        "margin": margin,
+        "homeTeam": home_team,
+        "awayTeam": "Broncos",
+        "roundNumber": 12,
+        "season": season,
+    })
+
+
+def test_aggregate_market_season_writes_market_metrics(market_tables):
+    odds_tbl, results_tbl, metrics_tbl = market_tables
+    # match A: market favourite (Panthers) wins -> correct pick
+    _put_odds(odds_tbl, "round-12-a-v-b", favourite="Panthers", margin="8")
+    _put_result(results_tbl, "round-12-a-v-b", winner="Panthers", margin=12, home_team="Panthers")
+    # match B: market favourite (Storm) loses -> incorrect pick
+    _put_odds(odds_tbl, "round-12-c-v-d", favourite="Storm", margin="4")
+    _put_result(results_tbl, "round-12-c-v-d", winner="Sharks", margin=6, home_team="Storm")
+
+    aggregate_market_season(2026, odds_tbl, results_tbl, metrics_tbl)
+
+    pick_rate = metrics_tbl.get_item(
+        Key={"period": "2026-season", "metricName": "market_pick_rate"}
+    )["Item"]
+    assert pick_rate["total"] == 2
+    assert pick_rate["correct_picks"] == 1
+    assert float(pick_rate["value"]) == pytest.approx(0.5)
+    assert "Item" in metrics_tbl.get_item(
+        Key={"period": "2026-season", "metricName": "market_mean_margin_error"}
+    )
+    assert "Item" in metrics_tbl.get_item(
+        Key={"period": "2026-season", "metricName": "market_brier_score"}
+    )
+
+
+def test_aggregate_market_season_dedupes_to_most_recent_scraped_odds(market_tables):
+    odds_tbl, results_tbl, metrics_tbl = market_tables
+    mid = "round-12-a-v-b"
+    # stale scrape has the wrong favourite; the corrected later scrape is right
+    _put_odds(odds_tbl, mid, favourite="Broncos", margin="3", scraped_at="2026-05-15T08:00:00Z")
+    _put_odds(odds_tbl, mid, favourite="Panthers", margin="9", scraped_at="2026-05-16T20:00:00Z")
+    _put_result(results_tbl, mid, winner="Panthers", margin=10, home_team="Panthers")
+
+    aggregate_market_season(2026, odds_tbl, results_tbl, metrics_tbl)
+
+    pick_rate = metrics_tbl.get_item(
+        Key={"period": "2026-season", "metricName": "market_pick_rate"}
+    )["Item"]
+    assert pick_rate["total"] == 1  # two odds rows collapse to one match
+    assert pick_rate["correct_picks"] == 1  # scored off the most-recent (Panthers) row
+
+
+def test_aggregate_market_season_no_odds_returns_early(market_tables):
+    odds_tbl, results_tbl, metrics_tbl = market_tables
+    _put_result(results_tbl, "round-12-a-v-b")
+    aggregate_market_season(2026, odds_tbl, results_tbl, metrics_tbl)
+    assert metrics_tbl.scan()["Items"] == []
+
+
+def test_aggregate_market_season_all_matches_unplayed_returns_early(market_tables):
+    odds_tbl, results_tbl, metrics_tbl = market_tables
+    # odds present, but no result rows -> score_market raises for every match -> total 0
+    _put_odds(odds_tbl, "round-12-a-v-b")
+    _put_odds(odds_tbl, "round-12-c-v-d")
+    aggregate_market_season(2026, odds_tbl, results_tbl, metrics_tbl)
+    assert metrics_tbl.scan()["Items"] == []
