@@ -1,3 +1,5 @@
+import runpy
+import sys
 from unittest.mock import patch
 
 import boto3
@@ -6,6 +8,25 @@ from moto import mock_aws
 
 from scrapers.nrl.backfill import backfill_season
 from tests.fixtures_helpers import make_draw_with_results
+
+
+def _make_results_infra():
+    boto3.client("dynamodb", region_name="ap-southeast-2").create_table(
+        TableName="results",
+        KeySchema=[
+            {"AttributeName": "matchId", "KeyType": "HASH"},
+            {"AttributeName": "scoredAt", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "matchId", "AttributeType": "S"},
+            {"AttributeName": "scoredAt", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    boto3.client("s3", region_name="ap-southeast-2").create_bucket(
+        Bucket="test-bucket",
+        CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"},
+    )
 
 
 @pytest.fixture
@@ -111,3 +132,40 @@ def test_backfill_skips_empty_rounds_without_raising(monkeypatch):
     with patch("scrapers.nrl.backfill.fetch_results", return_value={"fixtures": []}), \
          patch("scrapers.nrl.backfill.time.sleep"):
         backfill_season(season=2026, max_round=5)  # should not raise
+
+
+@mock_aws
+def test_backfill_skips_rounds_with_fixtures_but_no_fulltime_results(monkeypatch):
+    """Fixtures exist but none are FullTime yet (round in progress): the raw
+    scrape is cached but no records are written."""
+    monkeypatch.setenv("RESULTS_TABLE", "results")
+    monkeypatch.setenv("RAW_BUCKET", "test-bucket")
+    _make_results_infra()
+
+    not_finished = {"fixtures": [{"matchState": "Scheduled"}, {"matchState": "InProgress"}]}
+    with patch("scrapers.nrl.backfill.fetch_results", return_value=not_finished), \
+         patch("scrapers.nrl.backfill.time.sleep"):
+        backfill_season(season=2026, max_round=2)
+
+    table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("results")
+    assert table.scan()["Count"] == 0
+    # the raw scrape is still cached even when there is nothing to write
+    keys = boto3.client("s3", region_name="ap-southeast-2").list_objects_v2(
+        Bucket="test-bucket",
+    ).get("Contents", [])
+    assert len(keys) == 2
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+@mock_aws
+def test_backfill_module_run_as_script(monkeypatch):
+    """`python -m scrapers.nrl.backfill --seasons 2026 --max-round 1` parses
+    args and drives backfill_season for each season."""
+    monkeypatch.setenv("RESULTS_TABLE", "results")
+    monkeypatch.setenv("RAW_BUCKET", "test-bucket")
+    _make_results_infra()
+    monkeypatch.setattr(sys, "argv", ["backfill", "--seasons", "2026", "--max-round", "1"])
+
+    with patch("scrapers.nrl.results.fetch_results", return_value={"fixtures": []}), \
+         patch("time.sleep"):
+        runpy.run_module("scrapers.nrl.backfill", run_name="__main__")

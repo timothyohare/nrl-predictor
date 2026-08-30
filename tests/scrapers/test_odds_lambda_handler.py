@@ -119,3 +119,68 @@ def test_explicit_round_number_skips_draw_fetch(aws_env, tables):
 
     fetch_mock.assert_not_called()
     assert result["matches"] == 1
+
+
+# ── 2026-08-18 incident regression lock: the-odds-api.com 401 INVALID_KEY ─────
+
+def test_odds_api_401_invalid_key_fails_cleanly_and_writes_nothing(aws_env, tables):
+    """2026-08-18: the-odds-api.com key lapsed and every call came back
+    401 INVALID_KEY. The handler must degrade to a no-op (structured
+    {"matches": 0} return, nothing written), never raise."""
+    from scrapers.odds.lambda_handler import lambda_handler
+
+    unauthorized = MagicMock(status_code=401, text='{"message":"INVALID_KEY"}')
+    with patch("scrapers.odds.scraper.requests.get", return_value=unauthorized) as http_mock:
+        result = lambda_handler({"season": 2026, "round": 15}, {})
+
+    http_mock.assert_called_once()
+    assert result == {"matches": 0}
+
+    _, odds_table = tables
+    assert odds_table.scan()["Count"] == 0
+
+
+def test_empty_api_response_writes_nothing(aws_env, tables):
+    """An empty payload from the odds API is a no-op, not an error."""
+    from scrapers.odds.lambda_handler import lambda_handler
+
+    with patch("scrapers.odds.lambda_handler.fetch_odds", return_value=[]):
+        result = lambda_handler({"season": 2026, "round": 15}, {})
+
+    assert result == {"matches": 0}
+    _, odds_table = tables
+    assert odds_table.scan()["Count"] == 0
+
+
+def test_current_round_with_no_draw_matches_leaves_round_matches_empty(aws_env, tables):
+    """`round: "current"` that resolves to no fixtures -> round_number is None,
+    the teams-table scan is skipped and nothing matches."""
+    from scrapers.odds.lambda_handler import lambda_handler
+
+    with patch("scrapers.odds.lambda_handler.fetch_draw", return_value={"fixtures": []}), \
+         patch("scrapers.odds.lambda_handler.parse_draw", return_value=[]), \
+         patch("scrapers.odds.lambda_handler.fetch_odds", return_value=SAMPLE_API_RESPONSE):
+        result = lambda_handler({"season": 2026, "round": "current"}, {})
+
+    assert result == {"matches": 0, "round": None}
+    _, odds_table = tables
+    assert odds_table.scan()["Count"] == 0
+
+
+def test_api_key_falls_back_to_secrets_manager_when_env_unset(tables, monkeypatch):
+    """With no ODDS_API_KEY in the environment the handler must pull the key
+    from Secrets Manager and pass it through to fetch_odds."""
+    monkeypatch.setenv("TEAMS_TABLE", TEAMS_TABLE)
+    monkeypatch.setenv("ODDS_TABLE", ODDS_TABLE)
+    monkeypatch.delenv("ODDS_API_KEY", raising=False)
+
+    from scrapers.odds.lambda_handler import lambda_handler
+
+    boto3.client("secretsmanager", region_name="ap-southeast-2").create_secret(
+        Name="nrl-predictor/odds-api-key", SecretString="sm-secret-key",
+    )
+
+    with patch("scrapers.odds.lambda_handler.fetch_odds", return_value=[]) as odds_mock:
+        lambda_handler({"season": 2026, "round": 15}, {})
+
+    assert odds_mock.call_args.kwargs["api_key"] == "sm-secret-key"
