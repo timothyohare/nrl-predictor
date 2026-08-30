@@ -14,7 +14,40 @@ const eslintConfig = [
     extends: ["next/core-web-vitals", "next/typescript"],
   }),
   {
-    ignores: [".next/**", "node_modules/**", ".amplify-hosting/**", "next-env.d.ts"],
+    // Vitest test / setup files: allow the test-runner globals and the
+    // loose typing that fixtures and mocks tend to need.
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "vitest.setup.ts",
+      "vitest.config.mts",
+    ],
+    languageOptions: {
+      globals: {
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        vi: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+    },
+  },
+  {
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      ".amplify-hosting/**",
+      "coverage/**",
+      "next-env.d.ts",
+    ],
   },
 ];
 

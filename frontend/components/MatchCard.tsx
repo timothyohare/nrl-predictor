@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Prediction, Retrospective, Odds } from "@/lib/api";
+import { splitMatchId } from "@/lib/api";
 import { teamColor } from "@/lib/teamColors";
 import { teamName, toSlug } from "@/lib/teams";
 
@@ -10,14 +11,6 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   MEDIUM: "bg-yellow-400 text-yellow-900",
   LOW: "bg-red-500 text-white",
 };
-
-// matchIds may be either old-format ("panthers-v-broncos") or
-// new round-qualified format ("round-12-panthers-v-broncos")
-function splitMatchId(matchId: string): [string, string] {
-  const cleaned = matchId.replace(/^round-\d+-/, "");
-  const [home, away] = cleaned.split("-v-");
-  return [home ?? "", away ?? ""];
-}
 
 function staleness(generated_at: string): string {
   const diffMs = Date.now() - new Date(generated_at).getTime();

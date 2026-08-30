@@ -81,6 +81,20 @@ export interface TournamentLeaderboard {
 
 const API_BASE = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
+/**
+ * Split a matchId into its [home, away] team slugs.
+ *
+ * matchIds may be either the old unqualified format ("panthers-v-broncos")
+ * or the round-qualified format ("round-12-panthers-v-broncos"); the
+ * `round-<N>-` prefix is stripped when present. Unknown / malformed ids
+ * degrade to empty strings rather than throwing.
+ */
+export function splitMatchId(matchId: string): [string, string] {
+  const cleaned = matchId.replace(/^round-\d+-/, "");
+  const [home, away] = cleaned.split("-v-");
+  return [home ?? "", away ?? ""];
+}
+
 export async function getPredictions(round: number): Promise<Prediction[]> {
   const res = await fetch(`${API_BASE}/predictions/${round}`, { next: { revalidate: 300 } });
   if (res.status === 404) return [];
