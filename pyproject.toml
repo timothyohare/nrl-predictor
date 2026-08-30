@@ -23,6 +23,7 @@ dependencies = [
 dev = [
     "pytest>=8.2",
     "pytest-bdd>=7.3",
+    "pytest-cov>=5.0",
     "pytest-mock>=3.14",
     "moto[dynamodb,s3,secretsmanager]>=5.0",
     "aws-cdk-lib>=2.140",
@@ -74,7 +75,37 @@ do_not_mutate_patterns = ['pragma: no mutate']
 # `from scripts...` even though local `python -m pytest` (adds cwd) passed.
 testpaths = ["tests", "v2/tests"]
 pythonpath = ["."]
-addopts = "-v --import-mode=importlib"
+addopts = "-v --import-mode=importlib --cov --cov-report=term-missing --cov-fail-under=93"
+
+[tool.coverage.run]
+branch = true
+# v1 + the shared root packages. v2 has its own suite and is out of scope for this
+# floor (docs/plans/12-test-coverage-hardening.md). Running v2/tests still
+# contributes coverage to the shared packages, which only helps.
+source = ["common", "scrapers", "scoring", "v1"]
+omit = [
+    "*/__main__.py",
+    "v2/*",
+    "tests/*",
+    "v2/tests/*",
+    "scripts/*",
+    "infra/*",
+    "fetcher-spikes/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+# Achieved 96% line / 96% branch across phases 1-7 (see plan 12). Floor is 93 — a
+# ~3pt buffer so an ordinary change doesn't red the gate, low enough to catch a
+# real regression. Ratchet up as the remaining sub-90 files (v1/agent/*,
+# v1/retrospective/*, v1/orchestrator/lambda_handler.py, scrapers/articles/body.py,
+# scrapers/nrl/team_sheet.py) get covered. Never lower it to make a run pass.
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc\\.)?abstractmethod",
+]
 
 [tool.ruff]
 target-version = "py312"

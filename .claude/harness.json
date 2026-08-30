@@ -2,7 +2,7 @@
   "runtime": "python",
   "lint": ".venv/bin/ruff check . && cd frontend && npm run lint",
   "typecheck": ".venv/bin/mypy . && cd frontend && npm run typecheck",
-  "test": "AWS_DEFAULT_REGION=ap-southeast-2 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test python3 -m pytest",
+  "test": "AWS_DEFAULT_REGION=ap-southeast-2 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test python3 -m pytest && cd frontend && npm run test:cov",
   "build": "cd frontend && npm run build",
 
   "mockAws": "dynamodb-local",

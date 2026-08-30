@@ -42,3 +42,13 @@ reports/
 
 # scripts/gather_round_context.py output — paste-ready prompt files, local only
 manual_context/
+
+# Coverage (pytest-cov / coverage.py) — data file + reports are build artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+frontend/coverage/
+
+# Claude Code agent worktrees (isolation: worktree) — transient, harness-managed
+.claude/worktrees/
