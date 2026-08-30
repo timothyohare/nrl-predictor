@@ -5,7 +5,11 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from v1.tournament.variant_scorer import get_leaderboard, score_round
+from v1.tournament.variant_scorer import (
+    aggregate_variant_season,
+    get_leaderboard,
+    score_round,
+)
 
 SIM_TABLE = "simulation_predictions"
 RESULTS_TABLE = "results"
@@ -182,3 +186,130 @@ class TestGetLeaderboard:
     def test_returns_empty_list_when_no_data(self, tables):
         _, _, metrics_tbl = tables
         assert get_leaderboard(2026, metrics_tbl) == []
+
+    def test_coerces_decimal_cells_to_float(self, tables):
+        _, _, metrics_tbl = tables
+        metrics_tbl.put_item(Item={
+            "variantId": "baseline",
+            "period": "2026-season",
+            "pick_rate": Decimal("0.6"),
+            "correct_picks": 6,
+            "total_picks": 10,
+            "avg_margin_error": Decimal("8.5"),
+            "brier_score": Decimal("0.24"),
+            "rounds_active": 3,
+        })
+
+        row = get_leaderboard(2026, metrics_tbl)[0]
+
+        assert isinstance(row["pick_rate"], float)
+        assert isinstance(row["avg_margin_error"], float)
+        assert isinstance(row["brier_score"], float)
+        assert isinstance(row["correct_picks"], int)
+        assert isinstance(row["total_picks"], int)
+        assert isinstance(row["rounds_active"], int)
+        assert row["pick_rate"] == 0.6
+
+    def test_filters_to_the_requested_season(self, tables):
+        _, _, metrics_tbl = tables
+        metrics_tbl.put_item(Item={
+            "variantId": "baseline", "period": "2026-season",
+            "pick_rate": Decimal("0.6"), "correct_picks": 6, "total_picks": 10,
+            "avg_margin_error": Decimal("8.5"), "brier_score": Decimal("0.24"),
+            "rounds_active": 3,
+        })
+        metrics_tbl.put_item(Item={
+            "variantId": "baseline", "period": "2025-season",
+            "pick_rate": Decimal("0.9"), "correct_picks": 9, "total_picks": 10,
+            "avg_margin_error": Decimal("5.0"), "brier_score": Decimal("0.11"),
+            "rounds_active": 5,
+        })
+        # A per-round row for the same season must not leak into the leaderboard.
+        metrics_tbl.put_item(Item={
+            "variantId": "baseline", "period": "2026-round-12",
+            "pick_rate": Decimal("1.0"), "correct_picks": 1, "total_picks": 1,
+            "avg_margin_error": Decimal("2.0"), "brier_score": Decimal("0.02"),
+            "rounds_active": 1,
+        })
+
+        board = get_leaderboard(2026, metrics_tbl)
+
+        assert [r["pick_rate"] for r in board] == [0.6]
+
+
+class TestAggregateVariantSeason:
+    def test_writes_season_metrics_per_variant_skipping_unplayed(self, tables):
+        sim_tbl, results_tbl, metrics_tbl = tables
+        # baseline: two played matches across two rounds (one hit, one miss).
+        _put_sim_prediction(sim_tbl, MATCH_ID_1, "baseline", "Panthers",
+                            predicted_margin=10, round_number=12)
+        _put_sim_prediction(sim_tbl, MATCH_ID_2, "baseline", "Storm",
+                            predicted_margin=10, round_number=13)
+        # heavy-home-advantage: one played (hit), one still unplayed -> skipped.
+        _put_sim_prediction(sim_tbl, MATCH_ID_1, "heavy-home-advantage", "Panthers",
+                            round_number=12)
+        _put_sim_prediction(sim_tbl, "round-13-eels-v-titans", "heavy-home-advantage",
+                            "Eels", round_number=13)
+
+        _put_result(results_tbl, MATCH_ID_1, "Panthers", margin=16)
+        _put_result(results_tbl, MATCH_ID_2, "Roosters", margin=4)  # baseline miss
+        # no result row for round-13-eels-v-titans
+
+        aggregate_variant_season(2026, sim_tbl, results_tbl, metrics_tbl)
+
+        base = metrics_tbl.get_item(
+            Key={"variantId": "baseline", "period": "2026-season"})["Item"]
+        assert base["total_picks"] == 2
+        assert base["correct_picks"] == 1
+        assert abs(float(base["pick_rate"]) - 0.5) < 1e-6
+        assert float(base["avg_margin_error"]) == 6.0  # |10-16| and |10-4|
+        assert abs(float(base["brier_score"]) - 0.3725) < 1e-6  # (0.0225 + 0.7225)/2
+        assert base["rounds_active"] == 2
+
+        heavy = metrics_tbl.get_item(
+            Key={"variantId": "heavy-home-advantage", "period": "2026-season"})["Item"]
+        assert heavy["total_picks"] == 1
+        assert heavy["correct_picks"] == 1
+
+    def test_uses_most_recent_result_row_per_match(self, tables):
+        sim_tbl, results_tbl, metrics_tbl = tables
+        _put_sim_prediction(sim_tbl, MATCH_ID_1, "baseline", "Panthers", predicted_margin=10)
+        # Stale row (Broncos win) then a fresher row (Panthers win) for the same match.
+        results_tbl.put_item(Item={
+            "matchId": MATCH_ID_1, "scoredAt": "2026-06-01T10:00:00Z",
+            "winner": "Broncos", "margin": 2, "roundNumber": 12, "season": 2026,
+        })
+        results_tbl.put_item(Item={
+            "matchId": MATCH_ID_1, "scoredAt": "2026-06-02T10:00:00Z",
+            "winner": "Panthers", "margin": 10, "roundNumber": 12, "season": 2026,
+        })
+
+        aggregate_variant_season(2026, sim_tbl, results_tbl, metrics_tbl)
+
+        item = metrics_tbl.get_item(
+            Key={"variantId": "baseline", "period": "2026-season"})["Item"]
+        assert item["correct_picks"] == 1  # fresher row (Panthers) wins the tie-break
+        assert float(item["avg_margin_error"]) == 0.0
+
+    def test_no_scored_matches_writes_nothing(self, tables):
+        sim_tbl, results_tbl, metrics_tbl = tables
+        _put_sim_prediction(sim_tbl, MATCH_ID_1, "baseline", "Panthers")
+        # no results at all
+
+        aggregate_variant_season(2026, sim_tbl, results_tbl, metrics_tbl)
+
+        assert "Item" not in metrics_tbl.get_item(
+            Key={"variantId": "baseline", "period": "2026-season"})
+
+    def test_unknown_confidence_falls_back_to_default_probability(self, tables):
+        sim_tbl, results_tbl, metrics_tbl = tables
+        _put_sim_prediction(sim_tbl, MATCH_ID_1, "baseline", "Panthers",
+                            predicted_margin=8, confidence="WOBBLY")
+        _put_result(results_tbl, MATCH_ID_1, "Panthers", margin=8)
+
+        aggregate_variant_season(2026, sim_tbl, results_tbl, metrics_tbl)
+
+        item = metrics_tbl.get_item(
+            Key={"variantId": "baseline", "period": "2026-season"})["Item"]
+        # correct pick, p falls back to 0.65 -> brier = (0.65 - 1) ** 2 = 0.1225
+        assert abs(float(item["brier_score"]) - 0.1225) < 1e-6
