@@ -24,10 +24,27 @@ out on the top-up alone.
 `nrl-predictor-coverage-check` correctly detecting and logging the
 under-prediction every single run ("Round 25 under-predicted: 0/8..."). The
 alarm sat in state OK the whole time, reason "no datapoints were received...
-treated as NonBreaching" — the metric the coverage-check emits isn't reaching
-the alarm. Not yet root-caused; start from the metric emission in
-`v1/orchestrator/coverage_check.py` vs. the alarm definition in
-`infra/v1_stack.py`.
+treated as NonBreaching".
+
+**2026-08-30 update — root-caused and FIXED. DEPLOYED and confirmed live.**
+The emit side was always correct (namespace/name/dimensions/region/IAM all
+match). The bug was the alarm config in `infra/v1_stack.py`: it reused the
+`period=1h` + `NOT_BREACHING` pattern the `*ErrorAlarm`s use for
+`fn.metric_errors()` (a continuous built-in metric), but
+`NrlPredictor/MissingPredictions` is a **sparse pulse** — `coverage_check`
+emits one datapoint per run, at most ~once a day. With a 1h period the daily
+datapoint routinely lands after the alarm has evaluated and moved past its
+hour (worsened by custom-metric ingestion lag), so the breaching hour is
+never seen; `NOT_BREACHING` then forces the state back to OK on the next
+empty hour. Fix (`PredictionCoverageAlarm`): `period` 1h → 24h so the pulse
+always lands in the evaluated window, and `NOT_BREACHING` → `IGNORE` so
+missing data holds the last state — once tripped it stays ALARM until a
+later run emits `MissingPredictions = 0`. Also wrapped the `put_metric_data`
+call in try/except so a CloudWatch hiccup can't abort the handler before it
+logs. `cdk deploy NrlPredictorStack` + `aws cloudwatch describe-alarms`
+confirmed: `Period: 86400`, `TreatMissingData: ignore`,
+`DatapointsToAlarm: 1`. Not yet exercised by a real under-predicted round —
+next one will prove it end-to-end.
 
 **Separately:** the odds API key (the-odds-api.com, unrelated service) has
 been returning 401 `INVALID_KEY` since the 2026-08-18 run — a second,
@@ -70,9 +87,9 @@ again, same failure shape as round 25, so Anthropic credits have not been
 topped up. The `odds` table has 0 rows for round 26 too, so the-odds-api.com
 key has not been rotated either. Neither blocks the site's main predictions
 (confirmed above), but both still block the tournament comparison and the
-market-odds columns on the frontend. The coverage-check/alarm wiring gap
-above is also still un-root-caused — not re-investigated this round since
-round 26 wasn't actually under-predicted (nothing to trip the alarm on).
+market-odds columns on the frontend. (The coverage-check/alarm wiring gap
+mentioned earlier was root-caused and fixed on 2026-08-30 — see the
+2026-08-30 update above.)
 
 **2026-08-23 update — v2's EventBridge schedules disabled, not cut over.
 DEPLOYED and confirmed live.** v2's whole design
@@ -254,6 +271,13 @@ warning listing the missing matchIds, and emits the
 `nrl-predictor-missing-predictions` alarm (threshold ≥ 1) notifies the existing
 SNS alert topic (email). Invoke ad-hoc with
 `{"season": 2026, "round": "current"}` to spot-check a round.
+
+The alarm treats the metric as a **once-a-day pulse** (fixed 2026-08-30, PR #32
+— see the incident section above): `period=24h`, `treat_missing_data=IGNORE`,
+`datapoints_to_alarm=1`. It stays in ALARM once tripped and only clears when a
+later coverage run emits `MissingPredictions = 0`. Do **not** copy the
+`period=30min` + `NOT_BREACHING` config the `*ErrorAlarm`s use — that pattern
+only works for continuous metrics like `fn.metric_errors()`.
 
 ---
 

@@ -37,9 +37,11 @@ PRs #24–#29 in any order, then **#30 last** (`--cov-fail-under=93` fails on ba
 - [ ] `scrapers/nrl/backfill.py::backfill_season` — `records_skipped` counter is
       initialised but never incremented (cosmetic; completion log always says
       "0 skipped").
-- [ ] Re-check the `coverage_check` → `nrl-predictor-missing-predictions` alarm
-      wiring gap from `CLAUDE.md` — Phase 6's write-path scenario proves the
-      metric *value* is emitted correctly, so the gap is downstream of emission.
+- [x] Re-check the `coverage_check` → `nrl-predictor-missing-predictions` alarm
+      wiring gap from `CLAUDE.md` — root-caused (alarm `period=1h` + `NOT_BREACHING`
+      vs. a once-a-day pulse metric) and fixed in PR #32 (`period` → 24h,
+      `IGNORE` missing data, `put_metric_data` wrapped in try/except).
+      `cdk deploy` confirmed live 2026-08-30.
 - [ ] Phase 7 optional Playwright SSR smoke (`/`, `/predictions/[round]`,
       `/accuracy`, `/tournament`) — deferred; component tests judged sufficient.
 
