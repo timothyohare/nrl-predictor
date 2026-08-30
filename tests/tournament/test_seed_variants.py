@@ -1,10 +1,14 @@
 """Tests for tournament/seed_variants.py — specifically the `only` filter that lets
 Phase 2 seed the new stats variant without re-seeding (and thus duplicating) the 8
 existing production prompt variants. See docs/plans/10, Phase 2."""
+import runpy
+import sys
+
 import boto3
 import pytest
 from moto import mock_aws
 
+from v1.tournament import seed_variants as seed_variants_mod
 from v1.tournament.seed_variants import _VARIANTS, seed
 
 TABLE = "prompt_variants"
@@ -70,3 +74,32 @@ class TestStatsVariantShape:
         seed(TABLE, variant_ids=["baseline"])
         item = table.scan()["Items"][0]
         assert item["variant_type"] == "prompt"
+
+
+class TestSeedEdgeCases:
+    def test_unknown_variant_id_raises_value_error(self, table):
+        with pytest.raises(ValueError, match="Unknown variantId"):
+            seed(TABLE, variant_ids=["no-such-variant"])
+
+    def test_dry_run_writes_nothing_but_reports_intent(self, table, capsys):
+        seed(TABLE, dry_run=True, variant_ids=["stats-elo-v1"])
+
+        assert table.scan()["Items"] == []
+        out = capsys.readouterr().out
+        assert "[dry-run]" in out
+        assert "stats-elo-v1" in out
+
+
+class TestSeedCli:
+    def test_main_entrypoint_honours_dry_run_and_only(self, table, monkeypatch, capsys):
+        monkeypatch.setattr(
+            sys, "argv",
+            ["seed_variants", "--dry-run", "--table", TABLE, "--only", "stats-elo-v1"],
+        )
+
+        runpy.run_path(seed_variants_mod.__file__, run_name="__main__")
+
+        out = capsys.readouterr().out
+        assert "[dry-run]" in out
+        assert "stats-elo-v1" in out
+        assert table.scan()["Items"] == []
