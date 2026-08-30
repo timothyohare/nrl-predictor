@@ -116,6 +116,35 @@ def test_emits_missing_predictions_metric(aws_env, predictions_table):
     assert any(m["MetricName"] == "MissingPredictions" for m in metrics)
 
 
+def test_metric_emit_failure_does_not_abort_the_handler(aws_env, predictions_table, caplog):
+    """A CloudWatch PutMetricData failure must not stop the handler before it
+    logs the under-predicted round — the log line is the source of truth."""
+    _put(predictions_table, "round-20-panthers-v-broncos", "OK")
+    # sharks-v-knights and roosters-v-storm are missing → warning + metric emit
+
+    class _BrokenCloudWatch:
+        def put_metric_data(self, **_):
+            raise RuntimeError("cw down")
+
+    real_client = boto3.client
+
+    def _client(service, *a, **kw):
+        return _BrokenCloudWatch() if service == "cloudwatch" else real_client(service, *a, **kw)
+
+    with patch("v1.orchestrator.coverage_check.boto3.client", side_effect=_client):
+        with caplog.at_level(logging.WARNING):
+            result = _run()
+
+    assert result["ok"] == 1
+    assert sorted(result["missing"]) == [
+        "round-20-roosters-v-storm",
+        "round-20-sharks-v-knights",
+    ]
+    messages = "\n".join(r.message for r in caplog.records)
+    assert "Failed to emit NrlPredictor/MissingPredictions metric" in messages
+    assert "round-20-sharks-v-knights" in messages  # the real warning still logged
+
+
 def test_no_matches_is_a_noop(aws_env, predictions_table):
     from v1.orchestrator.coverage_check import lambda_handler
 
