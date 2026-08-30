@@ -58,6 +58,22 @@ above (credits, odds key) still stand on their own merits — they're no
 longer site-critical, but the tournament's 7 Claude variants and manual
 agent backfill still depend on them.
 
+**2026-08-26 update — Phase 3 cutover now CONFIRMED live on a real
+scheduled round, not just IAM/env inspection.** Round 26's Tuesday
+orchestrator run (2026-08-25T06:30 UTC) predicted 8/8 matches in ~25s, all
+`prompt_version: stats-elo-v1`, all `status: OK` — the previously-open "still
+worth confirming" item above is now closed. **The two action items are
+still open, unresolved, and still actively biting the tournament:** round
+26's tournament run wrote `simulation_predictions` rows for only
+`stats-elo-v1` (8/8) — the other 7 Claude-based variants produced zero rows
+again, same failure shape as round 25, so Anthropic credits have not been
+topped up. The `odds` table has 0 rows for round 26 too, so the-odds-api.com
+key has not been rotated either. Neither blocks the site's main predictions
+(confirmed above), but both still block the tournament comparison and the
+market-odds columns on the frontend. The coverage-check/alarm wiring gap
+above is also still un-root-caused — not re-investigated this round since
+round 26 wasn't actually under-predicted (nothing to trip the alarm on).
+
 **2026-08-23 update — v2's EventBridge schedules disabled, not cut over.
 DEPLOYED and confirmed live.** v2's whole design
 (Router/Primary/Challenger/Judge/Extended, 5 LLM calls per match) only
@@ -299,8 +315,9 @@ Post-match: scoring Lambda writes scored results + triggers retrospective Lambda
 | `scrapers/odds/` | Betting market odds from the-odds-api.com — comparison only, never agent input |
 | `scrapers/shared/` | `http_client.py` (retry + delay), `s3_cache.py`, `models.py` (shared dataclasses), `constants.py` |
 | `tournament/` | Prompt tournament: `variant_runner.py` (run agent with variant prompt), `variant_scorer.py` (score variants vs results), `orchestrator_lambda.py` (fan-out to workers), `worker_lambda.py` (per-variant), `scorer_lambda.py`, `seed_variants.py` (seed initial 8 variants) |
-| `agent/` | LangGraph ReAct graph (`graph.py`), 14 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`), late-change detection (`late_change.py`). No longer on the automatic prediction path (2026-08-23 cutover) — kept for manual/backfill invocation |
-| `common/stats_model/` | The local Elo + Monte Carlo predictor (`elo.py`, `simulate.py`, `ratings.py`, `confidence.py`, `predictor.py`) — no LLM, no external API. `predictor.py::predict_match()` is the single shared adapter used by both the main predictions path and the tournament's `stats-elo-v1` variant |
+| `agent/` | LangGraph ReAct graph (`graph.py`), 14 DynamoDB-backed tools (`tools/`), system prompt (`prompt.py`), prediction schema validation (`schema.py`), budget tracker (`budget.py`). No longer on the automatic prediction path (2026-08-23 cutover) — kept for manual/backfill invocation |
+| `common/stats_model/` | The local Elo + Monte Carlo predictor (`elo.py`, `simulate.py`, `ratings.py`, `confidence.py`, `predictor.py`) — no LLM, no external API. `predictor.py::predict_match()` is the single shared adapter used by both the main predictions path and the tournament's `stats-elo-v1` variant. `predict_match()`/`simulate_match()` also take optional rating-adjustment/variance-multiplier inputs (docs/plans/11-team-sheet-injury-weather-signals.md) that default to inert |
+| `common/team_sheet.py` | Spine-position (jersey 1/6/7/9) comparison between two team sheets — moved here from `v1/agent/late_change.py` since both the agent's model-selection heuristic and the orchestrator's spine-disruption signal need it |
 | `orchestrator/` | Per-round fan-out Lambda — scrapes draw + team sheets inline, then predicts every match synchronously via `stats_predictor.py` (Elo + Monte Carlo, no external API) |
 | `retrospective/` | Post-match retrospective: Tavily search + Claude Sonnet analysis of prediction vs result |
 | `scoring/` | `scorer.py` (Brier + margin error), `metrics.py` (round/season aggregation incl. confidence calibration + prompt versioning) |

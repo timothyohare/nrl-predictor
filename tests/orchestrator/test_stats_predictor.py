@@ -142,3 +142,198 @@ class TestPredictRound:
         # touch the agent/Claude at all.
         import v1.orchestrator.stats_predictor as mod
         assert "run_agent" not in dir(mod)
+
+
+@pytest.fixture
+def teams_table(tables):
+    """A `teams` table in the same already-active mock_aws context as `tables`."""
+    client = boto3.client("dynamodb", region_name="ap-southeast-2")
+    client.create_table(
+        TableName="teams",
+        KeySchema=[
+            {"AttributeName": "teamId", "KeyType": "HASH"},
+            {"AttributeName": "round", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "teamId", "AttributeType": "S"},
+            {"AttributeName": "round", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
+
+
+class TestPredictRoundSpineSignal:
+    """docs/plans/11-team-sheet-injury-weather-signals.md, Phase 2."""
+
+    def test_spine_changed_home_is_reflected_in_key_factors(self, tables, teams_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        teams_table.put_item(Item={
+            "teamId": "round-13-panthers-v-broncos", "round": "13",
+            "spine_changed_home": True, "spine_changed_away": False,
+        })
+
+        predict_round(_matches()[:1], round_number=13, season=2026,
+                       predictions_table=predictions_table, results_table=results_table,
+                       teams_table=teams_table)
+
+        item = predictions_table.scan()["Items"][0]
+        assert any("adjusted" in f for f in item["key_factors"])
+
+    def test_no_row_for_the_match_is_a_no_op(self, tables, teams_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        # teams_table exists but has no item for this match/round — must fail
+        # open (no exception, no adjustment), same as a missing team sheet.
+        predict_round(_matches()[:1], round_number=13, season=2026,
+                       predictions_table=predictions_table, results_table=results_table,
+                       teams_table=teams_table)
+
+        item = predictions_table.scan()["Items"][0]
+        assert not any("adjusted" in f for f in item["key_factors"])
+
+    def test_omitting_teams_table_entirely_is_backward_compatible(self, tables):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        predicted = predict_round(_matches()[:1], round_number=13, season=2026,
+                                   predictions_table=predictions_table, results_table=results_table)
+
+        assert predicted == ["round-13-panthers-v-broncos"]
+        assert predictions_table.scan()["Items"][0]["status"] == "OK"
+
+
+@pytest.fixture
+def injuries_table(tables):
+    """An `injuries` table in the same already-active mock_aws context as `tables`."""
+    client = boto3.client("dynamodb", region_name="ap-southeast-2")
+    client.create_table(
+        TableName="injuries",
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table("injuries")
+
+
+class TestPredictRoundInjurySignal:
+    """docs/plans/11-team-sheet-injury-weather-signals.md, Phase 3."""
+
+    def test_spine_player_ruled_out_is_reflected_in_key_factors(self, tables, teams_table, injuries_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        teams_table.put_item(Item={
+            "teamId": "round-13-panthers-v-broncos", "round": "13",
+            "homePlayers": [{"jersey_number": 7, "first_name": "Test", "last_name": "Halfback"}],
+            "awayPlayers": [],
+            "spine_changed_home": False, "spine_changed_away": False,
+        })
+        injuries_table.put_item(Item={
+            "pk": "injury#panthers#test-halfback", "sk": "2026-06-01T00:00:00Z",
+            "player": "Test Halfback", "team": "panthers", "status": "out", "detail": "",
+        })
+
+        predict_round(_matches()[:1], round_number=13, season=2026,
+                       predictions_table=predictions_table, results_table=results_table,
+                       teams_table=teams_table, injuries_table=injuries_table)
+
+        item = predictions_table.scan()["Items"][0]
+        assert any("adjusted" in f for f in item["key_factors"])
+
+    def test_no_matching_mention_is_a_no_op(self, tables, teams_table, injuries_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        teams_table.put_item(Item={
+            "teamId": "round-13-panthers-v-broncos", "round": "13",
+            "homePlayers": [{"jersey_number": 7, "first_name": "Test", "last_name": "Halfback"}],
+            "awayPlayers": [],
+            "spine_changed_home": False, "spine_changed_away": False,
+        })
+
+        predict_round(_matches()[:1], round_number=13, season=2026,
+                       predictions_table=predictions_table, results_table=results_table,
+                       teams_table=teams_table, injuries_table=injuries_table)
+
+        item = predictions_table.scan()["Items"][0]
+        assert not any("adjusted" in f for f in item["key_factors"])
+
+    def test_omitting_injuries_table_entirely_is_backward_compatible(self, tables, teams_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        predicted = predict_round(_matches()[:1], round_number=13, season=2026,
+                                   predictions_table=predictions_table, results_table=results_table,
+                                   teams_table=teams_table)
+
+        assert predicted == ["round-13-panthers-v-broncos"]
+
+
+@pytest.fixture
+def weather_table(tables):
+    """A `weather` table in the same already-active mock_aws context as `tables`."""
+    client = boto3.client("dynamodb", region_name="ap-southeast-2")
+    client.create_table(
+        TableName="weather",
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table("weather")
+
+
+class TestPredictRoundWeatherSignal:
+    """docs/plans/11-team-sheet-injury-weather-signals.md, Phase 4."""
+
+    def test_bad_weather_is_reflected_in_key_factors(self, tables, weather_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        # _matches()[0] is at "BlueBet Stadium", kick_off "2026-06-01T09:00:00Z".
+        weather_table.put_item(Item={
+            "pk": "weather#BlueBet Stadium", "sk": "2026-06-01",
+            "rain_chance_pct": 90, "wind_kmh": 10,
+        })
+
+        predict_round(_matches()[:1], round_number=13, season=2026,
+                       predictions_table=predictions_table, results_table=results_table,
+                       weather_table=weather_table)
+
+        item = predictions_table.scan()["Items"][0]
+        assert any("variance widened" in f for f in item["key_factors"])
+
+    def test_no_forecast_row_is_a_no_op(self, tables, weather_table):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        predict_round(_matches()[:1], round_number=13, season=2026,
+                       predictions_table=predictions_table, results_table=results_table,
+                       weather_table=weather_table)
+
+        item = predictions_table.scan()["Items"][0]
+        assert not any("variance widened" in f for f in item["key_factors"])
+
+    def test_omitting_weather_table_entirely_is_backward_compatible(self, tables):
+        from v1.orchestrator.stats_predictor import predict_round
+
+        predictions_table, results_table = tables
+        predicted = predict_round(_matches()[:1], round_number=13, season=2026,
+                                   predictions_table=predictions_table, results_table=results_table)
+
+        assert predicted == ["round-13-panthers-v-broncos"]

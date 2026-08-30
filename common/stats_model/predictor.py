@@ -34,9 +34,23 @@ def predict_match(
     home_advantage: float,
     n_simulations: int,
     rng: random.Random,
+    home_rating_adjustment: float = 0.0,
+    away_rating_adjustment: float = 0.0,
+    margin_stdev_multiplier: float = 1.0,
 ) -> StatsPrediction:
+    """`home_rating_adjustment`/`away_rating_adjustment`/`margin_stdev_multiplier`
+    are Phase 1 plumbing for docs/plans/11-team-sheet-injury-weather-signals.md —
+    optional, additive nudges to the *effective* rating fed into the simulation,
+    never to the persisted Elo history. All default to inert so every existing
+    call site is unaffected until a later phase wires a real signal through them.
+    """
     home_rating, away_rating = ratings[home], ratings[away]
-    sim = simulate_match(home_rating, away_rating, home_advantage, n_simulations, rng)
+    home_effective = home_rating + home_rating_adjustment
+    away_effective = away_rating + away_rating_adjustment
+    sim = simulate_match(
+        home_effective, away_effective, home_advantage, n_simulations, rng,
+        margin_stdev_multiplier=margin_stdev_multiplier,
+    )
     predicted_winner = home if sim.home_win_probability >= 0.5 else away
     predicted_margin = round(abs(sim.expected_margin))
     confidence = confidence_for(sim.home_win_probability)
@@ -48,14 +62,37 @@ def predict_match(
         f"Simulated home win probability {sim.home_win_probability:.1%} over "
         f"{n_simulations:,} Monte Carlo trials",
     ]
+    if home_rating_adjustment:
+        key_factors.append(
+            f"{home} rating adjusted {home_rating_adjustment:+.0f} ahead of kickoff "
+            "(team sheet/injury signal)"
+        )
+    if away_rating_adjustment:
+        key_factors.append(
+            f"{away} rating adjusted {away_rating_adjustment:+.0f} ahead of kickoff "
+            "(team sheet/injury signal)"
+        )
+    if margin_stdev_multiplier != 1.0:
+        key_factors.append(
+            f"Match-day variance widened {margin_stdev_multiplier:.2f}x (weather signal)"
+        )
+
     reasoning = (
         f"Elo + Monte Carlo model (no LLM). {home} rated {home_rating:.0f}, {away} rated "
         f"{away_rating:.0f} before home-ground adjustment (+{home_advantage:.0f} to {home}). "
         f"{n_simulations:,} simulated trials gave {home} a {sim.home_win_probability:.1%} win "
         f"probability, picking {predicted_winner} by {predicted_margin} ({confidence} confidence). "
-        "No team-sheet, injury, weather, or narrative signal used — "
-        "see docs/plans/10-elo-monte-carlo-predictor.md."
     )
+    if home_rating_adjustment or away_rating_adjustment or margin_stdev_multiplier != 1.0:
+        reasoning += (
+            "Pre-match signal adjustments applied ahead of simulation — see key_factors "
+            "for team sheet/injury/weather detail."
+        )
+    else:
+        reasoning += (
+            "No team-sheet, injury, weather, or narrative signal used — "
+            "see docs/plans/10-elo-monte-carlo-predictor.md."
+        )
 
     return StatsPrediction(
         predicted_winner=predicted_winner,

@@ -1,4 +1,8 @@
-from v1.agent.late_change import is_high_impact_change
+"""Tests for common/team_sheet.py — spine-position comparison shared by the
+agent's model-selection heuristic (formerly v1/agent/late_change.py) and the
+orchestrator's spine-disruption signal (docs/plans/11-team-sheet-injury-weather-signals.md).
+"""
+from common.team_sheet import changed_spine_positions, is_high_impact_change
 
 
 def _player(number: int, name: str = "Player"):
@@ -47,3 +51,22 @@ def test_no_change_is_not_high_impact():
     players = [_player(7), _player(9)]
     sheet = _sheet(players)
     assert is_high_impact_change(sheet, sheet) is False
+
+
+def test_changed_spine_positions_reports_the_changed_jerseys():
+    old = _sheet([_player(1, "Same"), _player(7, "OldHalf"), _player(9, "OldHook")])
+    new = _sheet([_player(1, "Same"), _player(7, "NewHalf"), _player(9, "NewHook")])
+    assert changed_spine_positions(old, new, "homePlayers") == [7, 9]
+
+
+def test_changed_spine_positions_is_empty_when_side_absent_from_old_sheet():
+    # First-ever scrape of a round: no prior sheet to diff against — never a change.
+    old = {"homePlayers": [], "awayPlayers": []}
+    new = _sheet([_player(7, "NewHalf")])
+    assert changed_spine_positions(old, new, "homePlayers") == []
+
+
+def test_changed_spine_positions_only_looks_at_the_given_side():
+    old = _sheet(home_players=[_player(7, "OldHalf")], away_players=[_player(9, "Same")])
+    new = _sheet(home_players=[_player(7, "NewHalf")], away_players=[_player(9, "Same")])
+    assert changed_spine_positions(old, new, "awayPlayers") == []

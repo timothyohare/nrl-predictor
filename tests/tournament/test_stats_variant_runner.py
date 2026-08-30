@@ -158,6 +158,208 @@ class TestRunStatsVariantForRound:
         assert first[0]["predicted_margin"] == second[0]["predicted_margin"]
         assert first[0]["confidence"] == second[0]["confidence"]
 
+
+@pytest.fixture
+def teams_table(tables):
+    """A `teams` table in the same already-active mock_aws context as `tables`."""
+    client = boto3.client("dynamodb", region_name="ap-southeast-2")
+    client.create_table(
+        TableName="teams",
+        KeySchema=[
+            {"AttributeName": "teamId", "KeyType": "HASH"},
+            {"AttributeName": "round", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "teamId", "AttributeType": "S"},
+            {"AttributeName": "round", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
+
+
+class TestRunStatsVariantForRoundSpineSignal:
+    """docs/plans/11-team-sheet-injury-weather-signals.md, Phase 2."""
+
+    def test_spine_changed_home_is_reflected_in_key_factors(self, tables, teams_table):
+        results_table, sim_table = tables
+        teams_table.put_item(Item={
+            "teamId": "round-13-panthers-v-broncos", "round": "13",
+            "spine_changed_home": True, "spine_changed_away": False,
+        })
+
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+        )
+        assert any("adjusted" in f for f in records[0]["key_factors"])
+
+    def test_no_row_for_the_match_is_a_no_op(self, tables, teams_table):
+        results_table, sim_table = tables
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+        )
+        assert not any("adjusted" in f for f in records[0]["key_factors"])
+
+    def test_omitting_teams_table_entirely_is_backward_compatible(self, tables):
+        results_table, sim_table = tables
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+        )
+        assert records[0]["matchId"] == "round-13-panthers-v-broncos"
+
+
+@pytest.fixture
+def injuries_table(tables):
+    """An `injuries` table in the same already-active mock_aws context as `tables`."""
+    client = boto3.client("dynamodb", region_name="ap-southeast-2")
+    client.create_table(
+        TableName="injuries",
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table("injuries")
+
+
+class TestRunStatsVariantForRoundInjurySignal:
+    """docs/plans/11-team-sheet-injury-weather-signals.md, Phase 3."""
+
+    def test_spine_player_ruled_out_is_reflected_in_key_factors(self, tables, teams_table, injuries_table):
+        results_table, sim_table = tables
+        teams_table.put_item(Item={
+            "teamId": "round-13-panthers-v-broncos", "round": "13",
+            "homePlayers": [{"jersey_number": 7, "first_name": "Test", "last_name": "Halfback"}],
+            "awayPlayers": [],
+            "spine_changed_home": False, "spine_changed_away": False,
+        })
+        injuries_table.put_item(Item={
+            "pk": "injury#panthers#test-halfback", "sk": "2026-06-01T00:00:00Z",
+            "player": "Test Halfback", "team": "panthers", "status": "out", "detail": "",
+        })
+
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+            injuries_table=injuries_table,
+        )
+        assert any("adjusted" in f for f in records[0]["key_factors"])
+
+    def test_omitting_injuries_table_entirely_is_backward_compatible(self, tables, teams_table):
+        results_table, sim_table = tables
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+        )
+        assert records[0]["matchId"] == "round-13-panthers-v-broncos"
+
+
+@pytest.fixture
+def weather_table(tables):
+    """A `weather` table in the same already-active mock_aws context as `tables`."""
+    client = boto3.client("dynamodb", region_name="ap-southeast-2")
+    client.create_table(
+        TableName="weather",
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table("weather")
+
+
+class TestRunStatsVariantForRoundWeatherSignal:
+    """docs/plans/11-team-sheet-injury-weather-signals.md, Phase 4."""
+
+    def test_bad_weather_is_reflected_in_key_factors(self, tables, teams_table, weather_table):
+        results_table, sim_table = tables
+        # The venue/kickoff-date come from the draw-entry row the orchestrator's
+        # lambda_handler.py step 2 writes for every match, keyed "{matchId}#home".
+        teams_table.put_item(Item={
+            "teamId": "round-13-panthers-v-broncos#home", "round": "13",
+            "venue": "BlueBet Stadium", "kickOff": "2026-06-01T09:00:00Z",
+        })
+        weather_table.put_item(Item={
+            "pk": "weather#BlueBet Stadium", "sk": "2026-06-01",
+            "rain_chance_pct": 90, "wind_kmh": 10,
+        })
+
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+            weather_table=weather_table,
+        )
+        assert any("variance widened" in f for f in records[0]["key_factors"])
+
+    def test_no_draw_entry_or_forecast_is_a_no_op(self, tables, teams_table, weather_table):
+        results_table, sim_table = tables
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+            weather_table=weather_table,
+        )
+        assert not any("variance widened" in f for f in records[0]["key_factors"])
+
+    def test_omitting_weather_table_entirely_is_backward_compatible(self, tables, teams_table):
+        results_table, sim_table = tables
+        records = run_stats_variant_for_round(
+            variant_id=VARIANT_ID,
+            match_ids=["round-13-panthers-v-broncos"],
+            round_number=13,
+            season=2026,
+            sim_table=sim_table,
+            results_table=results_table,
+            teams_table=teams_table,
+        )
+        assert records[0]["matchId"] == "round-13-panthers-v-broncos"
+
     def test_no_llm_import_at_call_time(self, tables):
         # Sanity guard for the whole point of this variant: it must not touch
         # the agent/Claude at all. If this module ever imports v1.agent.graph,

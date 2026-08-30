@@ -23,12 +23,20 @@ BASE_EVENT = {
 }
 
 
+TEAMS_TABLE = "teams"
+INJURIES_TABLE = "injuries"
+WEATHER_TABLE = "weather"
+
+
 @pytest.fixture(autouse=True)
 def env():
     with patch.dict(os.environ, {
         "PROMPT_VARIANTS_TABLE": PROMPT_VARIANTS_TABLE,
         "SIMULATION_PREDICTIONS_TABLE": SIM_TABLE,
         "RESULTS_TABLE": RESULTS_TABLE,
+        "TEAMS_TABLE": TEAMS_TABLE,
+        "INJURIES_TABLE": INJURIES_TABLE,
+        "WEATHER_TABLE": WEATHER_TABLE,
     }):
         yield
 
@@ -70,6 +78,42 @@ def tables():
             AttributeDefinitions=[
                 {"AttributeName": "matchId", "AttributeType": "S"},
                 {"AttributeName": "scoredAt", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        client.create_table(
+            TableName=TEAMS_TABLE,
+            KeySchema=[
+                {"AttributeName": "teamId", "KeyType": "HASH"},
+                {"AttributeName": "round", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "teamId", "AttributeType": "S"},
+                {"AttributeName": "round", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        client.create_table(
+            TableName=INJURIES_TABLE,
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        client.create_table(
+            TableName=WEATHER_TABLE,
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
             ],
             BillingMode="PAY_PER_REQUEST",
         )
@@ -135,6 +179,19 @@ class TestStatsVariantDispatch:
         assert kwargs["match_ids"] == MATCH_IDS
         assert kwargs["round_number"] == 13
         assert kwargs["season"] == 2026
+
+    def test_stats_model_passes_teams_table_for_the_spine_signal(self, tables):
+        # docs/plans/11-team-sheet-injury-weather-signals.md, Phase 2.
+        _put_variant(tables, "stats-elo-v1", "v1", variant_type="stats_model")
+        with patch("v1.tournament.worker_lambda.run_variant_for_round"), \
+             patch("v1.tournament.worker_lambda.run_stats_variant_for_round",
+                   return_value=[{"pk": "x"}]) as stats_runner:
+            lambda_handler({**BASE_EVENT, "variantId": "stats-elo-v1", "variantVersion": "v1"}, None)
+
+        _, kwargs = stats_runner.call_args
+        assert kwargs["teams_table"].table_name == TEAMS_TABLE
+        assert kwargs["injuries_table"].table_name == INJURIES_TABLE
+        assert kwargs["weather_table"].table_name == WEATHER_TABLE
 
     def test_stats_variant_does_not_wait_for_stagger(self, tables):
         # The stats variant makes no external API calls, so there's nothing to

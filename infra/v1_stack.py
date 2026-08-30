@@ -563,11 +563,15 @@ class NrlPredictorStack(cdk.Stack):
 
         # Orchestrator: reads/writes teams + s3 (same as the scraper lambdas
         # whose work it inlines), reads results (Elo rating replay) and
-        # writes predictions directly (Phase 3 cutover — no more agent invoke)
+        # writes predictions directly (Phase 3 cutover — no more agent invoke).
+        # injuries/weather: read-only, for the stats-elo-v1 injury/weather
+        # signals (docs/plans/11-team-sheet-injury-weather-signals.md, Phases 3-4).
         teams_table.grant_read_write_data(orchestrator_fn)
         raw_bucket.grant_read_write(orchestrator_fn)
         results_table.grant_read_data(orchestrator_fn)
         predictions_table.grant_read_write_data(orchestrator_fn)
+        injuries_table.grant_read_data(orchestrator_fn)
+        weather_table.grant_read_data(orchestrator_fn)
 
         # Coverage check: reads predictions, emits a custom CloudWatch metric
         predictions_table.grant_read_data(coverage_check_fn)

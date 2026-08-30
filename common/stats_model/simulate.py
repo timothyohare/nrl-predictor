@@ -44,22 +44,30 @@ def simulate_match(
     home_advantage: float,
     n: int,
     rng: random.Random,
+    margin_stdev_multiplier: float = 1.0,
 ) -> SimulationResult:
     """Simulate `n` matches between two Elo-rated teams.
 
     `expected_margin` is signed from the home team's perspective (positive =
     home favoured to win by that many points).
+
+    `margin_stdev_multiplier` widens (>1) or narrows (<1) the margin
+    distribution only — it never touches `p_home`, so it can't leak into
+    which side is predicted to win. Intended for a match-day variance signal
+    (e.g. weather) that makes outcomes noisier without changing who's
+    favoured. See docs/plans/11-team-sheet-injury-weather-signals.md.
     """
     home_effective = home_rating + home_advantage
     p_home = expected_score(home_effective, away_rating)
     elo_diff = home_effective - away_rating
     magnitude_mean = max(1.0, _MARGIN_SLOPE * abs(elo_diff) + _MARGIN_INTERCEPT)
+    magnitude_stdev = _MARGIN_STDEV * margin_stdev_multiplier
 
     home_wins = 0
     margin_total = 0.0
     for _ in range(n):
         is_home_win = rng.random() < p_home
-        magnitude = max(1.0, rng.gauss(magnitude_mean, _MARGIN_STDEV))
+        magnitude = max(1.0, rng.gauss(magnitude_mean, magnitude_stdev))
         margin_total += magnitude if is_home_win else -magnitude
         if is_home_win:
             home_wins += 1

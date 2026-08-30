@@ -45,6 +45,9 @@ def lambda_handler(event: dict, context) -> dict:
         # No Anthropic API call, so nothing to rate-limit — skip the stagger
         # that the LLM path needs to stay under the account's token/min cap.
         results_table = ddb.Table(os.environ["RESULTS_TABLE"])
+        teams_table = ddb.Table(os.environ["TEAMS_TABLE"])
+        injuries_table = ddb.Table(os.environ["INJURIES_TABLE"])
+        weather_table = ddb.Table(os.environ["WEATHER_TABLE"])
         results = run_stats_variant_for_round(
             variant_id=variant_id,
             match_ids=match_ids,
@@ -52,6 +55,9 @@ def lambda_handler(event: dict, context) -> dict:
             season=season,
             sim_table=sim_table,
             results_table=results_table,
+            teams_table=teams_table,
+            injuries_table=injuries_table,
+            weather_table=weather_table,
         )
     else:
         # Stagger this worker's first call relative to other workers — only

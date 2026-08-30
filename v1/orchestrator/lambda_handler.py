@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import boto3
 
+from common.team_sheet import changed_spine_positions
 from scrapers.nrl.draw import fetch_draw, parse_draw
 from scrapers.nrl.team_sheet import (
     TeamSheetNotFound,
@@ -72,6 +73,26 @@ def lambda_handler(event: dict, context) -> dict:
             )
             ts = parse_team_sheet(q_data)
             ts.scraped_at = scraped_at
+            new_sheet = {
+                "homePlayers": [p.__dict__ for p in ts.home_team.players],
+                "awayPlayers": [p.__dict__ for p in ts.away_team.players],
+            }
+
+            # Diff against whatever was scraped last for this round (if anything)
+            # to detect spine changes (jersey 1/6/7/9) between runs — the
+            # `stats-elo-v1` disruption signal in docs/plans/11. Each new scrape
+            # overwrites the previous item, so this is the only point where the
+            # intra-week history is ever visible.
+            existing = teams_table.get_item(
+                Key={"teamId": match.match_id, "round": str(match.round_number)}
+            ).get("Item")
+            old_sheet = {
+                "homePlayers": existing.get("homePlayers", []),
+                "awayPlayers": existing.get("awayPlayers", []),
+            } if existing else {"homePlayers": [], "awayPlayers": []}
+            changed_home = changed_spine_positions(old_sheet, new_sheet, "homePlayers")
+            changed_away = changed_spine_positions(old_sheet, new_sheet, "awayPlayers")
+
             teams_table.put_item(Item={
                 # Key by the slug the agent is invoked with / queries by, not the
                 # numerical NRL matchId from the q-data.
@@ -81,10 +102,13 @@ def lambda_handler(event: dict, context) -> dict:
                 "kickOff": ts.kick_off or "",
                 "homeTeam": ts.home_team.nick_name,
                 "awayTeam": ts.away_team.nick_name,
-                "homePlayers": [p.__dict__ for p in ts.home_team.players],
-                "awayPlayers": [p.__dict__ for p in ts.away_team.players],
+                "homePlayers": new_sheet["homePlayers"],
+                "awayPlayers": new_sheet["awayPlayers"],
                 "homeScore": ts.home_team.score,
                 "awayScore": ts.away_team.score,
+                "spine_changed_home": bool(changed_home),
+                "spine_changed_away": bool(changed_away),
+                "changed_positions": changed_home + changed_away,
                 "scraped_at": scraped_at,
             })
         except TeamSheetNotFound as e:
@@ -97,9 +121,12 @@ def lambda_handler(event: dict, context) -> dict:
     # docs/plans/10-elo-monte-carlo-predictor.md, Phase 3 cutover.
     predictions_table = boto3.resource("dynamodb").Table(os.environ["PREDICTIONS_TABLE"])
     results_table = boto3.resource("dynamodb").Table(os.environ["RESULTS_TABLE"])
+    injuries_table = boto3.resource("dynamodb").Table(os.environ["INJURIES_TABLE"])
+    weather_table = boto3.resource("dynamodb").Table(os.environ["WEATHER_TABLE"])
     predicted = predict_round(
         matches, round_number=actual_round, season=season,
         predictions_table=predictions_table, results_table=results_table,
+        teams_table=teams_table, injuries_table=injuries_table, weather_table=weather_table,
     )
 
     logger.info("Predicted %d/%d matches", len(predicted), len(matches))

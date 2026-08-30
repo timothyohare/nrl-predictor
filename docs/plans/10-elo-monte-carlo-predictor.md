@@ -30,7 +30,9 @@ plan.
   XIII diffs, spine positions 1/6/7/9 weighted higher) are in scope as a
   deterministic rating adjustment; RSS-article injury severity and
   narrative trap-game detection are not, pending a decision after backtest
-  results are in.
+  results are in. See `docs/plans/11-team-sheet-injury-weather-signals.md`
+  (2026-08-26) for the follow-up plan covering team-sheet, injury, and
+  weather signals.
 - **Betting odds remain comparison-only.** The Elo/Monte Carlo model must
   never take `odds` table data as an input feature — same invariant as the
   agent (CLAUDE.md "Important constraints").

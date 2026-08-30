@@ -66,3 +66,56 @@ def test_margin_magnitude_symmetric_regardless_of_which_side_is_favoured(home_ra
     ratings = {"panthers": home_rating, "broncos": away_rating}
     pred = predict_match("panthers", "broncos", ratings, 0, 8000, random.Random(11))
     assert pred.predicted_margin > 0
+
+
+# --- Phase 1 plumbing (docs/plans/11-team-sheet-injury-weather-signals.md) ---
+# `predict_match` gains optional rating-adjustment/variance-multiplier inputs
+# that Phases 2-4 of plan 11 will wire real team-sheet/injury/weather signals
+# into. Every test above passes none of them and must keep passing unchanged
+# — that's the "no behavior change" contract for this phase.
+
+
+def test_home_rating_adjustment_reduces_home_win_probability():
+    ratings = {"panthers": 1600.0, "broncos": 1600.0}
+    baseline = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 5000, random.Random(3))
+    penalized = predict_match(
+        "panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 5000, random.Random(3),
+        home_rating_adjustment=-100.0,
+    )
+    assert penalized.home_win_probability < baseline.home_win_probability
+
+
+def test_away_rating_adjustment_raises_home_win_probability_when_negative():
+    ratings = {"panthers": 1600.0, "broncos": 1600.0}
+    baseline = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 5000, random.Random(3))
+    penalized_away = predict_match(
+        "panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 5000, random.Random(3),
+        away_rating_adjustment=-100.0,
+    )
+    assert penalized_away.home_win_probability > baseline.home_win_probability
+
+
+def test_zero_adjustments_match_omitting_them_entirely():
+    ratings = {"panthers": 1600.0, "broncos": 1550.0}
+    explicit = predict_match(
+        "panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 3000, random.Random(5),
+        home_rating_adjustment=0.0, away_rating_adjustment=0.0, margin_stdev_multiplier=1.0,
+    )
+    implicit = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 3000, random.Random(5))
+    assert explicit == implicit
+
+
+def test_rating_adjustment_reflected_in_key_factors_and_reasoning():
+    ratings = {"panthers": 1600.0, "broncos": 1600.0}
+    pred = predict_match(
+        "panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 2000, random.Random(1),
+        home_rating_adjustment=-25.0,
+    )
+    assert any("-25" in f for f in pred.key_factors)
+    assert "No team-sheet, injury, weather" not in pred.reasoning
+
+
+def test_no_adjustment_keeps_the_no_signal_disclaimer():
+    ratings = {"panthers": 1500.0, "broncos": 1500.0}
+    pred = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 2000, random.Random(1))
+    assert "No team-sheet, injury, weather" in pred.reasoning

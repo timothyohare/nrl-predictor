@@ -53,6 +53,37 @@ def test_n_matches_requested():
     assert result.n == 1234
 
 
+def test_margin_stdev_multiplier_does_not_affect_win_probability():
+    # Widening/narrowing the margin distribution must not leak into the
+    # win/loss draw — that's a separate Bernoulli draw on the closed-form
+    # expected score. Same seed on both sides means the rng call sequence
+    # (rng.random() then rng.gauss() per trial) is bit-identical regardless
+    # of the stdev fed into gauss.
+    baseline = simulate_match(1600, 1500, home_advantage=55, n=5000, rng=random.Random(7))
+    widened = simulate_match(
+        1600, 1500, home_advantage=55, n=5000, rng=random.Random(7), margin_stdev_multiplier=5.0
+    )
+    assert widened.home_win_probability == baseline.home_win_probability
+
+
+def test_margin_stdev_multiplier_changes_expected_margin():
+    baseline = simulate_match(1600, 1500, home_advantage=55, n=5000, rng=random.Random(7))
+    widened = simulate_match(
+        1600, 1500, home_advantage=55, n=5000, rng=random.Random(7), margin_stdev_multiplier=5.0
+    )
+    assert widened.expected_margin != baseline.expected_margin
+
+
+def test_margin_stdev_multiplier_default_matches_unmultiplied_call():
+    # Default (1.0) must reproduce today's behavior exactly — no new call
+    # site is forced to change until it opts in.
+    explicit_default = simulate_match(
+        1550, 1500, home_advantage=50, n=2000, rng=random.Random(99), margin_stdev_multiplier=1.0
+    )
+    no_param = simulate_match(1550, 1500, home_advantage=50, n=2000, rng=random.Random(99))
+    assert explicit_default == no_param
+
+
 def test_magnitude_symmetric_in_elo_diff_sign():
     # Two mirror-image matchups (home favoured by X vs home underdog by X)
     # should produce the same |expected_margin| — magnitude is driven by the

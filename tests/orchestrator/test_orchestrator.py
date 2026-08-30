@@ -28,6 +28,8 @@ def aws_env(monkeypatch):
     monkeypatch.setenv("RAW_BUCKET", "test-bucket")
     monkeypatch.setenv("PREDICTIONS_TABLE", "predictions")
     monkeypatch.setenv("RESULTS_TABLE", "results")
+    monkeypatch.setenv("INJURIES_TABLE", "injuries")
+    monkeypatch.setenv("WEATHER_TABLE", "weather")
 
 
 @pytest.fixture
@@ -67,6 +69,30 @@ def ddb_and_s3():
             AttributeDefinitions=[
                 {"AttributeName": "matchId", "AttributeType": "S"},
                 {"AttributeName": "scoredAt", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        client.create_table(
+            TableName="injuries",
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        client.create_table(
+            TableName="weather",
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
             ],
             BillingMode="PAY_PER_REQUEST",
         )
@@ -155,3 +181,45 @@ def test_orchestrator_writes_teams_entries_to_dynamo(aws_env, ddb_and_s3, draw_d
     items = table.scan()["Items"]
     # 3 fixtures × 2 sides
     assert len([i for i in items if i.get("matchId", "").startswith("round-12-")]) == 6
+
+
+def test_first_ever_scrape_of_a_round_flags_no_spine_change(aws_env, ddb_and_s3, draw_data):
+    """No prior team sheet to diff against — never a change (docs/plans/11)."""
+    from v1.orchestrator.lambda_handler import lambda_handler
+
+    q_data = json.loads(
+        (Path(__file__).parent.parent / "fixtures" / "nrl_team_sheet_qdata.json").read_text()
+    )
+
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data):
+        lambda_handler({"season": 2026, "round": 12}, {})
+
+    table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
+    item = table.get_item(Key={"teamId": "round-12-panthers-v-broncos", "round": "12"})["Item"]
+    assert item["spine_changed_home"] is False
+    assert item["spine_changed_away"] is False
+    assert item["changed_positions"] == []
+
+
+def test_second_scrape_with_a_different_fullback_flags_home_spine_change(aws_env, ddb_and_s3, draw_data):
+    from v1.orchestrator.lambda_handler import lambda_handler
+
+    q_data = json.loads(
+        (Path(__file__).parent.parent / "fixtures" / "nrl_team_sheet_qdata.json").read_text()
+    )
+
+    with patch("v1.orchestrator.lambda_handler.fetch_draw", return_value=draw_data), \
+         patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", return_value=q_data):
+        lambda_handler({"season": 2026, "round": 12}, {})  # first scrape, no prior item
+
+        changed_q_data = json.loads(json.dumps(q_data))  # deep copy
+        changed_q_data["match"]["homeTeam"]["players"][0]["firstName"] = "Replacement"
+        with patch("v1.orchestrator.lambda_handler.fetch_team_sheet_page", return_value=changed_q_data):
+            lambda_handler({"season": 2026, "round": 12}, {})  # second scrape, fullback swapped
+
+    table = boto3.resource("dynamodb", region_name="ap-southeast-2").Table("teams")
+    item = table.get_item(Key={"teamId": "round-12-panthers-v-broncos", "round": "12"})["Item"]
+    assert item["spine_changed_home"] is True
+    assert item["spine_changed_away"] is False
+    assert item["changed_positions"] == [1]
