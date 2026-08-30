@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from v1.api.accuracy import lambda_handler
+from v1.api.accuracy import _serialise, lambda_handler
 
 TABLE = "metrics"
 
@@ -48,3 +48,34 @@ def test_returns_accuracy_data(aws_env, table):
 def test_response_has_no_cache_header(aws_env, table):
     response = lambda_handler({}, {})
     assert response["headers"].get("Cache-Control") == "no-store"
+
+
+def test_raises_key_error_when_metrics_table_unset(monkeypatch):
+    monkeypatch.delenv("METRICS_TABLE", raising=False)
+    with pytest.raises(KeyError):
+        lambda_handler({}, {})
+
+
+def test_scan_paginates_past_one_page(aws_env, table):
+    import json
+
+    # Each item ~350KB; >3 exceeds the 1MB scan page so the handler must follow
+    # LastEvaluatedKey or it silently drops metrics rows.
+    for i in range(5):
+        table.put_item(Item={
+            "period": f"2026-round-{40 + i}",
+            "metricName": "pick_rate",
+            "value": Decimal("0.5"),
+            "blob": "x" * 350_000,
+        })
+
+    response = lambda_handler({}, {})
+    body = json.loads(response["body"])
+    round_periods = {r["period"] for r in body["rounds"]}
+    assert {f"2026-round-{40 + i}" for i in range(5)} <= round_periods
+
+
+def test_serialise_converts_decimal_and_rejects_other_types():
+    assert _serialise(Decimal("0.5")) == 0.5
+    with pytest.raises(TypeError):
+        _serialise(set())

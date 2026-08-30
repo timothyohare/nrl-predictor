@@ -1,12 +1,32 @@
+import json
+from decimal import Decimal
 
 import boto3
 import pytest
 from moto import mock_aws
 
-from v1.api.predictions import lambda_handler
+from v1.api.predictions import _serialise, lambda_handler
 
 TABLE = "predictions"
 RESULTS_TABLE = "results"
+RETRO_TABLE = "retrospectives"
+ODDS_TABLE = "odds"
+
+
+def _make_table(name, sort_key):
+    boto3.client("dynamodb", region_name="ap-southeast-2").create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "matchId", "KeyType": "HASH"},
+            {"AttributeName": sort_key, "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "matchId", "AttributeType": "S"},
+            {"AttributeName": sort_key, "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    return boto3.resource("dynamodb", region_name="ap-southeast-2").Table(name)
 
 
 @pytest.fixture
@@ -180,3 +200,120 @@ def test_returns_all_matches_when_table_exceeds_one_scan_page(aws_env, table):
     response = lambda_handler({"pathParameters": {"round": "20"}, "queryStringParameters": {}}, {})
     body = json.loads(response["body"])
     assert sorted(p["matchId"] for p in body) == sorted(matches)
+
+
+def _predict(event_round="12"):
+    return lambda_handler(
+        {"pathParameters": {"round": event_round}, "queryStringParameters": {}}, {}
+    )
+
+
+# --- retrospective join ------------------------------------------------------
+
+def test_retrospective_join_uses_newest_generated_at(aws_env, table, monkeypatch):
+    monkeypatch.setenv("RETROSPECTIVES_TABLE", RETRO_TABLE)
+    retro = _make_table(RETRO_TABLE, "generatedAt")
+    retro.put_item(Item={
+        "matchId": "panthers-v-broncos",
+        "generatedAt": "2026-05-17T08:00:00Z",
+        "roundNumber": 12,
+        "verdict": "stale verdict",
+        "lesson": "old lesson",
+    })
+    retro.put_item(Item={
+        "matchId": "panthers-v-broncos",
+        "generatedAt": "2026-05-18T09:00:00Z",
+        "roundNumber": 12,
+        "verdict": "fresh verdict",
+        "hit_factors": ["forward pack"],
+        "missed_factors": ["bench impact"],
+        "what_actually_happened": "Panthers won comfortably.",
+        "lesson": "new lesson",
+    })
+
+    body = json.loads(_predict()["body"])
+    assert body[0]["retrospective"]["verdict"] == "fresh verdict"
+    assert body[0]["retrospective"]["lesson"] == "new lesson"
+    assert body[0]["retrospective"]["hit_factors"] == ["forward pack"]
+    assert body[0]["retrospective"]["generated_at"] == "2026-05-18T09:00:00Z"
+
+
+def test_retrospective_scan_failure_is_swallowed(aws_env, table, monkeypatch):
+    # Table name points at a table that does not exist → scan raises, handler
+    # must still return predictions without a retrospective block.
+    monkeypatch.setenv("RETROSPECTIVES_TABLE", "retrospectives-missing")
+    body = json.loads(_predict()["body"])
+    assert len(body) == 1
+    assert "retrospective" not in body[0]
+
+
+# --- odds join + is_outlier ------------------------------------------------
+
+@pytest.mark.parametrize(
+    "market_favourite, market_margin, expected_outlier",
+    [
+        ("panthers", 8, False),   # agree on winner, |10-8| = 2 <= 6
+        ("Broncos", 10, True),    # disagree on winner
+        ("Panthers", 20, True),   # agree on winner but |10-20| = 10 > 6
+    ],
+)
+def test_is_outlier_table_driven(
+    aws_env, table, monkeypatch, market_favourite, market_margin, expected_outlier
+):
+    monkeypatch.setenv("ODDS_TABLE", ODDS_TABLE)
+    odds = _make_table(ODDS_TABLE, "scrapedAt")
+    odds.put_item(Item={
+        "matchId": "panthers-v-broncos",
+        "scrapedAt": "2026-05-15T09:00:00Z",
+        "roundNumber": 12,
+        "market_favourite": market_favourite,
+        "market_margin": Decimal(str(market_margin)),
+        "home_odds": Decimal("1.5"),
+        "away_odds": Decimal("2.7"),
+        "implied_home_prob": Decimal("0.66"),
+        "implied_away_prob": Decimal("0.34"),
+    })
+
+    body = json.loads(_predict()["body"])
+    assert body[0]["is_outlier"] is expected_outlier
+    assert body[0]["odds"]["market_favourite"] == market_favourite
+    assert body[0]["odds"]["market_margin"] == float(market_margin)
+    assert isinstance(body[0]["odds"]["home_odds"], float)
+    assert body[0]["odds"]["implied_away_prob"] == 0.34
+
+
+# --- optional tables unset ------------------------------------------------
+
+def test_optional_joins_absent_when_tables_unset(aws_env, table, monkeypatch):
+    monkeypatch.delenv("RESULTS_TABLE", raising=False)
+    monkeypatch.delenv("RETROSPECTIVES_TABLE", raising=False)
+    monkeypatch.delenv("ODDS_TABLE", raising=False)
+
+    response = _predict()
+    assert response["statusCode"] == 200
+    body = json.loads(response["body"])
+    assert "result" not in body[0]
+    assert "retrospective" not in body[0]
+    assert "odds" not in body[0]
+    assert "is_outlier" not in body[0]
+
+
+def test_result_scan_failure_is_swallowed(aws_env, table, monkeypatch):
+    monkeypatch.setenv("RESULTS_TABLE", "results-missing")
+    body = json.loads(_predict()["body"])
+    assert len(body) == 1
+    assert "result" not in body[0]
+
+
+def test_odds_scan_failure_is_swallowed(aws_env, table, monkeypatch):
+    monkeypatch.setenv("ODDS_TABLE", "odds-missing")
+    body = json.loads(_predict()["body"])
+    assert len(body) == 1
+    assert "odds" not in body[0]
+    assert "is_outlier" not in body[0]
+
+
+def test_serialise_rejects_non_decimal():
+    assert _serialise(Decimal("2.5")) == 2.5
+    with pytest.raises(TypeError):
+        _serialise({"not": "serialisable"})
