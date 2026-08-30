@@ -1,8 +1,12 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 from scrapers.articles.body import extract_body_text
-from scrapers.articles.rss import parse_rss
+from scrapers.articles.rss import fetch_rss, parse_rss
+from scrapers.shared.http_client import ScraperError
 from scrapers.shared.models import Article
 
 RSS_FIXTURE = Path(__file__).parent.parent / "fixtures" / "zerotackle_rss.xml"
@@ -54,6 +58,65 @@ def test_parse_rss_source_field():
     xml = make_rss_with_dates([5])
     articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=datetime.now(UTC))
     assert articles[0].source == "Zero Tackle"
+
+
+def test_fetch_rss_returns_response_body():
+    with patch(
+        "scrapers.articles.rss.get_with_retry",
+        return_value=(200, "<rss><channel/></rss>"),
+    ) as mock_get:
+        body = fetch_rss("https://www.zerotackle.com/feed/")
+
+    assert body == "<rss><channel/></rss>"
+    assert mock_get.call_args.args[0] == "https://www.zerotackle.com/feed/"
+
+
+def test_fetch_rss_propagates_fetch_errors():
+    with patch(
+        "scrapers.articles.rss.get_with_retry",
+        side_effect=ScraperError("Failed after 3 attempts; last status 503"),
+    ):
+        with pytest.raises(ScraperError):
+            fetch_rss("https://www.zerotackle.com/feed/")
+
+
+def test_parse_rss_skips_entry_missing_required_fields():
+    recent = (datetime.now(UTC) - timedelta(hours=3)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    xml = f"""<?xml version="1.0"?><rss version="2.0"><channel>
+      <item>
+        <title>Panthers recall star for finals</title>
+        <link>https://example.com/ok/</link>
+        <pubDate>{recent}</pubDate>
+        <description>Panthers news.</description>
+      </item>
+      <item>
+        <title>Panthers injury latest</title>
+        <link>https://example.com/no-date/</link>
+        <description>Missing pubDate, must be dropped.</description>
+      </item>
+    </channel></rss>"""
+    articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=datetime.now(UTC))
+    assert [a.url for a in articles] == ["https://example.com/ok/"]
+
+
+def test_parse_rss_skips_entry_with_unparseable_pubdate():
+    recent = (datetime.now(UTC) - timedelta(hours=3)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    xml = f"""<?xml version="1.0"?><rss version="2.0"><channel>
+      <item>
+        <title>Panthers name unchanged side</title>
+        <link>https://example.com/ok/</link>
+        <pubDate>{recent}</pubDate>
+        <description>Panthers news.</description>
+      </item>
+      <item>
+        <title>Panthers halfback in doubt</title>
+        <link>https://example.com/bad-date/</link>
+        <pubDate>not actually a date</pubDate>
+        <description>Panthers news.</description>
+      </item>
+    </channel></rss>"""
+    articles = parse_rss(xml, "Zero Tackle", nrl_teams=NRL_TEAMS, now=datetime.now(UTC))
+    assert [a.url for a in articles] == ["https://example.com/ok/"]
 
 
 def test_extract_body_text_strips_html():
