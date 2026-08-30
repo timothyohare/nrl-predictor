@@ -8,7 +8,7 @@
   "mockAws": "dynamodb-local",
   "mockUp": "docker compose -f scripts/gate/docker-compose.yml up -d",
   "mockDown": "docker compose -f scripts/gate/docker-compose.yml down",
-  "setup": ".venv/bin/python scripts/gate/local_setup.py",
+  "setup": ".venv/bin/python scripts/gate/local_setup.py && .venv/bin/python scripts/gate/write_path_setup.py",
   "boot": ".venv/bin/python scripts/gate/local_api_server.py",
   "ready": "http://127.0.0.1:8001/health",
   "readyMatch": "ok",
@@ -36,6 +36,10 @@
     "RESULTS_TABLE": "results",
     "RETROSPECTIVES_TABLE": "retrospectives",
     "ODDS_TABLE": "odds",
-    "RATE_LIMITS_TABLE": "nrl-rate-limits"
+    "RATE_LIMITS_TABLE": "nrl-rate-limits",
+    "TEAMS_TABLE": "teams",
+    "INJURIES_TABLE": "injuries",
+    "WEATHER_TABLE": "weather",
+    "METRICS_TABLE": "metrics"
   }
 }
