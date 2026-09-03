@@ -84,6 +84,36 @@ def test_margin_stdev_multiplier_default_matches_unmultiplied_call():
     assert explicit_default == no_param
 
 
+def test_margin_stdev_is_positive():
+    result = simulate_match(1600, 1500, home_advantage=50, n=8000, rng=random.Random(1))
+    assert result.margin_stdev > 0
+
+
+def test_margin_stdev_widens_with_multiplier():
+    baseline = simulate_match(1650, 1500, home_advantage=50, n=8000, rng=random.Random(4))
+    widened = simulate_match(
+        1650, 1500, home_advantage=50, n=8000, rng=random.Random(4), margin_stdev_multiplier=3.0
+    )
+    assert widened.margin_stdev > baseline.margin_stdev
+
+
+def test_margin_stdev_tracks_the_margin_model_residual():
+    # Conditioned on the winner, the winning-margin spread is a one-lobe
+    # distribution ~= the fitted margin residual stdev (_MARGIN_STDEV = 14.22),
+    # roughly independent of how lopsided the matchup is.
+    coinflip = simulate_match(1500, 1500, home_advantage=0, n=10000, rng=random.Random(5))
+    blowout = simulate_match(1900, 1400, home_advantage=0, n=10000, rng=random.Random(6))
+    assert 10 < coinflip.margin_stdev < 19
+    assert 10 < blowout.margin_stdev < 19
+
+
+def test_winning_margin_mean_exceeds_the_regressed_expected_margin():
+    # `expected_margin` averages in the upset trials and is pulled toward zero;
+    # `winning_margin_mean` conditions on the favourite winning, so it's larger.
+    result = simulate_match(1700, 1500, home_advantage=50, n=10000, rng=random.Random(8))
+    assert result.winning_margin_mean > abs(result.expected_margin)
+
+
 def test_magnitude_symmetric_in_elo_diff_sign():
     # Two mirror-image matchups (home favoured by X vs home underdog by X)
     # should produce the same |expected_margin| — magnitude is driven by the

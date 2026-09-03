@@ -121,6 +121,8 @@ def predict_round(
                 "season": season,
                 "predicted_winner": pred.predicted_winner,
                 "predicted_margin": pred.predicted_margin,
+                "margin_low": pred.margin_low,
+                "margin_high": pred.margin_high,
                 "confidence": pred.confidence,
                 "key_factors": pred.key_factors,
                 "reasoning": pred.reasoning,

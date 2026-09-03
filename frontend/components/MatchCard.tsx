@@ -12,6 +12,16 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   LOW: "bg-red-500 text-white",
 };
 
+/** Show the margin as an honest range ("4–18") when the model supplies one,
+ *  falling back to the bare point estimate for older prediction rows. */
+function marginText(prediction: Prediction): string {
+  const { margin_low, margin_high, predicted_margin } = prediction;
+  if (margin_low != null && margin_high != null && margin_high > margin_low) {
+    return `${margin_low}–${margin_high}`;
+  }
+  return String(predicted_margin);
+}
+
 function staleness(generated_at: string): string {
   const diffMs = Date.now() - new Date(generated_at).getTime();
   const hours = Math.floor(diffMs / 3600000);
@@ -152,7 +162,7 @@ export default function MatchCard({ prediction }: { prediction: Prediction }) {
         <p className="font-display text-2xl leading-none" style={{ color: winnerColor }}>
           {teamName(prediction.predicted_winner)}
           {prediction.predicted_margin > 0 && (
-            <span className="text-gray-700"> BY {prediction.predicted_margin}</span>
+            <span className="text-gray-700"> BY {marginText(prediction)}</span>
           )}
         </p>
         {prediction.result && (() => {

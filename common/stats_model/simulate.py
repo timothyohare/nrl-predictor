@@ -19,6 +19,7 @@ fit. Refit when enough post-round-24 data accumulates to widen the sample.
 """
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass
 
@@ -35,6 +36,8 @@ _MARGIN_STDEV = 14.22
 class SimulationResult:
     home_win_probability: float
     expected_margin: float
+    winning_margin_mean: float
+    margin_stdev: float
     n: int
 
 
@@ -63,17 +66,45 @@ def simulate_match(
     magnitude_mean = max(1.0, _MARGIN_SLOPE * abs(elo_diff) + _MARGIN_INTERCEPT)
     magnitude_stdev = _MARGIN_STDEV * margin_stdev_multiplier
 
+    predicted_side_is_home = p_home >= 0.5
+
     home_wins = 0
     margin_total = 0.0
+    winning_margin_total = 0.0
+    winning_margin_sq_total = 0.0
+    winning_trials = 0
     for _ in range(n):
         is_home_win = rng.random() < p_home
         magnitude = max(1.0, rng.gauss(magnitude_mean, magnitude_stdev))
         margin_total += magnitude if is_home_win else -magnitude
         if is_home_win:
             home_wins += 1
+        # Mean and spread of the *winning* margin, measured only on the trials
+        # the predicted side actually wins. Conditioning on the winner keeps
+        # this a clean one-lobe distribution: the mean is "if they win, by
+        # roughly this much" (not regressed toward zero by the upset trials the
+        # way `expected_margin` is), and the stdev is ~= the margin model's
+        # residual stdev. predictor.py centres the displayed `by low-high` band
+        # on this mean, +/- 1 SD.
+        if is_home_win == predicted_side_is_home:
+            winning_margin_total += magnitude
+            winning_margin_sq_total += magnitude * magnitude
+            winning_trials += 1
+
+    if winning_trials:
+        winning_margin_mean = winning_margin_total / winning_trials
+        margin_variance = max(
+            0.0, winning_margin_sq_total / winning_trials - winning_margin_mean**2
+        )
+        margin_stdev = math.sqrt(margin_variance)
+    else:  # pragma: no cover — p_home is exactly 0/1 only in degenerate tests
+        winning_margin_mean = magnitude_mean
+        margin_stdev = magnitude_stdev
 
     return SimulationResult(
         home_win_probability=home_wins / n,
         expected_margin=margin_total / n,
+        winning_margin_mean=winning_margin_mean,
+        margin_stdev=margin_stdev,
         n=n,
     )

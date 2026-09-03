@@ -393,7 +393,17 @@ Round-qualified: `round-{N}-{home-slug}-v-{away-slug}` (e.g. `round-12-panthers-
 
 ### Prediction output schema
 
-`predicted_winner` (string) · `predicted_margin` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at` · `prompt_version` · `generation` (int — 1 = first prediction, 2+ = update from later run)
+`predicted_winner` (string) · `predicted_margin` (int) · `margin_low` (int) · `margin_high` (int) · `confidence` (LOW/MEDIUM/HIGH) · `key_factors` (2–4 strings) · `reasoning` (200–400 words) · `data_freshness` (ISO timestamp) · `model_used` · `generated_at` · `prompt_version` · `generation` (int — 1 = first prediction, 2+ = update from later run)
+
+`margin_low`/`margin_high` (stats-elo-v1 path, added 2026-09-03 — see
+`docs/plans/13-margin-range-band.md`) are an honest margin band: ±1 SD of the
+Monte Carlo *winning* margin (the margin conditioned on the predicted side
+winning, so it isn't regressed toward zero like `predicted_margin`), snapped to
+even numbers, low clamped at 0. The frontend shows the band ("Panthers BY
+4–18") instead of the bare point estimate; `predicted_margin` is retained as
+the internal point estimate that scoring/metrics still grade against. Older
+rows and the manual agent path have no band — the frontend falls back to
+`predicted_margin`.
 
 The `/predictions/{round}` API additionally joins each prediction with:
 - `result` (when match is scored): `{ winner, homeTeam, awayTeam, homeScore, awayScore, margin }`

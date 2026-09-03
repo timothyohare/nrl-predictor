@@ -33,6 +33,10 @@ export interface Prediction {
   predicted_winner: string;
   predicted_winner_name?: string;
   predicted_margin: number;
+  /** ±1 SD band around the winning margin, from the Monte Carlo simulation.
+   *  Displayed instead of the bare point estimate when both are present. */
+  margin_low?: number;
+  margin_high?: number;
   confidence: "LOW" | "MEDIUM" | "HIGH";
   key_factors: string[];
   reasoning: string;
