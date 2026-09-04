@@ -44,6 +44,20 @@ describe("MatchCard — core prediction rendering", () => {
     expect(container.querySelector("p.text-2xl")).not.toHaveTextContent("BY");
   });
 
+  it("renders the margin as a range when the model supplies one", () => {
+    const { container } = render(
+      <MatchCard prediction={makePrediction({ margin_low: 4, margin_high: 18 })} />,
+    );
+    expect(container.querySelector("p.text-2xl")).toHaveTextContent("Panthers BY 4–18");
+  });
+
+  it("falls back to the point estimate when the range is absent or incomplete", () => {
+    const { container } = render(
+      <MatchCard prediction={makePrediction({ margin_low: 4 })} />,
+    );
+    expect(container.querySelector("p.text-2xl")).toHaveTextContent("Panthers BY 12");
+  });
+
   it("renders the FAILED placeholder instead of a prediction when status is FAILED", () => {
     render(<MatchCard prediction={makePrediction({ status: "FAILED" })} />);
     expect(screen.getByText("Prediction unavailable for this match.")).toBeInTheDocument();

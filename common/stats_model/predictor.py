@@ -21,10 +21,20 @@ N_SIMULATIONS = 10000
 class StatsPrediction:
     predicted_winner: str
     predicted_margin: int
+    margin_low: int
+    margin_high: int
     confidence: str
     key_factors: list[str]
     reasoning: str
     home_win_probability: float
+
+
+def _round_to_even(x: float) -> int:
+    """Snap to the nearest even number. NRL margins are even-biased (tries,
+    conversions and penalties are all even-valued), so a range like `4-18`
+    reads more naturally than `3-17` and doesn't imply a lone field goal
+    decided the game."""
+    return int(2 * round(x / 2))
 
 
 def predict_match(
@@ -53,6 +63,14 @@ def predict_match(
     )
     predicted_winner = home if sim.home_win_probability >= 0.5 else away
     predicted_margin = round(abs(sim.expected_margin))
+    # Honest margin band rather than a single false-precision number: one
+    # standard deviation either side of the mean *winning* margin (the margin
+    # conditioned on the predicted side winning, so it isn't regressed toward
+    # zero by the upset trials the way `predicted_margin` is), snapped to even
+    # numbers, low clamped at 0. The band shifts with the matchup — a bigger
+    # rating gap lifts both ends — while staying ~2 SD wide.
+    margin_low = _round_to_even(max(sim.winning_margin_mean - sim.margin_stdev, 0.0))
+    margin_high = _round_to_even(sim.winning_margin_mean + sim.margin_stdev)
     confidence = confidence_for(sim.home_win_probability)
     elo_diff = home_rating - away_rating
 
@@ -81,7 +99,8 @@ def predict_match(
         f"Elo + Monte Carlo model (no LLM). {home} rated {home_rating:.0f}, {away} rated "
         f"{away_rating:.0f} before home-ground adjustment (+{home_advantage:.0f} to {home}). "
         f"{n_simulations:,} simulated trials gave {home} a {sim.home_win_probability:.1%} win "
-        f"probability, picking {predicted_winner} by {predicted_margin} ({confidence} confidence). "
+        f"probability, picking {predicted_winner} by {margin_low}-{margin_high} "
+        f"(point estimate {predicted_margin}, +/-1 SD of the simulated margin, {confidence} confidence). "
     )
     if home_rating_adjustment or away_rating_adjustment or margin_stdev_multiplier != 1.0:
         reasoning += (
@@ -97,6 +116,8 @@ def predict_match(
     return StatsPrediction(
         predicted_winner=predicted_winner,
         predicted_margin=predicted_margin,
+        margin_low=margin_low,
+        margin_high=margin_high,
         confidence=confidence,
         key_factors=key_factors,
         reasoning=reasoning[:2000],

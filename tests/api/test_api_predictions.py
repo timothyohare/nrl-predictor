@@ -71,6 +71,8 @@ def table():
             "season": 2026,
             "predicted_winner": "Panthers",
             "predicted_margin": 10,
+            "margin_low": 4,
+            "margin_high": 18,
             "confidence": "HIGH",
             "key_factors": ["Forward pack"],
             "reasoning": "x" * 200,
@@ -94,6 +96,14 @@ def test_returns_staleness_field(aws_env, table):
     response = lambda_handler({"pathParameters": {"round": "12"}, "queryStringParameters": {}}, {})
     body = json.loads(response["body"])
     assert "staleness_flag" in body[0]
+
+
+def test_passes_the_margin_band_through(aws_env, table):
+    import json
+    response = lambda_handler({"pathParameters": {"round": "12"}, "queryStringParameters": {}}, {})
+    body = json.loads(response["body"])
+    assert body[0]["margin_low"] == 4
+    assert body[0]["margin_high"] == 18
 
 
 def test_returns_404_when_no_predictions(aws_env, table):

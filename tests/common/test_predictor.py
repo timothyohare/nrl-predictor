@@ -10,7 +10,7 @@ import random
 import pytest
 
 from common.stats_model.elo import DEFAULT_HOME_ADVANTAGE
-from common.stats_model.predictor import predict_match
+from common.stats_model.predictor import _round_to_even, predict_match
 
 
 def test_predicted_winner_is_one_of_the_two_teams():
@@ -66,6 +66,75 @@ def test_margin_magnitude_symmetric_regardless_of_which_side_is_favoured(home_ra
     ratings = {"panthers": home_rating, "broncos": away_rating}
     pred = predict_match("panthers", "broncos", ratings, 0, 8000, random.Random(11))
     assert pred.predicted_margin > 0
+
+
+# --- Margin range band (docs/plans/13-margin-range-band.md) ---
+
+
+@pytest.mark.parametrize("raw,expected", [(11, 12), (13, 12), (0, 0), (7.4, 8), (2.5, 2), (-3, -4)])
+def test_round_to_even(raw, expected):
+    result = _round_to_even(raw)
+    assert result == expected
+    assert result % 2 == 0
+
+
+def test_margin_band_is_ordered_and_covers_the_point_estimate_upward():
+    ratings = {"panthers": 1650.0, "broncos": 1500.0}
+    pred = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 8000, random.Random(1))
+    assert 0 <= pred.margin_low < pred.margin_high
+    # The persisted point estimate is the regressed expected margin; it sits at
+    # or below the top of the (winner-conditioned) band.
+    assert pred.predicted_margin <= pred.margin_high
+
+
+def test_margin_bounds_are_even_and_non_negative():
+    ratings = {"panthers": 1650.0, "broncos": 1500.0}
+    pred = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 8000, random.Random(2))
+    assert pred.margin_low >= 0
+    assert pred.margin_low % 2 == 0
+    assert pred.margin_high % 2 == 0
+
+
+def test_margin_low_clamps_at_zero_when_the_band_would_go_negative():
+    # A big variance widening (e.g. the weather signal) can push one SD past the
+    # mean winning margin; the lower bound must clamp at 0, not go negative.
+    ratings = {"panthers": 1500.0, "broncos": 1500.0}
+    pred = predict_match(
+        "panthers", "broncos", ratings, 0, 10000, random.Random(3), margin_stdev_multiplier=4.0
+    )
+    assert pred.margin_low == 0
+    assert pred.margin_high > 0
+
+
+def test_near_coinflip_has_a_small_but_positive_lower_bound():
+    ratings = {"panthers": 1500.0, "broncos": 1500.0}
+    pred = predict_match("panthers", "broncos", ratings, 0, 10000, random.Random(3))
+    assert 0 <= pred.margin_low <= 8
+
+
+def test_band_width_is_roughly_two_standard_deviations():
+    # Unclamped, the band spans mean-SD .. mean+SD, i.e. ~2 * ~14 points.
+    ratings = {"panthers": 1780.0, "broncos": 1500.0}
+    pred = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 10000, random.Random(7))
+    assert pred.margin_low > 0  # not clamped for this lopsided matchup
+    assert 18 <= (pred.margin_high - pred.margin_low) <= 40
+
+
+def test_band_shifts_up_for_a_bigger_rating_gap():
+    small = predict_match(
+        "panthers", "broncos", {"panthers": 1560.0, "broncos": 1500.0}, 0, 10000, random.Random(9)
+    )
+    big = predict_match(
+        "panthers", "broncos", {"panthers": 1900.0, "broncos": 1500.0}, 0, 10000, random.Random(9)
+    )
+    assert big.margin_low > small.margin_low
+    assert big.margin_high > small.margin_high
+
+
+def test_margin_range_appears_in_reasoning():
+    ratings = {"panthers": 1650.0, "broncos": 1500.0}
+    pred = predict_match("panthers", "broncos", ratings, DEFAULT_HOME_ADVANTAGE, 4000, random.Random(1))
+    assert f"{pred.margin_low}-{pred.margin_high}" in pred.reasoning
 
 
 # --- Phase 1 plumbing (docs/plans/11-team-sheet-injury-weather-signals.md) ---

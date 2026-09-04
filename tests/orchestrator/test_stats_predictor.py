@@ -90,6 +90,8 @@ class TestPredictRound:
             assert item["confidence"] in ("HIGH", "MEDIUM", "LOW")
             assert len(item["key_factors"]) >= 2
             assert item["generation"] == 1
+            assert 0 <= item["margin_low"] < item["margin_high"]
+            assert item["predicted_margin"] <= item["margin_high"]
 
     def test_predicted_winner_is_one_of_the_two_teams(self, tables):
         from v1.orchestrator.stats_predictor import predict_round
