@@ -2,6 +2,17 @@
 
 Usage:
     AWS_DEFAULT_REGION=ap-southeast-2 python3 -m tournament.seed_variants [--dry-run]
+
+Each variant dict carries an explicit ``"active"`` flag and ``seed()`` honours it
+(``v.get("active", True)``) instead of hardcoding every seeded row active. The 7
+Claude/prompt variants are seeded ``active=False`` (paused — see the "Anthropic
+credit balance exhausted" incident note in CLAUDE.md: ``stats-elo-v1`` beat all of
+them 8/8 during the outage and is now the production predictor, so the Claude
+tournament is tuning a prompt for a path that no longer runs automatically). Only
+``stats-elo-v1`` seeds ``active=True``, so a re-seed can't silently re-enable the
+paused variants. To apply/reverse the pause against the *live* table, use
+``tournament.pause_claude_variants`` (it updates every existing version row, which
+is what the orchestrator's unversioned ``active=True`` scan actually reads).
 """
 import argparse
 import os
@@ -16,12 +27,14 @@ _BASE_PROMPT = build_system_prompt()
 _VARIANTS = [
     {
         "variantId": "baseline",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Control — identical to production prompt (no lessons injected)",
         "dimensions": ["control"],
         "prompt_template": _BASE_PROMPT,
     },
     {
         "variantId": "heavy-home-advantage",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Home advantage is worth 6pts not the default ~4pts",
         "dimensions": ["home_advantage"],
         "prompt_template": _BASE_PROMPT.replace(
@@ -33,6 +46,7 @@ _VARIANTS = [
     },
     {
         "variantId": "light-home-advantage",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Home advantage is only worth 2pts — modern travel has reduced it",
         "dimensions": ["home_advantage"],
         "prompt_template": _BASE_PROMPT.replace(
@@ -43,6 +57,7 @@ _VARIANTS = [
     },
     {
         "variantId": "form-over-h2h",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Recent form is more predictive than H2H — squads change season to season",
         "dimensions": ["form_vs_h2h"],
         "prompt_template": _BASE_PROMPT.replace(
@@ -55,6 +70,7 @@ _VARIANTS = [
     },
     {
         "variantId": "h2h-over-form",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "H2H records reveal structural mismatches that outlast personnel changes",
         "dimensions": ["form_vs_h2h"],
         "prompt_template": _BASE_PROMPT.replace(
@@ -66,6 +82,7 @@ _VARIANTS = [
     },
     {
         "variantId": "high-confidence-strict",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Strict HIGH confidence threshold — only when 3+ factors clearly align",
         "dimensions": ["confidence_calibration"],
         "prompt_template": _BASE_PROMPT + (
@@ -78,6 +95,7 @@ _VARIANTS = [
     },
     {
         "variantId": "margin-conservative",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Conservative margins — NRL is a low-variance competition, 10+ pt wins are unusual",
         "dimensions": ["margin_calibration"],
         "prompt_template": _BASE_PROMPT + (
@@ -89,6 +107,7 @@ _VARIANTS = [
     },
     {
         "variantId": "upset-detector",
+        "active": False,  # paused — Claude prompt variant (see module docstring)
         "hypothesis": "Actively seeking upset conditions improves accuracy on the 30-40% of matches where the underdog wins",
         "dimensions": ["upset_detection"],
         "prompt_template": _BASE_PROMPT.replace(
@@ -104,6 +123,7 @@ _VARIANTS = [
     },
     {
         "variantId": "stats-elo-v1",
+        "active": True,  # the one variant that stays running — local model, no Claude
         "hypothesis": (
             "A fully local Elo + Monte Carlo model (no LLM, no team-sheet/injury/news/weather "
             "signal) is competitive with the prompt-based agent on pick accuracy, and is immune "
@@ -121,9 +141,15 @@ def seed(table_name: str, dry_run: bool = False, variant_ids: list[str] | None =
     """Seed variants into `table_name`. Each run writes a NEW version for every
     variant seeded — variants aren't overwritten, they accumulate versions (the
     orchestrator scans for `active=True` regardless of version, so an unfiltered
-    re-seed makes every existing variant run twice next round). Pass
+    re-seed makes every *active* existing variant run twice next round). Pass
     `variant_ids` to seed only specific variants (e.g. a newly-added one)
     without touching the others already live in the table.
+
+    The row's `active` flag comes from each variant dict (`v.get("active", True)`):
+    the 7 Claude/prompt variants seed `active=False` (paused), only `stats-elo-v1`
+    seeds `active=True`. That keeps a re-seed from silently un-pausing the Claude
+    variants — but a re-seed does NOT retroactively deactivate versions already in
+    the table. Use `tournament.pause_claude_variants` for that.
     """
     variants = _VARIANTS if variant_ids is None else [v for v in _VARIANTS if v["variantId"] in variant_ids]
     if variant_ids is not None:
@@ -145,15 +171,20 @@ def seed(table_name: str, dry_run: bool = False, variant_ids: list[str] | None =
             "hypothesis": v["hypothesis"],
             "dimensions": v["dimensions"],
             "variant_type": v.get("variant_type", "prompt"),
-            "active": True,
+            "active": v.get("active", True),
         }
         if dry_run:
-            print(f"  [dry-run] would write: {v['variantId']} (variant_type={item['variant_type']})")
+            print(
+                f"  [dry-run] would write: {v['variantId']} "
+                f"(variant_type={item['variant_type']}, active={item['active']})"
+            )
         else:
             table.put_item(Item=item)
-            print(f"  wrote: {v['variantId']}")
+            print(f"  wrote: {v['variantId']} (active={item['active']})")
 
-    print("Done.")
+    active_ids = [v["variantId"] for v in variants if v.get("active", True)]
+    inactive_ids = [v["variantId"] for v in variants if not v.get("active", True)]
+    print(f"Done. active={active_ids or '[]'} inactive={inactive_ids or '[]'}")
 
 
 if __name__ == "__main__":

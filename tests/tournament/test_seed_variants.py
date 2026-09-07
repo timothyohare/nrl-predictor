@@ -76,6 +76,36 @@ class TestStatsVariantShape:
         assert item["variant_type"] == "prompt"
 
 
+class TestActiveFlag:
+    """The 7 Claude/prompt variants seed active=False (paused); only stats-elo-v1
+    seeds active=True — so a re-seed can't silently un-pause the Claude variants.
+    """
+
+    def test_prompt_variants_are_defined_inactive(self):
+        for v in _VARIANTS:
+            if v.get("variant_type", "prompt") != "stats_model":
+                assert v.get("active", True) is False, f"{v['variantId']} should be paused"
+
+    def test_stats_elo_v1_is_defined_active(self):
+        stats = next(v for v in _VARIANTS if v["variantId"] == "stats-elo-v1")
+        assert stats.get("active", True) is True
+
+    def test_seeded_claude_variant_row_is_inactive(self, table):
+        seed(TABLE, variant_ids=["baseline"])
+        item = table.scan()["Items"][0]
+        assert item["active"] is False
+
+    def test_seeded_stats_variant_row_is_active(self, table):
+        seed(TABLE, variant_ids=["stats-elo-v1"])
+        item = table.scan()["Items"][0]
+        assert item["active"] is True
+
+    def test_full_reseed_only_stats_elo_is_active(self, table):
+        seed(TABLE)
+        active = {i["variantId"] for i in table.scan()["Items"] if i["active"]}
+        assert active == {"stats-elo-v1"}
+
+
 class TestSeedEdgeCases:
     def test_unknown_variant_id_raises_value_error(self, table):
         with pytest.raises(ValueError, match="Unknown variantId"):

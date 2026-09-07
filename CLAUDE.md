@@ -91,6 +91,33 @@ market-odds columns on the frontend. (The coverage-check/alarm wiring gap
 mentioned earlier was root-caused and fixed on 2026-08-30 — see the
 2026-08-30 update above.)
 
+**2026-09-07 update — Claude prompt tournament variants PAUSED (config flip,
+reversible).** #1 cost lever from the "Three Projects, One LLM Bill" review:
+`stats-elo-v1` beat all Claude prompt variants 8/8 during the outage and is the
+production predictor, so the prompt tournament is spending money tuning a prompt
+for a path that no longer runs automatically. The orchestrator
+(`v1/tournament/orchestrator_lambda.py`) launches a worker for **every**
+`prompt_variants` row with `active=True` — all versions of every `variantId`, no
+latest-version collapse — so the pause has two parts:
+- `v1/tournament/seed_variants.py::_VARIANTS` now carries an explicit `"active"`
+  per variant (`False` for the prompt/Claude variants, `True` only for
+  `stats-elo-v1`), and `seed()` honours `v.get("active", True)` — a re-seed can no
+  longer silently re-enable them.
+- `v1/tournament/pause_claude_variants.py` is the operational action against the
+  live table. Apply / reverse:
+  ```
+  AWS_DEFAULT_REGION=ap-southeast-2 python3 -m v1.tournament.pause_claude_variants --dry-run
+  AWS_DEFAULT_REGION=ap-southeast-2 python3 -m v1.tournament.pause_claude_variants
+  AWS_DEFAULT_REGION=ap-southeast-2 python3 -m v1.tournament.pause_claude_variants --reactivate
+  ```
+  It sets `active=False` on every version row of each non-`stats_model` variantId;
+  `stats-elo-v1` is never in the target set. Not yet run against real AWS —
+  moto-tested in `tests/tournament/test_pause_claude_variants.py`.
+
+The tournament harness (orchestrator/worker/scorer schedules) and `stats-elo-v1`
+stay running. Moving the retrospective + injury-extraction jobs to a cheaper
+model / Batch API is a SEPARATE later cost lever, not touched here.
+
 **2026-08-23 update — v2's EventBridge schedules disabled, not cut over.
 DEPLOYED and confirmed live.** v2's whole design
 (Router/Primary/Challenger/Judge/Extended, 5 LLM calls per match) only
