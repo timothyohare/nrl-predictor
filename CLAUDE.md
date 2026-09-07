@@ -116,7 +116,15 @@ latest-version collapse — so the pause has two parts:
 
 The tournament harness (orchestrator/worker/scorer schedules) and `stats-elo-v1`
 stay running. Moving the retrospective + injury-extraction jobs to a cheaper
-model / Batch API is a SEPARATE later cost lever, not touched here.
+model / Batch API is a SEPARATE later cost lever, not touched here — but first
+ask whether those jobs still produce anything acted upon now that the LLM path
+isn't the production predictor; if not, pause them the same way. If kept:
+they're nightly and non-latency-sensitive, so **Haiku 4.5 + Batch API** (−50%),
+or — acceptable for this project specifically (public data, no PII, no
+compliance surface) — **DeepSeek/Qwen open-weight via a US host** (Fireworks /
+Together / DeepInfra), which is ~80–90% cheaper than Sonnet for that workload.
+Full rationale, and why the same is *not* acceptable for rotrade or aitutor, in
+the cross-project review (rotrade `docs/11-llm-cost-review.md`, 2026-09-07).
 
 **2026-08-23 update — v2's EventBridge schedules disabled, not cut over.
 DEPLOYED and confirmed live.** v2's whole design
