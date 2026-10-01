@@ -25,7 +25,21 @@ def lambda_handler(event: dict, context) -> dict:
         }
 
     from datetime import datetime
-    season = int((event.get("queryStringParameters") or {}).get("season", datetime.now(UTC).year))
+    raw_season = (event.get("queryStringParameters") or {}).get("season", datetime.now(UTC).year)
+    try:
+        season = int(raw_season)
+    except (TypeError, ValueError):
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"error": "season must be an integer"}),
+        }
+    if season < 1998 or season > datetime.now(UTC).year + 1:
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"error": "season is outside the supported range"}),
+        }
 
     metrics_table = boto3.resource("dynamodb").Table(metrics_table_name)
     leaderboard = get_leaderboard(season, metrics_table)

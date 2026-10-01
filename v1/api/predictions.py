@@ -35,6 +35,12 @@ def lambda_handler(event: dict, context) -> dict:
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": "round must be an integer"}),
         }
+    if not 0 <= round_number <= 99:
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"error": "round is outside the supported range"}),
+        }
     ddb = boto3.resource("dynamodb")
     pred_table = ddb.Table(os.environ["PREDICTIONS_TABLE"])
     retro_table_name = os.environ.get("RETROSPECTIVES_TABLE")
