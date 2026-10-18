@@ -210,16 +210,17 @@ Run the Python tools directly via the project venv: `.venv/bin/ruff check .`,
 ESLint uses flat config (`next/core-web-vitals` + `next/typescript` via
 FlatCompat) — `next lint` is deprecated and intentionally not used.
 
-**Heavy gate — `node ~/.claude/bin/gate-verify.mjs [--keep]`** is the
-boot-and-verify gate for the API read path. It stands up DynamoDB Local
-(Docker), seeds a round, boots the real API Lambda over HTTP, and asserts the
-predictions ⨝ results ⨝ retrospectives ⨝ odds join (incl. `is_outlier`,
-most-recent-generation, and `FAILED`-row exclusion). **Requires Docker
-running.** The pieces live in `scripts/gate/` (`docker-compose.yml`,
-`local_setup.py`, `local_api_server.py`, `acceptance.py`) and are driven by the
+**Heavy gate — `node ~/dev/newdev/code-build-harness/harness/gates/verify.mjs [--keep]`**
+is the boot-and-verify gate. It stands up DynamoDB Local (Docker), seeds a
+round, boots the real API Lambda over HTTP, and runs the pytest-bdd acceptance
+suite in `scripts/gate/bdd/`: `gate_api.feature` asserts the predictions ⨝
+results ⨝ retrospectives ⨝ odds read-path join (incl. `is_outlier`,
+most-recent-generation, and `FAILED`-row exclusion), and `write_path.feature`
+drives the async orchestrator/scoring write path against the seeded tables.
+**Requires Docker running.** The pieces live in `scripts/gate/`
+(`docker-compose.yml`, `local_setup.py`, `write_path_setup.py`,
+`local_api_server.py`, `bdd/`) and are driven by the
 `mockAws`/`setup`/`boot`/`ready`/`acceptance` keys in `.claude/harness.json`.
-Scope is the API read path only — the async orchestrator/agent write path is not
-booted (it doesn't fit the HTTP-readiness model).
 
 ## Post-round operations
 
