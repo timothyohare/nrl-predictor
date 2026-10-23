@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⏸️ Off-season (since 2026-10-24)
+
+The 2026 season is over. Every v1 EventBridge rule is disabled via
+`SEASON_ACTIVE = False` in `infra/v1_stack.py` (deployed), v2's rules were already
+disabled, and the local crontab's `v2/scripts/daily_update.sh` line is commented
+out. Site + API stay up. Season review, next-season ideas and the re-enable
+checklist: `docs/2026-season-wrap-up.md`.
+
 ## 🟡 Anthropic credit balance exhausted — main site no longer at risk, action items still open (delete once resolved)
 
 Discovered 2026-08-23. **The entire prediction pipeline has been down since
