@@ -44,6 +44,11 @@ from constructs import Construct
 REPO_ROOT = ".."
 LAMBDA_RUNTIME = _lambda.Runtime.PYTHON_3_12
 
+# Off-season switch for every v1 EventBridge schedule (scrapers, orchestrator,
+# tournament, coverage check). Paused 2026-10-24 after the 2026 season ended;
+# flip to True (and bump the hardcoded "season": 2026 payloads) before round 1.
+SEASON_ACTIVE = False
+
 # Directories that must never end up in the Lambda zip
 _ASSET_EXCLUDE = [
     "cdk.out",       # CDK output — recursive death if included
@@ -657,6 +662,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "TueRule",
             rule_name="nrl-scraper-tuesday",
             schedule=events.Schedule.cron(minute="30", hour="6", week_day="TUE"),
+            enabled=SEASON_ACTIVE,
         )
         tue_rule.add_target(targets.LambdaFunction(draw_fn, event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"})))
         tue_rule.add_target(targets.LambdaFunction(articles_fn))
@@ -680,6 +686,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "TournamentOrchestratorTueRule",
             rule_name="nrl-tournament-tuesday",
             schedule=events.Schedule.cron(minute="0", hour="7", week_day="TUE"),
+            enabled=SEASON_ACTIVE,
             targets=[targets.LambdaFunction(
                 tournament_orchestrator_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
@@ -691,6 +698,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "WedDrawRule",
             rule_name="nrl-scraper-wednesday",
             schedule=events.Schedule.cron(minute="0", hour="8", week_day="WED"),
+            enabled=SEASON_ACTIVE,
             targets=[targets.LambdaFunction(draw_fn, event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}))],
         )
 
@@ -700,6 +708,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "ThuRule",
             rule_name="nrl-scraper-thursday",
             schedule=events.Schedule.cron(minute="0", hour="7", week_day="THU"),
+            enabled=SEASON_ACTIVE,
         )
         thu_rule.add_target(targets.LambdaFunction(ladder_fn, event=events.RuleTargetInput.from_object({"season": 2026})))
         thu_rule.add_target(targets.LambdaFunction(articles_fn))
@@ -717,6 +726,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "TournamentOrchestratorThuRule",
             rule_name="nrl-tournament-thursday",
             schedule=events.Schedule.cron(minute="30", hour="7", week_day="THU"),
+            enabled=SEASON_ACTIVE,
             targets=[targets.LambdaFunction(
                 tournament_orchestrator_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
@@ -729,6 +739,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "FriPmRule",
             rule_name="nrl-scraper-friday-pm",
             schedule=events.Schedule.cron(minute="0", hour="7", week_day="FRI"),
+            enabled=SEASON_ACTIVE,
         )
         fri_pm_rule.add_target(targets.LambdaFunction(articles_fn))
         fri_pm_rule.add_target(targets.LambdaFunction(weather_fn))
@@ -745,6 +756,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "TournamentOrchestratorFriRule",
             rule_name="nrl-tournament-friday",
             schedule=events.Schedule.cron(minute="30", hour="7", week_day="FRI"),
+            enabled=SEASON_ACTIVE,
             targets=[targets.LambdaFunction(
                 tournament_orchestrator_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
@@ -757,6 +769,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "FriNightRule",
             rule_name="nrl-scraper-friday-night",
             schedule=events.Schedule.cron(minute="0", hour="12", week_day="FRI"),
+            enabled=SEASON_ACTIVE,
         )
         fri_night_rule.add_target(targets.LambdaFunction(
             orchestrator_fn,
@@ -774,6 +787,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "SatAmRule",
             rule_name="nrl-scraper-saturday-am",
             schedule=events.Schedule.cron(minute="0", hour="23", week_day="FRI"),
+            enabled=SEASON_ACTIVE,
         )
         sat_am_rule.add_target(targets.LambdaFunction(
             orchestrator_fn,
@@ -791,6 +805,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "TournamentOrchestratorRule",
             rule_name="nrl-tournament-saturday-am",
             schedule=events.Schedule.cron(minute="30", hour="23", week_day="FRI"),
+            enabled=SEASON_ACTIVE,
             targets=[targets.LambdaFunction(
                 tournament_orchestrator_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
@@ -804,6 +819,7 @@ class NrlPredictorStack(cdk.Stack):
             self, "TournamentScorerRule",
             rule_name="nrl-tournament-scorer-sunday",
             schedule=events.Schedule.cron(minute="0", hour="10", week_day="SUN"),
+            enabled=SEASON_ACTIVE,
             targets=[targets.LambdaFunction(
                 tournament_scorer_fn,
                 event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
@@ -823,6 +839,7 @@ class NrlPredictorStack(cdk.Stack):
                 self, rule_id,
                 rule_name=rule_name,
                 schedule=events.Schedule.cron(minute=minute, hour=hour, week_day=week_day),
+                enabled=SEASON_ACTIVE,
                 targets=[targets.LambdaFunction(
                     coverage_check_fn,
                     event=events.RuleTargetInput.from_object({"season": 2026, "round": "current"}),
