@@ -245,13 +245,6 @@ class NrlPredictorStack(cdk.Stack):
             description="Tavily API key for web search",
         )
 
-        secretsmanager.Secret(
-            self, "SupercoachToken",
-            secret_name="nrl-predictor/supercoach-token",
-            description="SuperCoach bearer token (V1.1)",
-            secret_string_value=cdk.SecretValue.unsafe_plain_text("PENDING"),
-        )
-
         odds_secret = secretsmanager.Secret(
             self, "OddsApiKey",
             secret_name="nrl-predictor/odds-api-key",

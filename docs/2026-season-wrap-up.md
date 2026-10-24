@@ -130,7 +130,37 @@ cold-starts every team at 1500 in round 12.
 - The local crontab's `v2/scripts/daily_update.sh` job is commented out. It had
   still been firing the v2 orchestrator every day.
 - The site and API stay up so the 2026 results remain browsable. Idle cost is
-  close to zero (see the AWS spend notes in the PR / session summary).
+  close to zero (see "AWS spend" below).
+- The unused `nrl-predictor/supercoach-token` secret has been removed from the
+  stack and deleted. It only ever held the placeholder `PENDING` and had never
+  been accessed.
 - **To re-enable for 2027:** set `SEASON_ACTIVE = True`, update the `"season"`
   payloads, `cdk deploy NrlPredictorStack`, uncomment the cron line, and run the
   readiness check from idea 3.
+
+## AWS spend
+
+From Cost Explorer, May–October 2026, in USD. **NRL Predictor's idle cost is
+about $2–3 a month.** The rest of the account bill comes from other projects
+and old backups, which are out of scope here.
+
+| Item | Monthly | Notes |
+|---|---|---|
+| Secrets Manager | ~$1.20 | 3 secrets × $0.40 (was 4 before `supercoach-token` was removed) |
+| Amplify builds | ~$1.00 | Shared with other Amplify apps; NRL's builds are mostly triggered by Dependabot merges to `main` |
+| CloudWatch | $0–0.26 | 19 log groups, ~5 MB, none with a retention policy |
+| DynamoDB | ~$0.02 | ~12 MB in on-demand tables, inside the free tier |
+| Lambda, API Gateway, EventBridge, SNS | ~$0 | Nothing runs while the schedules are off |
+| S3 (raw scrapes + CDK assets) | ~$0.09 | 0.1 GB + 3.6 GB |
+
+**Recommendation: leave the stack deployed.** Tearing it down would save under
+$3 a month and cost a full redeploy and re-seed before round 1.
+
+Optional further savings:
+- Move the remaining 3 secrets to SSM Parameter Store SecureString (free
+  standard tier): saves ~$1.20 a month. This is a code change in the handlers
+  and stacks, best done while preparing for 2027.
+- Batch Dependabot updates monthly (or pause Amplify auto-builds on `main`) to
+  cut off-season build minutes.
+- Set log retention (e.g. 30 days) on the Lambda log groups. This is hygiene
+  more than savings.
