@@ -46,7 +46,9 @@ def test_playoff_stage_comes_from_game_type(by_id):
 
 
 def test_neutral_comes_from_location_not_stadium(parsed, by_id, sample_csv_text):
-    assert "SoFi Stadium" in next(l for l in sample_csv_text.splitlines() if l.startswith("2025_01_KC_LAC"))
+    assert "SoFi Stadium" in next(
+        line for line in sample_csv_text.splitlines() if line.startswith("2025_01_KC_LAC")
+    )
     assert by_id["2025_01_KC_LAC"].neutral is True
     assert by_id["2020_21_KC_TB"].neutral is True
     games, _ = parsed
