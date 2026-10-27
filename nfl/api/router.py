@@ -57,6 +57,8 @@ def _route(event: dict, context) -> dict:
         return respond(200, {"status": "ok"})
     if path == "/nfl/weeks/current":
         return weeks.lambda_handler(event, context)
+    if path == "/nfl/weeks":
+        return weeks.list_handler(event, context)
     if path == "/nfl/accuracy":
         return accuracy.lambda_handler(event, context)
     match = _PREDICTIONS.match(path)

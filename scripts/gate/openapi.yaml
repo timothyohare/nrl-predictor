@@ -108,6 +108,47 @@ paths:
                     type: string
         "404":
           $ref: "#/components/responses/Error"
+  /nfl/weeks:
+    get:
+      operationId: nflSeasonWeeks
+      parameters:
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1999
+            maximum: 2100
+      responses:
+        "200":
+          description: Every week of the season in nfl_games with its stage and label.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [season, weeks]
+                additionalProperties: false
+                properties:
+                  season:
+                    type: integer
+                  weeks:
+                    type: array
+                    items:
+                      type: object
+                      required: [week, stage, label]
+                      additionalProperties: false
+                      properties:
+                        week:
+                          type: integer
+                        stage:
+                          type: string
+                          enum: [REG, WC, DIV, CON, SB]
+                        label:
+                          type: string
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
   /nfl/predictions/{season}/{week}:
     get:
       operationId: nflPredictionsByWeek

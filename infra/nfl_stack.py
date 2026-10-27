@@ -215,6 +215,7 @@ class NflPredictorStack(cdk.Stack):
         api_integration = integrations.HttpLambdaIntegration("NflApiIntegration", api_fn)
         api.add_routes(path="/health", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
         api.add_routes(path="/nfl/weeks/current", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
+        api.add_routes(path="/nfl/weeks", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
         api.add_routes(path="/nfl/predictions/{season}/{week}", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
         api.add_routes(path="/nfl/accuracy", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
 
