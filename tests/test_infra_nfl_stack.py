@@ -303,7 +303,8 @@ def test_every_handler_imports_from_its_synthesised_asset(repo_synth, tmp_path):
     """Each Lambda's handler module must import from its own code asset alone (plus
     third-party packages) — the repo checkout and the editable install hide a
     first-party module the asset excludes. `-S` skips site processing, so the
-    editable-install .pth finder never runs; site-packages is appended by hand."""
+    editable-install .pth finder never runs; site-packages is appended by hand.
+    `-B` keeps bytecode out of the asset (other tests list its files)."""
     import os
     import sys
     import sysconfig
@@ -323,7 +324,7 @@ def test_every_handler_imports_from_its_synthesised_asset(repo_synth, tmp_path):
         asset = outdir / fn["Metadata"]["aws:asset:path"]
         handler = fn["Properties"]["Handler"]
         result = subprocess.run(
-            [sys.executable, "-S", "-c", probe, str(asset), purelib, handler],
+            [sys.executable, "-S", "-B", "-c", probe, str(asset), purelib, handler],
             cwd=tmp_path, env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, f"{handler}: {result.stderr}"
