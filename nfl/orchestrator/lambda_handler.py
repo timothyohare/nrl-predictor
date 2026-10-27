@@ -205,8 +205,8 @@ def lambda_handler(event: dict, context) -> dict:
         upsert_games(ddb.Table(games_table_name), current, markets, now.isoformat())
 
     for game in target.cancelled:
-        logger.warning("%s is unscored more than %s after kickoff — treated as cancelled",
-                       game.match_id, CANCELLED_AFTER)
+        logger.warning("%s is unscored more than %dh after kickoff — treated as cancelled",
+                       game.match_id, CANCELLED_AFTER.total_seconds() // 3600)
     if target.blockers:
         logger.warning("Week %s of %s not predicted: waiting on results for %s",
                        target.week, target.season,
