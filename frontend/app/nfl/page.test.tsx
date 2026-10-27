@@ -7,7 +7,9 @@ const redirect = vi.fn((url: string) => {
 });
 vi.mock("next/navigation", () => ({ redirect: (url: string) => redirect(url) }));
 
-beforeEach(() => redirect.mockClear());
+beforeEach(() => {
+  redirect.mockClear();
+});
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
