@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { loadNflWeek } from "@/lib/nfl/api";
-import NflGameCard, { BACKTEST_EXPLANATION } from "@/components/nfl/NflGameCard";
+import NflGameCard from "@/components/nfl/NflGameCard";
 import NflUnavailable from "@/components/nfl/NflUnavailable";
 import WeekSelector from "@/components/nfl/WeekSelector";
 
@@ -40,8 +40,8 @@ export default async function NflWeekPage({ params }: Props) {
 
       {anyBackfilled && (
         <p role="note" className="text-sm text-gray-700 bg-nrl-cream border-2 border-nrl-gold rounded-lg px-3 py-2">
-          Games marked <span className="font-semibold">Backtest</span> were predicted by the walk-forward
-          backtest, before the live model started: {BACKTEST_EXPLANATION.replace(/^Backtest: /, "")}
+          Games marked <span className="font-semibold">Backtest</span> were predicted after the fact by the
+          walk-forward backtest, from ratings as they stood before that week. They are not live picks.
         </p>
       )}
 

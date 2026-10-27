@@ -11,7 +11,7 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   LOW: "bg-red-700 text-white",
 };
 
-export const BACKTEST_EXPLANATION =
+const BACKTEST_EXPLANATION =
   "Backtest: generated after the fact from pre-week ratings, not a live pick.";
 
 const pct = (p: number) => `${Math.round(p * 100)}%`;
