@@ -66,9 +66,11 @@ ALERT_TOPIC_ARN = "arn:aws:sns:ap-southeast-2:810429055117:nrl-predictor-alerts"
 # an `nfl#<ip>` bucket (nfl/api/router.py). Import by ARN, grant UpdateItem only.
 RATE_LIMITS_TABLE_ARN = "arn:aws:dynamodb:ap-southeast-2:810429055117:table/nrl-rate-limits"
 
-# Only what the NFL Lambda imports (common/ + nfl/) needs to ship. ".*" keeps
-# every dotfile out of the zip — notably .env (local API keys) and the tool
-# caches (.mypy_cache alone is ~38 MB).
+# Only what the NFL Lambdas import (common/ + nfl/, and the shared NRL rate
+# limiter v1/api/rate_limit.py for the API) needs to ship. ".*" keeps every
+# dotfile out of the zip — notably .env (local API keys) and the tool caches
+# (.mypy_cache alone is ~38 MB). Order matters for the v1 lines: later "!"
+# patterns re-include what an earlier pattern excluded.
 _ASSET_EXCLUDE = [
     ".*",
     "*.egg-info",
@@ -87,7 +89,12 @@ _ASSET_EXCLUDE = [
     "tests",
     "TODO.md",
     "CLAUDE.md",
-    "v1",
+    "v1/*",
+    "!v1/__init__.py",
+    "!v1/api",
+    "v1/api/*",
+    "!v1/api/__init__.py",
+    "!v1/api/rate_limit.py",
     "v2",
     "tasks",
     "SPEC.md",

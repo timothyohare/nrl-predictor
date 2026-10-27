@@ -327,3 +327,14 @@ def test_every_handler_imports_from_its_synthesised_asset(repo_synth, tmp_path):
             cwd=tmp_path, env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, f"{handler}: {result.stderr}"
+
+
+def test_only_the_shared_rate_limiter_ships_from_v1(repo_synth):
+    """The NFL API reuses v1/api/rate_limit.py; nothing else of the NRL tree ships."""
+    template, outdir = repo_synth
+    for fn in _resources(template, "AWS::Lambda::Function"):
+        asset = outdir / fn["Metadata"]["aws:asset:path"]
+        v1_files = sorted(p.relative_to(asset).as_posix() for p in (asset / "v1").rglob("*")
+                          if p.is_file())
+        assert v1_files == ["v1/__init__.py", "v1/api/__init__.py", "v1/api/rate_limit.py"]
+        assert not (asset / "v2").exists() and not (asset / "tests").exists()
