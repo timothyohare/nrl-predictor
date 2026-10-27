@@ -86,36 +86,45 @@ class ReplayGame(Protocol):
     def neutral(self) -> bool: ...
 
 
+def regress_ratings(ratings: dict[str, float], model: SportModel, seasons: int = 1) -> None:
+    """Move every rating `model.season_regression` of the way back to
+    `model.starting_rating`, once per season boundary crossed (in place)."""
+    keep = (1.0 - model.season_regression) ** seasons
+    for team, rating in ratings.items():
+        ratings[team] = model.starting_rating + (rating - model.starting_rating) * keep
+
+
 def replay_ratings(
     games: Iterable[ReplayGame],
     model: SportModel,
     before: tuple[int, int] | None = None,
 ) -> defaultdict[str, float]:
     """Sport-generic counterpart of `compute_ratings_as_of`: team ratings after
-    replaying every played game (in `(season, week)` order) strictly before
-    `before`. See the NFL predictor spec (.claude/sdlc/nfl-predictor/spec.md, Phase 1).
+    replaying every played game (in `(season, week, home, away)` order) strictly
+    before `before`. See the NFL predictor spec (.claude/sdlc/nfl-predictor/spec.md).
 
     - No look-ahead: a game at or after `before` never affects the result.
     - Neutral-site games are replayed with zero home advantage.
     - At each season boundary — including the one into `before`'s season, so
       week-1 predictions start from regressed ratings — every rating moves
-      `model.season_regression` of the way back to `model.starting_rating`.
+      `model.season_regression` of the way back to `model.starting_rating`,
+      once per season crossed (a 2023 -> 2025 gap regresses twice). With
+      `season_regression == 0` no regression arithmetic runs at all.
+    - An unscored game never crosses a boundary on its own.
     """
     ratings: defaultdict[str, float] = defaultdict(lambda: model.starting_rating)
     current_season: int | None = None
 
-    def regress() -> None:
-        keep = 1.0 - model.season_regression
-        for team, rating in ratings.items():
-            ratings[team] = model.starting_rating + (rating - model.starting_rating) * keep
+    def cross_into(season: int) -> None:
+        if current_season is not None and season > current_season and model.season_regression:
+            regress_ratings(ratings, model, seasons=season - current_season)
 
-    for game in sorted(games, key=lambda g: (g.season, g.week)):
+    for game in sorted(games, key=lambda g: (g.season, g.week, g.home, g.away)):
         if before is not None and (game.season, game.week) >= before:
             break
         if game.home_score is None or game.away_score is None:
             continue
-        if current_season is not None and game.season != current_season:
-            regress()
+        cross_into(game.season)
         current_season = game.season
         home_new, away_new = update_ratings(
             ratings[game.home], ratings[game.away], game.home_score, game.away_score,
@@ -123,6 +132,6 @@ def replay_ratings(
             model=model,
         )
         ratings[game.home], ratings[game.away] = home_new, away_new
-    if before is not None and current_season is not None and before[0] > current_season:
-        regress()
+    if before is not None:
+        cross_into(before[0])
     return ratings

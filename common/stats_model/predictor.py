@@ -56,6 +56,7 @@ def predict_match(
     margin_stdev_multiplier: float = 1.0,
     *,
     model: SportModel = NRL,
+    neutral: bool = False,
 ) -> StatsPrediction:
     """`home_rating_adjustment`/`away_rating_adjustment`/`margin_stdev_multiplier`
     are Phase 1 plumbing for docs/plans/11-team-sheet-injury-weather-signals.md —
@@ -65,7 +66,12 @@ def predict_match(
 
     `model` supplies the sport's margin fit, confidence thresholds, margin-band
     snapping and home-advantage wording; defaults to NRL (common/stats_model/sport.py).
+
+    `neutral=True` (a neutral-site game) simulates with zero home advantage,
+    whatever `home_advantage` says, and words key_factors/reasoning accordingly.
     """
+    if neutral:
+        home_advantage = 0.0
     home_rating, away_rating = ratings[home], ratings[away]
     home_effective = home_rating + home_rating_adjustment
     away_effective = away_rating + away_rating_adjustment
@@ -89,7 +95,8 @@ def predict_match(
 
     key_factors = [
         f"Elo rating gap: {home} {home_rating:.0f} vs {away} {away_rating:.0f} ({elo_diff:+.0f})",
-        f"{model.home_label} advantage (+{home_advantage:.0f} Elo) applied to {home}",
+        "Neutral site: no home advantage applied" if neutral
+        else f"{model.home_label} advantage (+{home_advantage:.0f} Elo) applied to {home}",
         f"Simulated home win probability {sim.home_win_probability:.1%} over "
         f"{n_simulations:,} Monte Carlo trials",
     ]
@@ -108,9 +115,15 @@ def predict_match(
             f"Match-day variance widened {margin_stdev_multiplier:.2f}x (weather signal)"
         )
 
+    # NRL's "Home ground" renders as "home-ground", byte-identical to the original text.
+    home_phrase = model.home_label.lower().replace(" ", "-")
+    venue = (
+        "at a neutral site (no home advantage)" if neutral
+        else f"before {home_phrase} adjustment (+{home_advantage:.0f} to {home})"
+    )
     reasoning = (
         f"Elo + Monte Carlo model (no LLM). {home} rated {home_rating:.0f}, {away} rated "
-        f"{away_rating:.0f} before home-ground adjustment (+{home_advantage:.0f} to {home}). "
+        f"{away_rating:.0f} {venue}. "
         f"{n_simulations:,} simulated trials gave {home} a {sim.home_win_probability:.1%} win "
         f"probability, picking {predicted_winner} by {margin_low}-{margin_high} "
         f"(point estimate {predicted_margin}, +/-1 SD of the simulated margin, {confidence} confidence). "
