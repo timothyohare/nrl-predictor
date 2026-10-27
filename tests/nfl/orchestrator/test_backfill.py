@@ -95,9 +95,46 @@ def test_never_shadows_a_live_prediction(tables, games):
     tables.predictions.put_item(Item=live)
     written = backfill(games, tables.predictions, NOW, through_week=7)
     assert "nfl-2026-week-7-bears-v-patriots" not in written
-    assert set(written) == WEEK_5 | WEEK_7 - {"nfl-2026-week-7-bears-v-patriots"}
     rows = [r for r in scan(tables.predictions) if r["matchId"] == live["matchId"]]
     assert rows == [live]
+
+
+@pytest.mark.parametrize("through_week", [7, 9])
+def test_explicit_through_week_is_capped_below_the_first_live_week(tables, games, through_week):
+    """Review N5: the docstring's "only weeks before the first live week" holds for an
+    explicit --through-week too, not just for the default."""
+    tables.predictions.put_item(Item=live_row("nfl-2026-week-7-bears-v-patriots", 7))
+    assert set(backfill(games, tables.predictions, NOW, through_week=through_week)) == WEEK_5
+    assert {r["matchId"] for r in scan(tables.predictions)} == WEEK_5 | {
+        "nfl-2026-week-7-bears-v-patriots"
+    }
+
+
+def test_a_backfilled_row_never_counts_as_the_first_live_week(tables, games):
+    row = {**live_row("nfl-2026-week-7-bears-v-patriots", 7), "backfilled": True}
+    tables.predictions.put_item(Item=row)
+    assert set(backfill(games, tables.predictions, NOW, through_week=9)) == (
+        WEEK_5 | WEEK_7 - {"nfl-2026-week-7-bears-v-patriots"}
+    )
+
+
+class _ScanRecorder:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def scan(self, **kwargs):
+        self.calls.append(kwargs)
+        return {"Items": []}
+
+
+def test_first_live_week_lookup_is_a_consistent_read():
+    """Review N1: the read that decides which weeks are safe to backfill is strongly
+    consistent, so a live row written a moment ago is never missed."""
+    from nfl.orchestrator.backfill import _first_live_week
+
+    table = _ScanRecorder()
+    assert _first_live_week(table, 2026) is None
+    assert table.calls and all(c.get("ConsistentRead") is True for c in table.calls)
 
 
 def test_rerun_is_idempotent(tables, games):

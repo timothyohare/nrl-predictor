@@ -87,6 +87,14 @@ def test_lambda_sizing_and_table_env_vars():
         assert f'"{var}"' in _STACK
 
 
+def test_orchestrator_reserved_concurrency_is_one():
+    """Review N2: idempotency is check-then-put, so two overlapping invocations
+    (schedule + manual) must never run at once."""
+    fn = next(f for f in _calls(_STACK, "_lambda.Function")
+              if 'function_name="nfl-predictor-orchestrator"' in f)
+    assert "reserved_concurrent_executions=1," in fn
+
+
 def test_layer_bundles_tzdata():
     """N1: the Lambda runtime image must not be relied on for the tz database."""
     (layer,) = _calls(_STACK, "_lambda.LayerVersion")
@@ -145,3 +153,49 @@ def test_lambda_asset_never_ships_dotfiles():
     patterns = re.findall(r'"([^"]+)"', m.group(1))
     assert ".*" in patterns
     assert "*.egg-info" in patterns
+
+
+def _synth_nfl_assets(tree: Path) -> list[Path]:
+    """Synthesise the real NflPredictorStack with its REPO_ROOT pointed at `tree`,
+    returning every Lambda code asset dir. Docker bundling (the tzdata layer) is
+    skipped — only the code assets matter. REPO_ROOT is patched to an absolute path
+    because the jsii runtime resolves relative paths against its own cwd."""
+    cdk = pytest.importorskip("aws_cdk")
+    import sys
+
+    sys.path.insert(0, str(_INFRA))
+    try:
+        nfl_stack = importlib.import_module("nfl_stack")
+        original_root = nfl_stack.REPO_ROOT
+        nfl_stack.REPO_ROOT = str(tree)
+        outdir = tree.parent / "cdk.out"
+        app = cdk.App(outdir=str(outdir), context={
+            "aws:cdk:bundling-stacks": [],
+            "aws:cdk:enable-asset-metadata": True,
+        })
+        nfl_stack.NflPredictorStack(app, "NflPredictorStack")
+        template = app.synth().get_stack_by_name("NflPredictorStack").template
+    finally:
+        nfl_stack.REPO_ROOT = original_root
+        sys.path.remove(str(_INFRA))
+    functions = [r for r in template["Resources"].values() if r["Type"] == "AWS::Lambda::Function"]
+    assert functions
+    return [outdir / f["Metadata"]["aws:asset:path"] for f in functions]
+
+
+def test_synthesised_lambda_assets_contain_no_dotfiles(tmp_path):
+    """Review N12: prove the exclude list on a real synth, not just that ".*" is in
+    it — a root .env, a nested .env and a nested dot-directory must all be absent,
+    while ordinary source next to them still ships."""
+    planted = [".env", "common/.env", "nfl/sub/.env.local", "common/.cache/secret.py"]
+    shipped = ["common/a.py", "nfl/sub/b.py"]
+    tree = tmp_path / "repo"
+    for rel in planted + shipped:
+        path = tree / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("x")
+
+    for asset in _synth_nfl_assets(tree):
+        files = {p.relative_to(asset).as_posix() for p in asset.rglob("*") if p.is_file()}
+        assert set(shipped) <= files
+        assert not [f for f in files if any(part.startswith(".") for part in f.split("/"))]
