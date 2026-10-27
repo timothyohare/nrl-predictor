@@ -32,8 +32,15 @@ def _handlers() -> list[str]:
     return re.findall(r'handler="([\w.]+)"', _STACK)
 
 
-def test_stack_declares_the_orchestrator_handler():
-    assert _handlers() == ["nfl.orchestrator.lambda_handler.lambda_handler"]
+def _function(name: str) -> str:
+    return next(f for f in _calls(_STACK, "_lambda.Function") if f'function_name="{name}"' in f)
+
+
+def test_stack_declares_the_orchestrator_and_api_handlers():
+    assert _handlers() == [
+        "nfl.orchestrator.lambda_handler.lambda_handler",
+        "nfl.api.router.lambda_handler",
+    ]
 
 
 @pytest.mark.parametrize("handler", _handlers() or ["<missing>"])
@@ -79,8 +86,8 @@ def test_both_tables_are_pay_per_request_with_the_spec_keys():
 
 
 def test_lambda_sizing_and_table_env_vars():
-    (fn,) = _calls(_STACK, "_lambda.Function")
-    assert 'function_name="nfl-predictor-orchestrator"' in fn
+    assert len(_calls(_STACK, "_lambda.Function")) == 2
+    fn = _function("nfl-predictor-orchestrator")
     assert "memory_size=512" in fn
     assert "cdk.Duration.seconds(60)" in fn
     for var in ("NFL_GAMES_TABLE", "NFL_PREDICTIONS_TABLE", "NFL_GAMES_CSV_URL"):
@@ -90,9 +97,44 @@ def test_lambda_sizing_and_table_env_vars():
 def test_orchestrator_reserved_concurrency_is_one():
     """Review N2: idempotency is check-then-put, so two overlapping invocations
     (schedule + manual) must never run at once."""
-    fn = next(f for f in _calls(_STACK, "_lambda.Function")
-              if 'function_name="nfl-predictor-orchestrator"' in f)
-    assert "reserved_concurrent_executions=1," in fn
+    assert "reserved_concurrent_executions=1," in _function("nfl-predictor-orchestrator")
+
+
+# --- Phase 4: the NFL API (separate HttpApi, user decision Q3) ----------------------
+
+def test_api_lambda_handler_and_env():
+    fn = _function("nfl-predictor-api")
+    assert 'handler="nfl.api.router.lambda_handler"' in fn
+    assert "cdk.Duration.seconds(10)" in fn
+    for var in ("NFL_GAMES_TABLE", "NFL_PREDICTIONS_TABLE", "RATE_LIMITS_TABLE"):
+        assert f'"{var}"' in fn
+
+
+def test_api_reads_nfl_tables_and_only_updates_the_rate_limit_table():
+    assert "games_table.grant_read_data(api_fn)" in _STACK
+    assert "predictions_table.grant_read_data(api_fn)" in _STACK
+    assert "grant_read_write_data(api_fn)" not in _STACK
+    assert "dynamodb.Table.from_table_arn" in _STACK
+    assert "arn:aws:dynamodb:ap-southeast-2:810429055117:table/nrl-rate-limits" in _STACK
+    assert 'rate_limits_table.grant(api_fn, "dynamodb:UpdateItem")' in _STACK
+
+
+def test_separate_http_api_with_nrl_cors():
+    (api,) = _calls(_STACK, "apigwv2.HttpApi")
+    assert 'api_name="nfl-predictor-api"' in api
+    assert "allow_methods=[apigwv2.CorsHttpMethod.GET]" in api
+    assert 'allow_origins=["*"]' in api
+
+
+def test_api_routes():
+    routes = re.findall(r'add_routes\(path="([^"]+)", methods=\[apigwv2\.HttpMethod\.GET\]', _STACK)
+    assert sorted(routes) == sorted([
+        "/health", "/nfl/weeks/current", "/nfl/predictions/{season}/{week}", "/nfl/accuracy",
+    ])
+
+
+def test_api_endpoint_is_an_output():
+    assert re.search(r'CfnOutput\(self, "NflApiEndpoint", value=api\.api_endpoint', _STACK)
 
 
 def test_layer_bundles_tzdata():
@@ -155,20 +197,32 @@ def test_lambda_asset_never_ships_dotfiles():
     assert "*.egg-info" in patterns
 
 
-def _synth_nfl_assets(tree: Path) -> list[Path]:
-    """Synthesise the real NflPredictorStack with its REPO_ROOT pointed at `tree`,
-    returning every Lambda code asset dir. Docker bundling (the tzdata layer) is
-    skipped — only the code assets matter. REPO_ROOT is patched to an absolute path
-    because the jsii runtime resolves relative paths against its own cwd."""
+_PLANTED = [".env", "common/.env", "nfl/sub/.env.local", "common/.cache/secret.py"]
+_SHIPPED = ["common/a.py", "nfl/sub/b.py"]
+
+
+@pytest.fixture(scope="module")
+def synth(tmp_path_factory):
+    """Synthesise the real NflPredictorStack over a tiny planted tree (REPO_ROOT
+    patched to it — an absolute path, because the jsii runtime resolves relative
+    paths against its own cwd). Docker bundling (the tzdata layer) is skipped —
+    only the code assets and the template matter here."""
     cdk = pytest.importorskip("aws_cdk")
     import sys
+
+    root = tmp_path_factory.mktemp("synth")
+    tree = root / "repo"
+    for rel in _PLANTED + _SHIPPED:
+        path = tree / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("x")
 
     sys.path.insert(0, str(_INFRA))
     nfl_stack = importlib.import_module("nfl_stack")
     original_root = nfl_stack.REPO_ROOT
     try:
         nfl_stack.REPO_ROOT = str(tree)
-        outdir = tree.parent / "cdk.out"
+        outdir = root / "cdk.out"
         app = cdk.App(outdir=str(outdir), context={
             "aws:cdk:bundling-stacks": [],
             "aws:cdk:enable-asset-metadata": True,
@@ -178,24 +232,58 @@ def _synth_nfl_assets(tree: Path) -> list[Path]:
     finally:
         nfl_stack.REPO_ROOT = original_root
         sys.path.remove(str(_INFRA))
-    functions = [r for r in template["Resources"].values() if r["Type"] == "AWS::Lambda::Function"]
-    assert functions
-    return [outdir / f["Metadata"]["aws:asset:path"] for f in functions]
+    return template, outdir
 
 
-def test_synthesised_lambda_assets_contain_no_dotfiles(tmp_path):
+def _resources(template: dict, kind: str) -> list[dict]:
+    return [r for r in template["Resources"].values() if r["Type"] == kind]
+
+
+def test_synthesised_lambda_assets_contain_no_dotfiles(synth):
     """Review N12: prove the exclude list on a real synth, not just that ".*" is in
     it — a root .env, a nested .env and a nested dot-directory must all be absent,
     while ordinary source next to them still ships."""
-    planted = [".env", "common/.env", "nfl/sub/.env.local", "common/.cache/secret.py"]
-    shipped = ["common/a.py", "nfl/sub/b.py"]
-    tree = tmp_path / "repo"
-    for rel in planted + shipped:
-        path = tree / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("x")
-
-    for asset in _synth_nfl_assets(tree):
+    template, outdir = synth
+    functions = _resources(template, "AWS::Lambda::Function")
+    assert len(functions) == 2
+    for fn in functions:
+        asset = outdir / fn["Metadata"]["aws:asset:path"]
         files = {p.relative_to(asset).as_posix() for p in asset.rglob("*") if p.is_file()}
-        assert set(shipped) <= files
+        assert set(_SHIPPED) <= files
         assert not [f for f in files if any(part.startswith(".") for part in f.split("/"))]
+
+
+def test_synthesised_orchestrator_reserved_concurrency(synth):
+    template, _ = synth
+    fn = next(f for f in _resources(template, "AWS::Lambda::Function")
+              if f["Properties"]["FunctionName"] == "nfl-predictor-orchestrator")
+    assert fn["Properties"]["ReservedConcurrentExecutions"] == 1
+
+
+def test_synthesised_http_api_routes_and_cors(synth):
+    template, _ = synth
+    (api,) = _resources(template, "AWS::ApiGatewayV2::Api")
+    assert api["Properties"]["Name"] == "nfl-predictor-api"
+    cors = api["Properties"]["CorsConfiguration"]
+    assert cors["AllowOrigins"] == ["*"] and cors["AllowMethods"] == ["GET"]
+    keys = {r["Properties"]["RouteKey"] for r in _resources(template, "AWS::ApiGatewayV2::Route")}
+    assert keys == {"GET /health", "GET /nfl/weeks/current",
+                    "GET /nfl/predictions/{season}/{week}", "GET /nfl/accuracy"}
+
+
+def test_synthesised_api_policy_is_read_only_on_nfl_tables(synth):
+    template, _ = synth
+    import json as _json
+
+    api_fn = next(k for k, r in template["Resources"].items()
+                  if r["Type"] == "AWS::Lambda::Function"
+                  and r["Properties"]["FunctionName"] == "nfl-predictor-api")
+    role = template["Resources"][api_fn]["Properties"]["Role"]["Fn::GetAtt"][0]
+    policies = [r for r in _resources(template, "AWS::IAM::Policy")
+                if {"Ref": role} in r["Properties"]["Roles"]]
+    statements = [st for p in policies for st in p["Properties"]["PolicyDocument"]["Statement"]]
+    actions = {a for st in statements for a in (st["Action"] if isinstance(st["Action"], list)
+                                               else [st["Action"]])}
+    assert not {"dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:BatchWriteItem"} & actions
+    rate = [st for st in statements if "nrl-rate-limits" in _json.dumps(st["Resource"])]
+    assert [st["Action"] for st in rate] == ["dynamodb:UpdateItem"]
