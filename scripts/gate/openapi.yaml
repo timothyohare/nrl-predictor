@@ -1,7 +1,7 @@
 # Contract of record for the gate API read path (CHG-0026, gate-fuzz).
-# Scope: the endpoints the gate seeds and verifies (local_setup.py round 12);
-# /accuracy and /tournament/leaderboard are unseeded and out of scope until
-# they get gate data. Schemathesis fuzzes this document — response schemas
+# Scope: the endpoints the gate seeds and verifies (local_setup.py round 12,
+# and the NFL read path from nfl_setup.py seed_api); /accuracy and
+# /tournament/leaderboard are unseeded and out of scope until they get gate data. Schemathesis fuzzes this document — response schemas
 # are deliberately additionalProperties-tolerant (the API adds fields freely)
 # but status codes and required fields are load-bearing.
 openapi: 3.0.3

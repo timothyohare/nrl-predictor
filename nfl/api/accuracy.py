@@ -33,15 +33,10 @@ HOME_BASELINE_P_HOME = 0.5727
 HOME_BASELINE_MARGIN = 2.60
 
 
-def _result(game: Game) -> int:
-    assert game.result is not None  # only played games are graded
-    return game.result
-
-
-def _scored(pred: dict, game: Game) -> Scored:
+def _scored(pred: dict, game: Game, result: int) -> Scored:
     pick_home = pred["predicted_winner"] == game.home
     margin = int(pred["predicted_margin"])
-    return Scored(_result(game), float(pred["home_win_probability"]), pick_home,
+    return Scored(result, float(pred["home_win_probability"]), pick_home,
                   margin if pick_home else -margin)
 
 
@@ -66,26 +61,27 @@ def lambda_handler(event: dict, context) -> dict:
     if not games:
         return error(404, f"No NFL games for season {season}")
 
-    # (prediction, game) for every graded game: still in nfl_games and played.
-    graded: list[tuple[dict, Game]] = []
+    # (prediction, game, home-minus-away result) for every game still in
+    # nfl_games that has been played.
+    graded: list[tuple[dict, Game, int]] = []
     for mid, pred in latest_ok_predictions(season).items():
         if mid in games:
             game = game_from_item(games[mid])
-            if game.played:
-                graded.append((pred, game))
+            if game.result is not None:
+                graded.append((pred, game, game.result))
 
-    model = summarise([_scored(p, g) for p, g in graded])
+    model = summarise([_scored(*row) for row in graded])
     by_confidence = {}
     for level in CONFIDENCE_LEVELS:
-        level_summary = summarise([_scored(p, g) for p, g in graded if p["confidence"] == level])
+        level_summary = summarise([_scored(*row) for row in graded if row[0]["confidence"] == level])
         by_confidence[level] = {"n": level_summary["n"], "accuracy": level_summary["accuracy"]}
 
-    results = [_result(g) for _, g in graded]
-    markets = {g.match_id: m for _, g in graded if (m := market_from_item(games[g.match_id]))}
+    results = [result for _, _, result in graded]
+    markets = {g.match_id: m for _, g, _ in graded if (m := market_from_item(games[g.match_id]))}
     return respond(200, {
         "season": season,
         **model,
-        "n_backfilled": sum(bool(p.get("backfilled")) for p, _ in graded),
+        "n_backfilled": sum(bool(p.get("backfilled")) for p, _, _ in graded),
         "by_confidence": by_confidence,
         "baselines": {
             "home": {
@@ -93,6 +89,6 @@ def lambda_handler(event: dict, context) -> dict:
                 "margin": HOME_BASELINE_MARGIN,
                 **summarise(home_scored(results, HOME_BASELINE_P_HOME, HOME_BASELINE_MARGIN)),
             },
-            "market": summarise(market_scored([g for _, g in graded], markets)),
+            "market": summarise(market_scored([g for _, g, _ in graded], markets)),
         },
     })
