@@ -6,12 +6,16 @@ the router expects, invokes `api.router.lambda_handler`, and writes its
 statusCode/headers/body straight back. No framework — stdlib http.server keeps
 the gate dependency-free.
 
+`/nfl/*` goes to the NFL API Lambda (`nfl.api.router`, its own HttpApi in
+NflPredictorStack) instead; every other path is unchanged.
+
 Port is GATE_API_PORT (default 8001); 8000 is taken by DynamoDB Local.
 """
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse
 
+from nfl.api.router import lambda_handler as nfl_lambda_handler
 from v1.api.router import lambda_handler
 
 PORT = int(os.environ.get("GATE_API_PORT", "8001"))
@@ -35,10 +39,26 @@ def _to_event(path: str) -> dict:
     }
 
 
+def _to_nfl_event(path: str, query: str) -> dict:
+    """The NFL router derives {season}/{week} from the path itself, so no
+    pathParameters here; the query string feeds /nfl/accuracy?season=."""
+    return {
+        "rawPath": path,
+        "path": path,
+        "pathParameters": None,
+        "queryStringParameters": dict(parse_qsl(query, keep_blank_values=True)) or None,
+        "requestContext": {"http": {"method": "GET", "sourceIp": "127.0.0.1"}},
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 (http.server API)
-        path = urlparse(self.path).path.rstrip("/") or "/"
-        result = lambda_handler(_to_event(path), None)
+        url = urlparse(self.path)
+        path = url.path.rstrip("/") or "/"
+        if path.startswith("/nfl/"):
+            result = nfl_lambda_handler(_to_nfl_event(path, url.query), None)
+        else:
+            result = lambda_handler(_to_event(path), None)
 
         body = (result.get("body") or "").encode("utf-8")
         self.send_response(result.get("statusCode", 200))

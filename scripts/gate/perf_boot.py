@@ -35,6 +35,8 @@ os.environ.setdefault("RESULTS_TABLE", "results")
 os.environ.setdefault("RETROSPECTIVES_TABLE", "retrospectives")
 os.environ.setdefault("ODDS_TABLE", "odds")
 os.environ.setdefault("RATE_LIMITS_TABLE", "nrl-rate-limits")
+os.environ.setdefault("NFL_GAMES_TABLE", "nfl_games")
+os.environ.setdefault("NFL_PREDICTIONS_TABLE", "nfl_predictions")
 
 
 def main() -> None:
@@ -49,6 +51,13 @@ def main() -> None:
         create_tables()
         print("perf_boot: seeding ...", flush=True)
         seed()
+        # The NFL read path (gate-fuzz covers /nfl/* from openapi.yaml; the
+        # perf routes stay NRL-only).
+        from nfl_setup import create_tables as create_nfl_tables
+        from nfl_setup import seed_api as seed_nfl
+
+        create_nfl_tables()
+        seed_nfl()
 
         # The router rate-limits to 20 req/hour per source IP (a fail-open
         # guardrail, hardcoded in api.rate_limit). Under gate-perf's warmup+sample

@@ -82,3 +82,169 @@ paths:
                 properties:
                   error:
                     type: string
+  # NFL read path (spec Phase 4) — its own HttpApi in NflPredictorStack, routed
+  # by local_api_server.py to nfl.api.router; seeded by nfl_setup.py seed_api().
+  /nfl/weeks/current:
+    get:
+      operationId: nflCurrentWeek
+      responses:
+        "200":
+          description: The target week (Phase 3 rule), or the last week played after the season.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [season, week, stage, label]
+                additionalProperties: true
+                properties:
+                  season:
+                    type: integer
+                  week:
+                    type: integer
+                  stage:
+                    type: string
+                    enum: [REG, WC, DIV, CON, SB]
+                  label:
+                    type: string
+        "404":
+          $ref: "#/components/responses/Error"
+  /nfl/predictions/{season}/{week}:
+    get:
+      operationId: nflPredictionsByWeek
+      parameters:
+        - name: season
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1999
+            maximum: 2100
+        - name: week
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+      responses:
+        "200":
+          description: Newest OK prediction per game still in nfl_games, sorted by kickoff then matchId.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [matchId, season, week, stage, label, home_team, away_team,
+                             predicted_winner, neutral, backfilled]
+                  additionalProperties: true
+                  properties:
+                    matchId:
+                      type: string
+                    season:
+                      type: integer
+                    week:
+                      type: integer
+                    stage:
+                      type: string
+                    label:
+                      type: string
+                    home_team:
+                      type: string
+                    away_team:
+                      type: string
+                    predicted_winner:
+                      type: string
+                    neutral:
+                      type: boolean
+                    backfilled:
+                      type: boolean
+                    is_outlier:
+                      type: boolean
+                    result:
+                      type: object
+                      required: [home_score, away_score, winner, margin]
+                      additionalProperties: true
+                      properties:
+                        home_score:
+                          type: integer
+                        away_score:
+                          type: integer
+                        winner:
+                          type: string
+                          nullable: true
+                        margin:
+                          type: integer
+                    market:
+                      type: object
+                      required: [spread_favourite, spread_line, implied_home_prob]
+                      additionalProperties: true
+                      properties:
+                        spread_favourite:
+                          type: string
+                          nullable: true
+                        spread_line:
+                          type: number
+                          nullable: true
+                        implied_home_prob:
+                          type: number
+                          nullable: true
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /nfl/accuracy:
+    get:
+      operationId: nflAccuracy
+      parameters:
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1999
+            maximum: 2100
+      responses:
+        "200":
+          description: Phase 2 metrics over graded predictions, with home and market baselines.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [season, n, accuracy, brier, margin_mae, by_confidence, baselines]
+                additionalProperties: true
+                properties:
+                  season:
+                    type: integer
+                  n:
+                    type: integer
+                  accuracy:
+                    type: number
+                    nullable: true
+                  brier:
+                    type: number
+                    nullable: true
+                  margin_mae:
+                    type: number
+                    nullable: true
+                  by_confidence:
+                    type: object
+                  baselines:
+                    type: object
+                    required: [home, market]
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+components:
+  responses:
+    Error:
+      description: A JSON error.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string

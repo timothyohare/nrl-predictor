@@ -1,14 +1,23 @@
-"""NflPredictorStack — the NFL live pipeline (spec Phase 3), deployed, paused and
-destroyed independently of the NRL stacks (v1_stack.py / v2_stack.py are never
-touched by it).
+"""NflPredictorStack — the NFL live pipeline (spec Phase 3) and its read API
+(Phase 4), deployed, paused and destroyed independently of the NRL stacks
+(v1_stack.py / v2_stack.py are never touched by it).
 
 One daily Lambda ingests the nflverse schedule/results CSV, upserts the current
 season into `nfl_games` and predicts the next week into `nfl_predictions`
-(Elo + Monte Carlo, `nfl-elo-v1`; no LLM, no market input). Cost-conscious:
-two PAY_PER_REQUEST tables, one 512 MB / 60 s Lambda run once a day, two alarms
-on the existing NRL alerts topic (imported, not recreated).
+(Elo + Monte Carlo, `nfl-elo-v1`; no LLM, no market input). A separate HttpApi
+(user decision Q3; the frontend reads it via NFL_API_BASE_URL) serves
+/nfl/weeks/current, /nfl/predictions/{season}/{week} and /nfl/accuracy.
+Cost-conscious: two PAY_PER_REQUEST tables, one 512 MB / 60 s Lambda run once a
+day, one small API Lambda, two alarms on the existing NRL alerts topic
+(imported, not recreated).
 """
 import aws_cdk as cdk
+from aws_cdk import (
+    aws_apigatewayv2 as apigwv2,
+)
+from aws_cdk import (
+    aws_apigatewayv2_integrations as integrations,
+)
 from aws_cdk import (
     aws_cloudwatch as cloudwatch,
 )
@@ -52,6 +61,10 @@ NFLVERSE_GAMES_CSV_URL = "https://github.com/nflverse/nfldata/raw/master/data/ga
 
 # The NRL v1 stack owns this topic (email subscription included); import, never recreate.
 ALERT_TOPIC_ARN = "arn:aws:sns:ap-southeast-2:810429055117:nrl-predictor-alerts"
+
+# The NRL v1 stack owns the API rate-limit table too; the NFL API shares it under
+# an `nfl#<ip>` bucket (nfl/api/router.py). Import by ARN, grant UpdateItem only.
+RATE_LIMITS_TABLE_ARN = "arn:aws:dynamodb:ap-southeast-2:810429055117:table/nrl-rate-limits"
 
 # Only what the NFL Lambda imports (common/ + nfl/) needs to ship. ".*" keeps
 # every dotfile out of the zip — notably .env (local API keys) and the tool
@@ -132,13 +145,15 @@ class NflPredictorStack(cdk.Stack):
             ),
         )
 
+        code = _lambda.Code.from_asset(REPO_ROOT, exclude=_ASSET_EXCLUDE)
+
         # ── Lambda: orchestrator ─────────────────────────────────────────────
         orchestrator_fn = _lambda.Function(
             self, "NflOrchestrator",
             function_name="nfl-predictor-orchestrator",
             runtime=LAMBDA_RUNTIME,
             handler="nfl.orchestrator.lambda_handler.lambda_handler",
-            code=_lambda.Code.from_asset(REPO_ROOT, exclude=_ASSET_EXCLUDE),
+            code=code,
             layers=[deps_layer],
             timeout=cdk.Duration.seconds(60),
             memory_size=512,
@@ -159,6 +174,42 @@ class NflPredictorStack(cdk.Stack):
             resources=["*"],
             conditions={"StringEquals": {"cloudwatch:namespace": "NflPredictor"}},
         ))
+
+        # ── Lambda + HttpApi: the NFL read API (Phase 4) ─────────────────────
+        api_fn = _lambda.Function(
+            self, "NflApiLambda",
+            function_name="nfl-predictor-api",
+            runtime=LAMBDA_RUNTIME,
+            handler="nfl.api.router.lambda_handler",
+            code=code,
+            layers=[deps_layer],
+            timeout=cdk.Duration.seconds(10),
+            memory_size=256,
+            environment={
+                "NFL_GAMES_TABLE": games_table.table_name,
+                "NFL_PREDICTIONS_TABLE": predictions_table.table_name,
+                "RATE_LIMITS_TABLE": "nrl-rate-limits",
+            },
+        )
+        games_table.grant_read_data(api_fn)
+        predictions_table.grant_read_data(api_fn)
+        rate_limits_table = dynamodb.Table.from_table_arn(self, "RateLimits", RATE_LIMITS_TABLE_ARN)
+        rate_limits_table.grant(api_fn, "dynamodb:UpdateItem")
+
+        # Same CORS as the NRL API (v1_stack.py): GET from any origin.
+        api = apigwv2.HttpApi(
+            self, "NflHttpApi",
+            api_name="nfl-predictor-api",
+            cors_preflight=apigwv2.CorsPreflightOptions(
+                allow_methods=[apigwv2.CorsHttpMethod.GET],
+                allow_origins=["*"],
+            ),
+        )
+        api_integration = integrations.HttpLambdaIntegration("NflApiIntegration", api_fn)
+        api.add_routes(path="/health", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
+        api.add_routes(path="/nfl/weeks/current", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
+        api.add_routes(path="/nfl/predictions/{season}/{week}", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
+        api.add_routes(path="/nfl/accuracy", methods=[apigwv2.HttpMethod.GET], integration=api_integration)
 
         # ── Schedule ─────────────────────────────────────────────────────────
         # Daily 12:00 UTC (22:00/23:00 Sydney; 07:00/08:00 US Eastern) — after
@@ -219,3 +270,4 @@ class NflPredictorStack(cdk.Stack):
 
         # ── Outputs ──────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "NflOrchestratorFunctionName", value=orchestrator_fn.function_name)
+        cdk.CfnOutput(self, "NflApiEndpoint", value=api.api_endpoint)
