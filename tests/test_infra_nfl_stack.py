@@ -135,3 +135,13 @@ def test_nrl_stacks_are_unchanged_from_main():
         cwd=_REPO,
     )
     assert result.returncode == 0
+
+
+def test_lambda_asset_never_ships_dotfiles():
+    """The repo-root asset must exclude dotfiles: `.env` holds API keys, and
+    `.mypy_cache` alone is ~38 MB."""
+    m = re.search(r"^_ASSET_EXCLUDE = \[(.*?)^\]", _STACK, re.MULTILINE | re.DOTALL)
+    assert m
+    patterns = re.findall(r'"([^"]+)"', m.group(1))
+    assert ".*" in patterns
+    assert "*.egg-info" in patterns
