@@ -18,12 +18,11 @@ import csv
 import io
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import cache
 from zoneinfo import ZoneInfo
 
 from common.nfl.match_id import match_id
-from common.nfl.teams import to_slug
-
-_EASTERN = ZoneInfo("America/New_York")
+from common.nfl.teams import is_known, to_slug
 
 REQUIRED_COLUMNS = (
     "game_id", "season", "game_type", "week", "gameday", "gametime",
@@ -77,17 +76,28 @@ def _float_or_none(value: str) -> float | None:
     return float(value) if value.strip() else None
 
 
+@cache
+def _eastern() -> ZoneInfo:
+    """US Eastern, resolved on first use rather than at import, so a host without
+    the IANA database can still import this module. `tzdata` is a runtime
+    dependency (pyproject + the NFL Lambda layer) so the lookup never depends on
+    the host image either."""
+    return ZoneInfo("America/New_York")
+
+
 def _kickoff_utc(gameday: str, gametime: str) -> datetime | None:
     if not gametime.strip():
         return None
-    local = datetime.strptime(f"{gameday} {gametime}", "%Y-%m-%d %H:%M").replace(tzinfo=_EASTERN)
+    local = datetime.strptime(f"{gameday} {gametime}", "%Y-%m-%d %H:%M").replace(tzinfo=_eastern())
     return local.astimezone(UTC)
 
 
 def parse_csv(text: str) -> tuple[list[Game], dict[str, Market]]:
     """Every row becomes a `Game`; rows with any market data also get a `Market`.
 
-    Raises ValueError naming any missing required column, before parsing a row.
+    Raises ValueError naming any missing required column, before parsing a row;
+    an unknown team code (which would otherwise become a 33rd franchise starting
+    at the base rating); or a duplicate matchId (which would silently overwrite).
     """
     reader = csv.DictReader(io.StringIO(text))
     missing = [c for c in REQUIRED_COLUMNS if c not in (reader.fieldnames or [])]
@@ -96,12 +106,20 @@ def parse_csv(text: str) -> tuple[list[Game], dict[str, Market]]:
 
     games: list[Game] = []
     markets: dict[str, Market] = {}
+    seen: set[str] = set()
     for row in reader:
         season, week = int(row["season"]), int(row["week"])
+        for code in (row["home_team"], row["away_team"]):
+            if not is_known(code):
+                raise ValueError(f"unknown nflverse team code {code!r} in {row['game_id']}")
         home, away = to_slug(row["home_team"]), to_slug(row["away_team"])
+        mid = match_id(season, week, home, away)
+        if mid in seen:
+            raise ValueError(f"duplicate matchId {mid} ({row['game_id']})")
+        seen.add(mid)
         game = Game(
             game_id=row["game_id"],
-            match_id=match_id(season, week, home, away),
+            match_id=mid,
             season=season,
             week=week,
             stage=row["game_type"],

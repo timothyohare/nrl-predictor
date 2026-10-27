@@ -49,8 +49,12 @@ def predict_game(
     model: SportModel = NFL,
     n_simulations: int = N_SIMULATIONS,
 ) -> StatsPrediction:
-    """Predict one game from pre-game `ratings`; neutral sites get no home advantage."""
+    """Predict one game from pre-game `ratings`; neutral sites get no home advantage.
+    A team missing from `ratings` (no game played yet) starts at `starting_rating`."""
+    table = dict(ratings)
+    for team in (game.home, game.away):
+        table.setdefault(team, model.starting_rating)
     return predict_match(
-        game.home, game.away, dict(ratings), model.home_advantage, n_simulations, rng,
+        game.home, game.away, table, model.home_advantage, n_simulations, rng,
         model=model, neutral=game.neutral,
     )
