@@ -116,3 +116,42 @@ def test_missing_required_column_fails_loudly(sample_csv_text):
     broken = "\n".join([header.replace("location", "venue_kind"), *rest])
     with pytest.raises(ValueError, match="location"):
         parse_csv(broken)
+
+
+# --- Phase 2 review follow-ups (folded into Phase 3) ----------------------------
+
+def test_unknown_team_code_fails_loudly(sample_csv_text):
+    """N3: live ingest must never invent a 33rd team that starts at 1500."""
+    header, first, *rest = sample_csv_text.splitlines()
+    cols = header.split(",")
+    row = first.split(",")
+    row[cols.index("home_team")] = "XYZ"
+    with pytest.raises(ValueError, match="XYZ"):
+        parse_csv("\n".join([header, ",".join(row), *rest]))
+
+
+def test_duplicate_match_id_fails_loudly(sample_csv_text):
+    """N4: two rows resolving to the same matchId would silently overwrite each other."""
+    header, first, *rest = sample_csv_text.splitlines()
+    with pytest.raises(ValueError, match="duplicate matchId"):
+        parse_csv("\n".join([header, first, *rest, first]))
+
+
+def test_eastern_zone_is_not_built_at_import():
+    """N1: a host with no tz database must still be able to import the module
+    (ZoneInfo is resolved lazily, on first kickoff conversion)."""
+    from zoneinfo import ZoneInfo
+
+    from common.nfl import games
+
+    assert not [name for name, value in vars(games).items() if isinstance(value, ZoneInfo)]
+
+
+def test_tzdata_is_a_runtime_dependency():
+    """N1: the IANA database ships with the package, not the host image."""
+    import tomllib
+    from pathlib import Path
+
+    pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    deps = tomllib.loads(pyproject.read_text())["project"]["dependencies"]
+    assert any(re.match(r"tzdata\b", d) for d in deps)
