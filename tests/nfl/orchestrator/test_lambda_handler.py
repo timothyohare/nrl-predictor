@@ -363,3 +363,9 @@ def test_metric_failure_does_not_abort_the_run(tables, freeze, monkeypatch):
 def test_real_clock_is_utc_aware():
     now = handler._now()
     assert now.tzinfo is not None and now.utcoffset() == timedelta(0)
+
+
+def test_csv_url_scheme_is_allow_listed():
+    """Characterisation (refactor step): only https:// and file:// are fetched."""
+    with pytest.raises(ValueError, match="https:// or file://"):
+        handler.fetch_csv("ftp://example.com/games.csv")

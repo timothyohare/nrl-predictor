@@ -33,7 +33,7 @@ from boto3.dynamodb.conditions import Key
 from common.nfl.games import Game, Market, parse_csv
 from common.nfl.model import NFL, predict_game
 from common.stats_model.ratings import replay_ratings
-from nfl.orchestrator.target_week import select_target
+from nfl.orchestrator.target_week import CANCELLED_AFTER, select_target
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -205,17 +205,17 @@ def lambda_handler(event: dict, context) -> dict:
         upsert_games(ddb.Table(games_table_name), current, markets, now.isoformat())
 
     for game in target.cancelled:
-        logger.warning("%s is unscored more than 72h after kickoff — treated as cancelled",
-                       game.match_id)
+        logger.warning("%s is unscored more than %s after kickoff — treated as cancelled",
+                       game.match_id, CANCELLED_AFTER)
     if target.blockers:
         logger.warning("Week %s of %s not predicted: waiting on results for %s",
                        target.week, target.season,
                        ", ".join(g.match_id for g in target.blockers))
 
     predictions = ddb.Table(predictions_table_name)
-    ratings = (replay_ratings(games, NFL, before=(target.season, target.week))
-               if target.to_predict and target.season is not None and target.week is not None
-               else {})
+    ratings: Mapping[str, float] = {}
+    if target.season is not None and target.week is not None and target.to_predict:
+        ratings = replay_ratings(games, NFL, before=(target.season, target.week))
     predicted: list[str] = []
     skipped: list[str] = []
     failed: list[str] = []
