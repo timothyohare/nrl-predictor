@@ -3,6 +3,7 @@ spec criteria 2.8 and 2.9."""
 from __future__ import annotations
 
 import random
+from collections import defaultdict
 
 import pytest
 
@@ -57,3 +58,14 @@ def test_nfl_prediction_never_says_home_ground_and_bands_are_ordered(by_id, gap)
         assert 0 <= pred.margin_low <= pred.margin_high
         edges += [pred.margin_low, pred.margin_high]
     assert any(e % 2 == 1 for e in edges)
+
+
+def test_team_without_history_starts_at_the_starting_rating(by_id):
+    """replay_ratings returns a defaultdict; a team absent from it (no played
+    game yet) must predict from `starting_rating`, not raise KeyError."""
+    game = by_id["2026_08_KC_DEN"]
+    sparse = defaultdict(lambda: NFL.starting_rating, {game.home: 1600.0})
+    explicit = {game.home: 1600.0, game.away: NFL.starting_rating}
+    got = predict_game(game, sparse, random.Random(1), n_simulations=500)
+    want = predict_game(game, explicit, random.Random(1), n_simulations=500)
+    assert got == want
