@@ -37,6 +37,15 @@ def _rate_limit_denial(ip: str) -> str | None:
 
 
 def lambda_handler(event: dict, context) -> dict:
+    try:
+        return _route(event, context)
+    except Exception:
+        # Never API Gateway's bare 500, and never internals in the body (review N1).
+        logger.exception("Unhandled error in the NFL API")
+        return error(500, "Internal error")
+
+
+def _route(event: dict, context) -> dict:
     path = (event.get("rawPath") or event.get("path") or "").rstrip("/")
     ip = (event.get("requestContext") or {}).get("http", {}).get("sourceIp", "unknown")
 

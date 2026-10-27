@@ -265,7 +265,11 @@ def _implied(moneyline: int) -> float:
     return 100 / (moneyline + 100) if moneyline > 0 else -moneyline / (-moneyline + 100)
 
 
-def devig_home_probability(home_moneyline: int, away_moneyline: int) -> float:
+def devig_home_probability(home_moneyline: int, away_moneyline: int) -> float | None:
+    """De-vigged home win probability, or None when either line is not a valid
+    American moneyline (those lie outside (-100, 100); 0/0 would divide by zero)."""
+    if -100 < home_moneyline < 100 or -100 < away_moneyline < 100:
+        return None
     home, away = _implied(home_moneyline), _implied(away_moneyline)
     return home / (home + away)
 

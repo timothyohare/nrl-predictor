@@ -12,11 +12,15 @@ frozen prediction row.
 """
 from __future__ import annotations
 
+import logging
+
 from common.nfl.backtest import devig_home_probability
 from common.nfl.match_id import stage_label
 from common.nfl.teams import display_name
 from nfl.api.http import SEASONS, WEEKS, error, parse_int, respond
 from nfl.api.store import latest_ok_predictions, season_games
+
+logger = logging.getLogger(__name__)
 
 # |signed predicted home margin - spread_line| above this flags an outlier.
 OUTLIER_MARGIN_GAP = 3
@@ -110,12 +114,20 @@ def lambda_handler(event: dict, context) -> dict:
                           f"and week an integer {WEEKS[0]}-{WEEKS[1]}")
 
     games = season_games(season, week)
-    latest = {mid: row for mid, row in latest_ok_predictions(season, week).items() if mid in games}
-    if not latest:
+    presented = []
+    for mid, row in latest_ok_predictions(season, week).items():
+        if mid not in games:
+            continue
+        try:
+            presented.append(present(row, games[mid]))
+        except Exception:
+            # One malformed row must not take the whole week down (review N1).
+            logger.warning("Skipping malformed NFL prediction/game row %s", mid, exc_info=True)
+    if not presented:
         return error(404, f"No NFL predictions for {season} week {week}")
 
     predictions = sorted(
-        (present(row, games[mid]) for mid, row in latest.items()),
+        presented,
         key=lambda p: (p["kickoff_utc"] is None, p["kickoff_utc"] or "", p["matchId"]),
     )
     return respond(200, predictions, cache="public, max-age=300")
