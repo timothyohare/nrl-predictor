@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import dataclasses
+import hashlib
 import io
 import random
 
@@ -26,6 +27,7 @@ from common.nfl.backtest import (
     summarise,
 )
 from common.nfl.games import Market, parse_csv
+from common.nfl.model import predict_game
 from common.stats_model.ratings import replay_ratings
 
 EVAL_FROM, EVAL_TO = 2020, 2025
@@ -181,8 +183,6 @@ def test_walk_forward_neutral_game_has_no_home_advantage(games, model):
     assert sb.neutral is True
     ratings = {g.match_id: (h, a) for g, h, a in pregame_ratings(games, model)}
     h, a = ratings[sb.match_id]
-    from common.nfl.model import predict_game
-
     game = next(g for g in games if g.match_id == sb.match_id)
     rng = random.Random(f"0:{sb.match_id}")
     expected = predict_game(game, {game.home: h, game.away: a}, rng, model=model, n_simulations=SIMS)
@@ -310,8 +310,6 @@ def test_run_backtest_report_shape(sample_csv_text):
     assert r["eval_window"] == [2020, 2025]
     assert set(r["per_season"]) == {"2020", "2021", "2025"}
     assert r["overall"]["n"] == len(result.predictions)
-    import hashlib
-
     assert r["data_sha256"] == hashlib.sha256(sample_csv_text.encode()).hexdigest()
     assert r["params"]["k_factor"] == fit(parse_csv(sample_csv_text)[0], EVAL_FROM).k_factor
 
