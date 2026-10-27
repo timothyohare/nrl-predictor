@@ -129,7 +129,8 @@ def test_separate_http_api_with_nrl_cors():
 def test_api_routes():
     routes = re.findall(r'add_routes\(path="([^"]+)", methods=\[apigwv2\.HttpMethod\.GET\]', _STACK)
     assert sorted(routes) == sorted([
-        "/health", "/nfl/weeks/current", "/nfl/predictions/{season}/{week}", "/nfl/accuracy",
+        "/health", "/nfl/weeks/current", "/nfl/weeks", "/nfl/predictions/{season}/{week}",
+        "/nfl/accuracy",
     ])
 
 
@@ -277,7 +278,7 @@ def test_synthesised_http_api_routes_and_cors(synth):
     cors = api["Properties"]["CorsConfiguration"]
     assert cors["AllowOrigins"] == ["*"] and cors["AllowMethods"] == ["GET"]
     keys = {r["Properties"]["RouteKey"] for r in _resources(template, "AWS::ApiGatewayV2::Route")}
-    assert keys == {"GET /health", "GET /nfl/weeks/current",
+    assert keys == {"GET /health", "GET /nfl/weeks/current", "GET /nfl/weeks",
                     "GET /nfl/predictions/{season}/{week}", "GET /nfl/accuracy"}
 
 

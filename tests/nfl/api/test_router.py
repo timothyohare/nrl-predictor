@@ -49,6 +49,13 @@ def test_routes_weeks_current(tables):
     assert body(response)["week"] == 8
 
 
+def test_routes_weeks_list(tables):
+    put(tables.games, game(GB))
+    response = call("/nfl/weeks", query={"season": "2026"})
+    assert response["statusCode"] == 200
+    assert body(response)["weeks"] == [{"week": 8, "stage": "REG", "label": "Week 8"}]
+
+
 def test_routes_accuracy(tables):
     put(tables.games, game(GB, score=(24, 17)))
     put(tables.predictions, prediction(GB, winner="packers"))

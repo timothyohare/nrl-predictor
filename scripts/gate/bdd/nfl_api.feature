@@ -55,3 +55,9 @@ Feature: NFL API read path
     When I GET "/nfl/accuracy?season=2026"
     Then the response status is 200
     And the response field "n" is 1
+
+  Scenario: Season week list carries the API labels
+    When I GET "/nfl/weeks?season=2026"
+    Then the response status is 200
+    And the response content type is JSON
+    And the response has fields season, weeks
