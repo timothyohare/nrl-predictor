@@ -20,8 +20,8 @@ from common.nfl.backtest import (
     fit,
     home_baseline,
     market_scored,
-    pregame_ratings,
     predict_walk_forward,
+    pregame_ratings,
     run_backtest,
     summarise,
 )
@@ -96,9 +96,17 @@ def test_changing_a_week_n_score_never_changes_predictions_up_to_week_n(games, m
         ]
         after = predict_walk_forward(changed, model, EVAL_FROM, EVAL_TO, n_simulations=SIMS, seed=0)
         cutoff = (target.season, target.week)
-        assert [p for p in after if (p.season, p.week) <= cutoff] == [
-            p for p in base if (p.season, p.week) <= cutoff
+        # Compare what was *predicted* — `result` is the graded outcome, which for
+        # the edited game itself legitimately changes.
+        assert [_predicted(p) for p in after if (p.season, p.week) <= cutoff] == [
+            _predicted(p) for p in base if (p.season, p.week) <= cutoff
         ]
+        if target.season <= EVAL_TO:  # sanity: the edit really reached the predicted set
+            assert any(p.result != q.result for p, q in zip(after, base, strict=True))
+
+
+def _predicted(p: GamePrediction) -> tuple:
+    return (p.match_id, p.p_home, p.pick_home, p.margin, p.confidence)
 
 
 def test_fit_ignores_every_eval_season_score(games, model):
@@ -148,9 +156,10 @@ def test_backtest_is_invariant_to_scrambled_market_columns(sample_csv_text):
 
     def scramble(row):
         for col in MARKET_COLUMNS:
-            row[col] = str(rng.choice([-1, 1]) * rng.randint(100, 900)) if "line" not in col else str(
-                rng.uniform(-14, 14)
-            )
+            if col in ("spread_line", "total_line"):
+                row[col] = str(round(rng.uniform(-14, 14), 1))
+            else:  # moneylines and juice are American odds integers
+                row[col] = str(rng.choice([-1, 1]) * rng.randint(100, 900))
         return row
 
     scrambled = _rewrite(sample_csv_text, scramble)
@@ -187,7 +196,8 @@ def test_walk_forward_only_predicts_played_games_in_the_window(games, model):
     assert len(preds) == len(played)
     for p in preds:
         assert p.pick_home == (p.p_home >= 0.5)
-        assert (p.margin >= 0) == p.pick_home
+        # Signed margin points at the pick (a rounded-to-0 margin is allowed either way).
+        assert p.margin * (1 if p.pick_home else -1) >= 0
         assert p.confidence in {"HIGH", "MEDIUM", "LOW"}
 
 
