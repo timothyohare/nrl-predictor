@@ -201,38 +201,48 @@ _PLANTED = [".env", "common/.env", "nfl/sub/.env.local", "common/.cache/secret.p
 _SHIPPED = ["common/a.py", "nfl/sub/b.py"]
 
 
-@pytest.fixture(scope="module")
-def synth(tmp_path_factory):
-    """Synthesise the real NflPredictorStack over a tiny planted tree (REPO_ROOT
-    patched to it — an absolute path, because the jsii runtime resolves relative
-    paths against its own cwd). Docker bundling (the tzdata layer) is skipped —
-    only the code assets and the template matter here."""
+def _synth(repo_root: Path, outdir: Path) -> dict:
+    """Synthesise the real NflPredictorStack with REPO_ROOT pointed at `repo_root`
+    (absolute, because the jsii runtime resolves relative paths against its own
+    cwd). Docker bundling (the tzdata layer) is skipped — only the code assets and
+    the template matter here."""
     cdk = pytest.importorskip("aws_cdk")
     import sys
 
+    sys.path.insert(0, str(_INFRA))
+    nfl_stack = importlib.import_module("nfl_stack")
+    original_root = nfl_stack.REPO_ROOT
+    try:
+        nfl_stack.REPO_ROOT = str(repo_root)
+        app = cdk.App(outdir=str(outdir), context={
+            "aws:cdk:bundling-stacks": [],
+            "aws:cdk:enable-asset-metadata": True,
+        })
+        nfl_stack.NflPredictorStack(app, "NflPredictorStack")
+        return app.synth().get_stack_by_name("NflPredictorStack").template
+    finally:
+        nfl_stack.REPO_ROOT = original_root
+        sys.path.remove(str(_INFRA))
+
+
+@pytest.fixture(scope="module")
+def synth(tmp_path_factory):
+    """The stack synthesised over a tiny planted tree (dotfiles + ordinary source)."""
     root = tmp_path_factory.mktemp("synth")
     tree = root / "repo"
     for rel in _PLANTED + _SHIPPED:
         path = tree / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("x")
+    outdir = root / "cdk.out"
+    return _synth(tree, outdir), outdir
 
-    sys.path.insert(0, str(_INFRA))
-    nfl_stack = importlib.import_module("nfl_stack")
-    original_root = nfl_stack.REPO_ROOT
-    try:
-        nfl_stack.REPO_ROOT = str(tree)
-        outdir = root / "cdk.out"
-        app = cdk.App(outdir=str(outdir), context={
-            "aws:cdk:bundling-stacks": [],
-            "aws:cdk:enable-asset-metadata": True,
-        })
-        nfl_stack.NflPredictorStack(app, "NflPredictorStack")
-        template = app.synth().get_stack_by_name("NflPredictorStack").template
-    finally:
-        nfl_stack.REPO_ROOT = original_root
-        sys.path.remove(str(_INFRA))
-    return template, outdir
+
+@pytest.fixture(scope="module")
+def repo_synth(tmp_path_factory):
+    """The stack synthesised over this repo, exactly as `cdk synth` would ship it."""
+    outdir = tmp_path_factory.mktemp("repo-synth") / "cdk.out"
+    return _synth(_REPO, outdir), outdir
 
 
 def _resources(template: dict, kind: str) -> list[dict]:
@@ -287,3 +297,33 @@ def test_synthesised_api_policy_is_read_only_on_nfl_tables(synth):
     assert not {"dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:BatchWriteItem"} & actions
     rate = [st for st in statements if "nrl-rate-limits" in _json.dumps(st["Resource"])]
     assert [st["Action"] for st in rate] == ["dynamodb:UpdateItem"]
+
+
+def test_every_handler_imports_from_its_synthesised_asset(repo_synth, tmp_path):
+    """Each Lambda's handler module must import from its own code asset alone (plus
+    third-party packages) — the repo checkout and the editable install hide a
+    first-party module the asset excludes. `-S` skips site processing, so the
+    editable-install .pth finder never runs; site-packages is appended by hand."""
+    import os
+    import sys
+    import sysconfig
+
+    template, outdir = repo_synth
+    purelib = sysconfig.get_paths()["purelib"]
+    probe = (
+        "import importlib, sys; sys.path[:0] = [sys.argv[1]]; sys.path.append(sys.argv[2]); "
+        "module, attr = sys.argv[3].rsplit('.', 1); m = importlib.import_module(module); "
+        "assert m.__file__.startswith(sys.argv[1]), m.__file__; "
+        "assert callable(getattr(m, attr))"
+    )
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    functions = _resources(template, "AWS::Lambda::Function")
+    assert len(functions) == 2
+    for fn in functions:
+        asset = outdir / fn["Metadata"]["aws:asset:path"]
+        handler = fn["Properties"]["Handler"]
+        result = subprocess.run(
+            [sys.executable, "-S", "-c", probe, str(asset), purelib, handler],
+            cwd=tmp_path, env=env, capture_output=True, text=True,
+        )
+        assert result.returncode == 0, f"{handler}: {result.stderr}"
