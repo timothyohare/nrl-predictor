@@ -262,11 +262,19 @@ def test_replay_skips_unplayed_games():
 def test_replay_tie_scores_both_sides_half():
     """A tie is fed to update_ratings as equal scores (0.5 actual each side).
 
-    Note: under the NRL margin-of-victory multiplier, log(margin + 1) is 0 for a
-    0-point margin, so a tie leaves both ratings where they were.
+    Under the margin-of-victory multiplier, log(margin + 1) is 0 for a 0-point
+    margin (the same as 538's NFL Elo), so a tie leaves both ratings exactly
+    where they were — pinned with explicit values, not by re-calling the formula.
     """
     out = replay_ratings([_Game("chiefs", "raiders", 20, 20, 2025, 1)], NRL)
-    assert (out["chiefs"], out["raiders"]) == update_ratings(1500.0, 1500.0, 20, 20)
+    assert (out["chiefs"], out["raiders"]) == (1500.0, 1500.0)
+
+    # Unequal pre-match ratings: still no movement, in either direction.
+    rated = [_Game("chiefs", "raiders", 30, 3, 2025, 1), _Game("chiefs", "raiders", 17, 17, 2025, 2)]
+    after_win = replay_ratings(rated[:1], NRL)
+    after_tie = replay_ratings(rated, NRL)
+    assert after_win["chiefs"] > 1500.0 > after_win["raiders"]
+    assert dict(after_tie) == dict(after_win)
 
 
 def test_replay_unseen_team_starts_at_model_starting_rating():
@@ -289,3 +297,87 @@ def test_sport_model_is_constructible_for_another_sport():
         starting_rating=1500.0,
     )
     assert model.margin_step == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 review follow-ups (folded into Phase 2)
+# ---------------------------------------------------------------------------
+
+def test_replay_without_regression_never_runs_the_regression_arithmetic(monkeypatch):
+    """season_regression == 0 must skip the `start + (r - start) * 1.0` rewrite
+    entirely, so a zero-regression sport can never drift by float noise."""
+
+    def boom(*args, **kwargs):
+        raise AssertionError("regress_ratings called with season_regression == 0")
+
+    monkeypatch.setattr(ratings, "regress_ratings", boom)
+    games = [_Game("chiefs", "raiders", 40, 3, 2023, 1), _Game("raiders", "chiefs", 21, 3, 2025, 1)]
+    replay_ratings(games, NRL, before=(2026, 1))
+
+
+def test_regress_ratings_moves_each_rating_toward_start_per_season():
+    model = dataclasses.replace(NRL, season_regression=0.5)
+    table = {"chiefs": 1600.0, "raiders": 1400.0}
+    ratings.regress_ratings(table, model, seasons=2)
+    assert table == {"chiefs": 1525.0, "raiders": 1475.0}
+
+
+def test_replay_regresses_once_per_season_boundary_crossed_into_before():
+    model = dataclasses.replace(NRL, season_regression=1 / 3)
+    games = [_Game("chiefs", "raiders", 40, 3, 2023, 1)]
+    end_2023 = replay_ratings(games, model)
+    # 2023 -> 2025 crosses two season boundaries (2024, 2025): regress twice.
+    expected = {t: 1500.0 + (r - 1500.0) * (2 / 3) ** 2 for t, r in end_2023.items()}
+    assert dict(replay_ratings(games, model, before=(2025, 1))) == pytest.approx(expected)
+
+
+def test_replay_regresses_once_per_season_boundary_crossed_mid_replay():
+    model = dataclasses.replace(NRL, season_regression=1 / 3)
+    first = _Game("chiefs", "raiders", 40, 3, 2023, 1)
+    end_2023 = replay_ratings([first], model)
+    regressed = {t: 1500.0 + (r - 1500.0) * (2 / 3) ** 2 for t, r in end_2023.items()}
+    second = _Game("raiders", "chiefs", 17, 14, 2025, 1)
+    out = replay_ratings([first, second], model)
+    assert (out["raiders"], out["chiefs"]) == pytest.approx(
+        update_ratings(regressed["raiders"], regressed["chiefs"], 17, 14, model=model)
+    )
+
+
+def test_replay_unscored_new_season_game_does_not_regress_without_a_cutoff():
+    """An unplayed game in a new season isn't a boundary crossing on its own —
+    regression only happens before the next *scored* game (or at `before`)."""
+    model = dataclasses.replace(NRL, season_regression=1 / 3)
+    played = _Game("chiefs", "raiders", 40, 3, 2024, 1)
+    unplayed = _Game("chiefs", "raiders", None, None, 2025, 1)
+    assert dict(replay_ratings([played, unplayed], model)) == dict(replay_ratings([played], model))
+
+
+def test_replay_same_week_games_are_ordered_deterministically():
+    """Two games sharing a (season, week) key are replayed in a stable game-key
+    order, so input order can never change the ratings."""
+    a = _Game("chiefs", "raiders", 27, 20, 2025, 1)
+    b = _Game("bills", "chiefs", 35, 0, 2025, 1)
+    assert dict(replay_ratings([a, b], NRL)) == dict(replay_ratings([b, a], NRL))
+
+
+_FIELD_MODEL = dataclasses.replace(NRL, margin_step=1, home_label="Home-field")
+
+
+def test_reasoning_uses_the_sport_home_label():
+    pred = predict_match("chiefs", "raiders", {"chiefs": 1560.0, "raiders": 1480.0}, 48.0, 500,
+                         random.Random(3), model=_FIELD_MODEL)
+    assert "home-field adjustment" in pred.reasoning
+    assert "home-ground" not in pred.reasoning.lower()
+    assert any(f.startswith("Home-field advantage (+48 Elo)") for f in pred.key_factors)
+
+
+def test_neutral_site_prediction_has_no_home_advantage():
+    rs = {"chiefs": 1560.0, "raiders": 1480.0}
+    neutral = predict_match("chiefs", "raiders", rs, 48.0, 2000, random.Random(5),
+                            model=_FIELD_MODEL, neutral=True)
+    at_zero = predict_match("chiefs", "raiders", rs, 0.0, 2000, random.Random(5), model=_FIELD_MODEL)
+    assert neutral.home_win_probability == at_zero.home_win_probability
+    assert any("Neutral site" in f for f in neutral.key_factors)
+    assert not any("advantage (+" in f for f in neutral.key_factors)
+    assert "neutral site" in neutral.reasoning
+    assert "adjustment (+" not in neutral.reasoning
