@@ -122,3 +122,34 @@ def test_unknown_season_is_404(seeded):
 
 def test_empty_tables_is_404(tables):
     assert get()["statusCode"] == 404
+
+
+# --- review N1 / N2 ------------------------------------------------------------
+
+def test_malformed_prediction_row_is_skipped_and_logged(seeded, caplog):
+    broken = prediction(GB, winner="packers", margin=3, p_home="0.7", confidence="HIGH",
+                        generated_at="2026-10-30T00:00:00+00:00")
+    del broken["home_win_probability"]
+    no_confidence = prediction(DEN, winner="broncos", margin=2, p_home="0.55",
+                               generated_at="2026-10-30T00:00:00+00:00")
+    del no_confidence["confidence"]
+    put(seeded.predictions, broken, no_confidence)
+    with caplog.at_level("WARNING"):
+        response = get({"season": "2026"})
+    assert response["statusCode"] == 200
+    data = body(response)
+    assert data["n"] == 1  # only the NYJ tie is still gradable
+    assert sum(level["n"] for level in data["by_confidence"].values()) == 1
+    assert GB in caplog.text and DEN in caplog.text
+
+
+def test_degenerate_moneylines_are_left_out_of_the_market_brier(tables):
+    put(tables.games, game(GB, score=(24, 17), market={"spread_line": 3.0, "home_moneyline": 0,
+                                                       "away_moneyline": 0}))
+    put(tables.predictions, prediction(GB, winner="packers", margin=3, p_home="0.7"))
+    response = get({"season": "2026"})
+    assert response["statusCode"] == 200
+    market = body(response)["baselines"]["market"]
+    assert market["n"] == 1
+    assert market["brier"] is None
+    assert market["accuracy"] == pytest.approx(1.0)

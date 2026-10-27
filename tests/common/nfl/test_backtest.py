@@ -240,6 +240,16 @@ def test_devig_moneylines():
     assert devig_home_probability(110, -130) == pytest.approx((100 / 210) / (100 / 210 + 130 / 230))
 
 
+@pytest.mark.parametrize(("home", "away"), [(0, 0), (0, -110), (-110, 0), (50, -110), (-110, -99)])
+def test_devig_degenerate_moneylines_is_none(home, away):
+    """Review N2: American odds lie outside (-100, 100); 0/0 used to raise ZeroDivisionError."""
+    assert devig_home_probability(home, away) is None
+
+
+def test_devig_even_money_is_valid():
+    assert devig_home_probability(100, -100) == pytest.approx(0.5)
+
+
 def test_market_metrics_hand_computed():
     def g(result):
         return type("G", (), {"result": result, "match_id": f"m{result}"})()

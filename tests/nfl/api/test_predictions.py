@@ -255,3 +255,54 @@ def test_no_spread_means_no_outlier_field(tables, market):
     (pred,) = body(get())
     assert "is_outlier" not in pred
     assert ("market" in pred) is (market is not None)
+
+
+# --- review N1: one malformed row never takes the whole week down ---------------
+
+def test_malformed_ok_row_is_skipped_and_logged(tables, caplog):
+    put(tables.games, game(GB), game(DEN), game(NYJ, market={"spread_line": 3.0}))
+    broken = prediction(DEN, winner="chiefs")
+    del broken["predicted_winner"]
+    unparsable = prediction(NYJ, winner="raiders")
+    unparsable["predicted_margin"] = "seven"
+    put(tables.predictions, prediction(GB, winner="packers"), broken, unparsable)
+    with caplog.at_level("WARNING"):
+        response = get()
+    assert response["statusCode"] == 200
+    assert [p["matchId"] for p in body(response)] == [GB]
+    assert DEN in caplog.text and NYJ in caplog.text
+
+
+def test_malformed_game_row_is_skipped(tables, caplog):
+    put(tables.games, game(GB))
+    bad_game = game(DEN)
+    del bad_game["stage"]
+    put(tables.games, bad_game)
+    put(tables.predictions, prediction(GB, winner="packers"), prediction(DEN, winner="chiefs"))
+    with caplog.at_level("WARNING"):
+        response = get()
+    assert response["statusCode"] == 200
+    assert [p["matchId"] for p in body(response)] == [GB]
+    assert DEN in caplog.text
+
+
+def test_week_of_only_malformed_rows_is_404(tables):
+    put(tables.games, game(GB))
+    broken = prediction(GB, winner="packers")
+    del broken["predicted_winner"]
+    put(tables.predictions, broken)
+    assert get()["statusCode"] == 404
+
+
+# --- review N2: degenerate moneylines never 500 the week -----------------------
+
+@pytest.mark.parametrize(("home_ml", "away_ml"), [(0, 0), (0, -110), (-110, 0), (50, -110)])
+def test_degenerate_moneylines_have_no_implied_probability(tables, home_ml, away_ml):
+    put(tables.games, game(GB, market={"spread_line": 3.5, "home_moneyline": home_ml,
+                                       "away_moneyline": away_ml}))
+    put(tables.predictions, prediction(GB, winner="packers"))
+    response = get()
+    assert response["statusCode"] == 200
+    (pred,) = body(response)
+    assert pred["market"] == {"spread_favourite": "packers", "spread_line": 3.5,
+                              "implied_home_prob": None}

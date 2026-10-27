@@ -123,3 +123,17 @@ def test_no_rate_limit_table_configured_skips_the_check(tables, monkeypatch):
     monkeypatch.setattr(router, "check_rate_limit", lambda *a, **k: calls.append(a) or (False, "x"))
     assert call("/health")["statusCode"] == 200
     assert calls == []
+
+
+def test_unexpected_error_is_a_clean_500_without_internals(tables, monkeypatch, caplog):
+    def boom(event, context):
+        raise RuntimeError("secret-internal-detail")
+
+    monkeypatch.setattr(router.weeks, "lambda_handler", boom)
+    with caplog.at_level("ERROR"):
+        response = call("/nfl/weeks/current")
+    assert response["statusCode"] == 500
+    assert response["headers"]["Content-Type"] == "application/json"
+    assert body(response) == {"error": "Internal error"}
+    assert "secret-internal-detail" not in response["body"]
+    assert "secret-internal-detail" in caplog.text
