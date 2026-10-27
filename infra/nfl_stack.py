@@ -53,8 +53,12 @@ NFLVERSE_GAMES_CSV_URL = "https://github.com/nflverse/nfldata/raw/master/data/ga
 # The NRL v1 stack owns this topic (email subscription included); import, never recreate.
 ALERT_TOPIC_ARN = "arn:aws:sns:ap-southeast-2:810429055117:nrl-predictor-alerts"
 
-# Only what the NFL Lambda imports (common/ + nfl/) needs to ship.
+# Only what the NFL Lambda imports (common/ + nfl/) needs to ship. ".*" keeps
+# every dotfile out of the zip — notably .env (local API keys) and the tool
+# caches (.mypy_cache alone is ~38 MB).
 _ASSET_EXCLUDE = [
+    ".*",
+    "*.egg-info",
     "cdk.out",
     ".venv",
     "frontend",
