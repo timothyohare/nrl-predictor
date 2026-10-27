@@ -9,6 +9,9 @@
   past kickoff, when it is treated as cancelled (the 2022 BUF-CIN game was simply
   dropped from nflverse) so it can't block forever. An unscored earlier game with
   no kickoff time also blocks: it can't be aged out, so it's surfaced loudly.
+- A target-week game that already kicked off (the first live run landing after
+  Thursday night football) is listed in ``started``: the handler gives it a
+  labelled backfill, never a live prediction.
 - No game left to kick off (season over, or week 18 done before the Wild Card
   rows are published) is a quiet no-op, not an error.
 """
@@ -32,6 +35,8 @@ class TargetWeek:
     pending: list[Game] = field(default_factory=list)
     blockers: list[Game] = field(default_factory=list)
     cancelled: list[Game] = field(default_factory=list)
+    # Target-week games already kicked off — never live-predicted (hindsight guard).
+    started: list[Game] = field(default_factory=list)
 
     @property
     def to_predict(self) -> list[Game]:
@@ -68,4 +73,6 @@ def select_target(games: Iterable[Game], now: datetime) -> TargetWeek:
     cancelled = _order(g for g in earlier_unplayed if _is_cancelled(g, now))
     blockers = _order(g for g in earlier_unplayed if not _is_cancelled(g, now))
     pending = _order(g for g in current if g.week == week and _is_future(g, now))
-    return TargetWeek(season, week, pending, blockers, cancelled)
+    started = _order(g for g in current if g.week == week and g.kickoff_utc is not None
+                     and not _is_future(g, now))
+    return TargetWeek(season, week, pending, blockers, cancelled, started)

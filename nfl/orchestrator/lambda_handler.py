@@ -43,6 +43,14 @@ MODEL_ID = "nfl-elo-v1"
 METRIC_NAMESPACE = "NflPredictor"
 METRIC_NAME = "UnpredictedGames"
 FETCH_TIMEOUT_SECONDS = 30
+# The live games.csv was ~2.2 MB on 2026-10-26; anything past this is not it.
+MAX_CSV_BYTES = 20 * 1024 * 1024
+# Repo-wide rule (CLAUDE.md): scraper requests carry a browser User-Agent.
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
 _ALLOWED_SCHEMES = ("https://", "file://")
 
 
@@ -59,12 +67,17 @@ def csv_url() -> str:
 
 
 def fetch_csv(url: str) -> str:
-    """The CSV text at `url` (https or file only). Raises on any failure."""
+    """The CSV text at `url` (https or file only, at most MAX_CSV_BYTES). Raises on
+    any failure."""
     if not url.startswith(_ALLOWED_SCHEMES):
         raise ValueError(f"NFL_GAMES_CSV_URL must be https:// or file://, got {url!r}")
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- scheme allow-listed above; the URL is deploy-time config, not user input
-    with urllib.request.urlopen(url, timeout=FETCH_TIMEOUT_SECONDS) as resp:  # noqa: S310
-        return resp.read().decode("utf-8")
+    with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as resp:  # noqa: S310
+        body = resp.read(MAX_CSV_BYTES + 1)
+    if len(body) > MAX_CSV_BYTES:
+        raise ValueError(f"NFL CSV at {url} exceeds {MAX_CSV_BYTES} bytes")
+    return body.decode("utf-8")
 
 
 def rng_seed(match_id: str) -> str:
@@ -117,7 +130,9 @@ def upsert_games(
 
 def prediction_rows(table, match_id: str) -> list[dict]:
     rows: list[dict] = []
-    kwargs: dict = {"KeyConditionExpression": Key("matchId").eq(match_id)}
+    # Strongly consistent: this read is the idempotency check, so a row written a
+    # moment ago (a manual re-invoke, a backfill) must never be missed.
+    kwargs: dict = {"KeyConditionExpression": Key("matchId").eq(match_id), "ConsistentRead": True}
     while True:
         resp = table.query(**kwargs)
         rows.extend(resp.get("Items", []))
@@ -197,6 +212,10 @@ def lambda_handler(event: dict, context) -> dict:
     predictions_table_name = os.environ["NFL_PREDICTIONS_TABLE"]
 
     games, markets = parse_csv(fetch_csv(csv_url()))
+    if not games:
+        # A truncated upstream file must fail loudly (Errors alarm), not quietly
+        # stop predictions with UnpredictedGames = 0.
+        raise ValueError("NFL CSV parsed to no games — refusing to treat it as an empty season")
     now = _now()
     target = select_target(games, now)
     ddb = boto3.resource("dynamodb")
@@ -214,7 +233,7 @@ def lambda_handler(event: dict, context) -> dict:
 
     predictions = ddb.Table(predictions_table_name)
     ratings: Mapping[str, float] = {}
-    if target.season is not None and target.week is not None and target.to_predict:
+    if target.season is not None and target.week is not None and not target.blockers:
         ratings = replay_ratings(games, NFL, before=(target.season, target.week))
     predicted: list[str] = []
     skipped: list[str] = []
@@ -233,15 +252,29 @@ def lambda_handler(event: dict, context) -> dict:
             failed.append(game.match_id)
             unpredicted += 1
 
+    # Thursday-night gap: a target-week game that kicked off before any live run
+    # covered it gets a labelled backfill from the same pre-week ratings (no
+    # look-ahead) rather than staying empty on the site. Never while blocked —
+    # the pre-week ratings aren't final then.
+    backfilled: list[str] = []
+    for game in [] if target.blockers else target.started:
+        rows = prediction_rows(predictions, game.match_id)
+        if not has_ok(rows) and store_prediction(predictions, game, ratings,
+                                                 generation=len(rows) + 1,
+                                                 backfilled=True, now=now):
+            backfilled.append(game.match_id)
+
     _emit_unpredicted(unpredicted)
-    logger.info("NFL %s week %s: predicted %d, already predicted %d, failed %d, unpredicted %d",
-                target.season, target.week, len(predicted), len(skipped), len(failed), unpredicted)
+    logger.info("NFL %s week %s: predicted %d, already predicted %d, failed %d, unpredicted %d, "
+                "backfilled (kicked off) %d", target.season, target.week, len(predicted),
+                len(skipped), len(failed), unpredicted, len(backfilled))
     return {
         "season": target.season,
         "week": target.week,
         "predicted": predicted,
         "skipped": skipped,
         "failed": failed,
+        "backfilled": backfilled,
         "blocked_by": [g.match_id for g in target.blockers],
         "cancelled": [g.match_id for g in target.cancelled],
         "unpredicted": unpredicted,

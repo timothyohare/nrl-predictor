@@ -142,6 +142,10 @@ class NflPredictorStack(cdk.Stack):
             layers=[deps_layer],
             timeout=cdk.Duration.seconds(60),
             memory_size=512,
+            # Idempotency is check-then-put (the sort key is generatedAt, so a
+            # conditional put can't dedupe): never let a manual invoke overlap
+            # the scheduled run.
+            reserved_concurrent_executions=1,
             environment={
                 "NFL_GAMES_TABLE": games_table.table_name,
                 "NFL_PREDICTIONS_TABLE": predictions_table.table_name,

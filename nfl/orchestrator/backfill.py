@@ -34,6 +34,7 @@ def _first_live_week(table, season: int) -> int | None:
         FilterExpression=Attr("season").eq(season)
         & Attr("status").eq("OK")
         & Attr("backfilled").ne(True),
+        ConsistentRead=True,
     )
     return min((int(r["week"]) for r in rows), default=None)
 
@@ -46,8 +47,8 @@ def backfill(
     through_week: int | None = None,
     dry_run: bool = False,
 ) -> list[str]:
-    """Backfill the current season up to `through_week` (default: the week before
-    the first live week). Returns the matchIds written (or, with `dry_run`, that
+    """Backfill the current season up to `through_week`, always capped at (and by
+    default equal to) the week before the first live week. Returns the matchIds written (or, with `dry_run`, that
     would be written)."""
     games = list(games)
     target = select_target(games, now)
@@ -56,11 +57,9 @@ def backfill(
     season = target.season
     current = [g for g in games if g.season == season]
 
-    if through_week is None:
-        first_live = _first_live_week(predictions_table, season) or target.week
-        through_week = first_live - 1 if first_live is not None else max(g.week for g in current)
-    if target.week is not None:
-        through_week = min(through_week, target.week - 1)
+    first_live = _first_live_week(predictions_table, season) or target.week
+    last_allowed = first_live - 1 if first_live is not None else max(g.week for g in current)
+    through_week = last_allowed if through_week is None else min(through_week, last_allowed)
 
     written: list[str] = []
     for week in sorted({g.week for g in current if g.week <= through_week}):
