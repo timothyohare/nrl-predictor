@@ -164,9 +164,9 @@ def _synth_nfl_assets(tree: Path) -> list[Path]:
     import sys
 
     sys.path.insert(0, str(_INFRA))
+    nfl_stack = importlib.import_module("nfl_stack")
+    original_root = nfl_stack.REPO_ROOT
     try:
-        nfl_stack = importlib.import_module("nfl_stack")
-        original_root = nfl_stack.REPO_ROOT
         nfl_stack.REPO_ROOT = str(tree)
         outdir = tree.parent / "cdk.out"
         app = cdk.App(outdir=str(outdir), context={

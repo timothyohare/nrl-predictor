@@ -257,11 +257,13 @@ def lambda_handler(event: dict, context) -> dict:
     # look-ahead) rather than staying empty on the site. Never while blocked —
     # the pre-week ratings aren't final then.
     backfilled: list[str] = []
-    for game in [] if target.blockers else target.started:
+    started = [] if target.blockers else target.started
+    for game in started:
         rows = prediction_rows(predictions, game.match_id)
-        if not has_ok(rows) and store_prediction(predictions, game, ratings,
-                                                 generation=len(rows) + 1,
-                                                 backfilled=True, now=now):
+        if has_ok(rows):
+            continue
+        if store_prediction(predictions, game, ratings, generation=len(rows) + 1,
+                            backfilled=True, now=now):
             backfilled.append(game.match_id)
 
     _emit_unpredicted(unpredicted)
