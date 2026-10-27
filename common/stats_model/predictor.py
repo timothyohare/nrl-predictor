@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from common.stats_model.confidence import confidence_for
 from common.stats_model.simulate import simulate_match
+from common.stats_model.sport import NRL, SportModel
 
 N_SIMULATIONS = 10000
 
@@ -37,6 +38,12 @@ def _round_to_even(x: float) -> int:
     return int(2 * round(x / 2))
 
 
+def _snap(x: float, step: int) -> int:
+    """Snap to the nearest multiple of `SportModel.margin_step` — 2 is exactly
+    `_round_to_even` above (NRL), 1 is plain integers."""
+    return int(step * round(x / step))
+
+
 def predict_match(
     home: str,
     away: str,
@@ -47,36 +54,42 @@ def predict_match(
     home_rating_adjustment: float = 0.0,
     away_rating_adjustment: float = 0.0,
     margin_stdev_multiplier: float = 1.0,
+    *,
+    model: SportModel = NRL,
 ) -> StatsPrediction:
     """`home_rating_adjustment`/`away_rating_adjustment`/`margin_stdev_multiplier`
     are Phase 1 plumbing for docs/plans/11-team-sheet-injury-weather-signals.md —
     optional, additive nudges to the *effective* rating fed into the simulation,
     never to the persisted Elo history. All default to inert so every existing
     call site is unaffected until a later phase wires a real signal through them.
+
+    `model` supplies the sport's margin fit, confidence thresholds, margin-band
+    snapping and home-advantage wording; defaults to NRL (common/stats_model/sport.py).
     """
     home_rating, away_rating = ratings[home], ratings[away]
     home_effective = home_rating + home_rating_adjustment
     away_effective = away_rating + away_rating_adjustment
     sim = simulate_match(
         home_effective, away_effective, home_advantage, n_simulations, rng,
-        margin_stdev_multiplier=margin_stdev_multiplier,
+        margin_stdev_multiplier=margin_stdev_multiplier, model=model,
     )
     predicted_winner = home if sim.home_win_probability >= 0.5 else away
     predicted_margin = round(abs(sim.expected_margin))
     # Honest margin band rather than a single false-precision number: one
     # standard deviation either side of the mean *winning* margin (the margin
     # conditioned on the predicted side winning, so it isn't regressed toward
-    # zero by the upset trials the way `predicted_margin` is), snapped to even
-    # numbers, low clamped at 0. The band shifts with the matchup — a bigger
-    # rating gap lifts both ends — while staying ~2 SD wide.
-    margin_low = _round_to_even(max(sim.winning_margin_mean - sim.margin_stdev, 0.0))
-    margin_high = _round_to_even(sim.winning_margin_mean + sim.margin_stdev)
-    confidence = confidence_for(sim.home_win_probability)
+    # zero by the upset trials the way `predicted_margin` is), snapped to the
+    # sport's margin step (even numbers for NRL), low clamped at 0. The band
+    # shifts with the matchup — a bigger rating gap lifts both ends — while
+    # staying ~2 SD wide.
+    margin_low = _snap(max(sim.winning_margin_mean - sim.margin_stdev, 0.0), model.margin_step)
+    margin_high = _snap(sim.winning_margin_mean + sim.margin_stdev, model.margin_step)
+    confidence = confidence_for(sim.home_win_probability, model=model)
     elo_diff = home_rating - away_rating
 
     key_factors = [
         f"Elo rating gap: {home} {home_rating:.0f} vs {away} {away_rating:.0f} ({elo_diff:+.0f})",
-        f"Home ground advantage (+{home_advantage:.0f} Elo) applied to {home}",
+        f"{model.home_label} advantage (+{home_advantage:.0f} Elo) applied to {home}",
         f"Simulated home win probability {sim.home_win_probability:.1%} over "
         f"{n_simulations:,} Monte Carlo trials",
     ]

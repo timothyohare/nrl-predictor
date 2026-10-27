@@ -24,12 +24,14 @@ import random
 from dataclasses import dataclass
 
 from common.stats_model.elo import expected_score
+from common.stats_model.sport import NRL, SportModel
 
 # Fitted 2026-08-17 against rounds 12-24 (n=92): |margin| = _MARGIN_SLOPE *
 # |elo_diff| + _MARGIN_INTERCEPT, residual stdev _MARGIN_STDEV. See scripts/backtest_elo_model.py.
-_MARGIN_SLOPE = 0.0310
-_MARGIN_INTERCEPT = 12.19
-_MARGIN_STDEV = 14.22
+# Aliases of the NRL SportModel (common/stats_model/sport.py), kept for existing call sites.
+_MARGIN_SLOPE = NRL.margin_slope
+_MARGIN_INTERCEPT = NRL.margin_intercept
+_MARGIN_STDEV = NRL.margin_stdev
 
 
 @dataclass
@@ -48,6 +50,8 @@ def simulate_match(
     n: int,
     rng: random.Random,
     margin_stdev_multiplier: float = 1.0,
+    *,
+    model: SportModel = NRL,
 ) -> SimulationResult:
     """Simulate `n` matches between two Elo-rated teams.
 
@@ -59,12 +63,15 @@ def simulate_match(
     which side is predicted to win. Intended for a match-day variance signal
     (e.g. weather) that makes outcomes noisier without changing who's
     favoured. See docs/plans/11-team-sheet-injury-weather-signals.md.
+
+    `model` supplies the margin fit (slope/intercept/residual stdev); defaults
+    to the NRL fit.
     """
     home_effective = home_rating + home_advantage
     p_home = expected_score(home_effective, away_rating)
     elo_diff = home_effective - away_rating
-    magnitude_mean = max(1.0, _MARGIN_SLOPE * abs(elo_diff) + _MARGIN_INTERCEPT)
-    magnitude_stdev = _MARGIN_STDEV * margin_stdev_multiplier
+    magnitude_mean = max(1.0, model.margin_slope * abs(elo_diff) + model.margin_intercept)
+    magnitude_stdev = model.margin_stdev * margin_stdev_multiplier
 
     predicted_side_is_home = p_home >= 0.5
 

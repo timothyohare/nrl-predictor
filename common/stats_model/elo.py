@@ -7,8 +7,11 @@ from __future__ import annotations
 
 import math
 
-DEFAULT_K_FACTOR = 20.0
-DEFAULT_HOME_ADVANTAGE = 55.0
+from common.stats_model.sport import NRL, SportModel
+
+# Aliases of the NRL SportModel, kept for existing call sites.
+DEFAULT_K_FACTOR = NRL.k_factor
+DEFAULT_HOME_ADVANTAGE = NRL.home_advantage
 
 
 def expected_score(rating_a: float, rating_b: float) -> float:
@@ -21,14 +24,21 @@ def update_ratings(
     away_rating: float,
     home_score: int,
     away_score: int,
-    home_advantage: float = DEFAULT_HOME_ADVANTAGE,
-    k_factor: float = DEFAULT_K_FACTOR,
+    home_advantage: float | None = None,
+    k_factor: float | None = None,
+    *,
+    model: SportModel = NRL,
 ) -> tuple[float, float]:
     """Post-match (home_rating, away_rating) after this result.
 
     `home_advantage` shapes the pre-match expectation (and therefore the size
     of the update) but is never added onto the returned ratings themselves.
+    `home_advantage`/`k_factor` default to `model`'s values when not passed.
     """
+    if home_advantage is None:
+        home_advantage = model.home_advantage
+    if k_factor is None:
+        k_factor = model.k_factor
     home_effective = home_rating + home_advantage
     expected_home = expected_score(home_effective, away_rating)
     expected_away = 1.0 - expected_home

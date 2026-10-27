@@ -10,15 +10,18 @@ was 0.326, not ~0.5. Refit alongside the margin model as more data accumulates.
 """
 from __future__ import annotations
 
-_HIGH_THRESHOLD = 0.12
-_MEDIUM_THRESHOLD = 0.06
+from common.stats_model.sport import NRL, SportModel
+
+# Aliases of the NRL SportModel, kept for existing call sites.
+_HIGH_THRESHOLD = NRL.high_threshold
+_MEDIUM_THRESHOLD = NRL.medium_threshold
 
 
-def confidence_for(win_probability: float) -> str:
+def confidence_for(win_probability: float, *, model: SportModel = NRL) -> str:
     """HIGH/MEDIUM/LOW bucket for a simulated home-win probability."""
     distance_from_toss_up = abs(win_probability - 0.5)
-    if distance_from_toss_up >= _HIGH_THRESHOLD:
+    if distance_from_toss_up >= model.high_threshold:
         return "HIGH"
-    if distance_from_toss_up >= _MEDIUM_THRESHOLD:
+    if distance_from_toss_up >= model.medium_threshold:
         return "MEDIUM"
     return "LOW"
