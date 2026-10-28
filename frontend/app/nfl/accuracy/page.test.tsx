@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import NflAccuracyPage from "./page";
+import NflAccuracyPage, { metadata } from "./page";
 
 const ACCURACY = {
   season: 2026, n: 100, accuracy: 0.655, brier: 0.2154, margin_mae: 10.42,
@@ -65,9 +65,21 @@ describe("/nfl/accuracy", () => {
     expect(screen.getByText("NFL predictions unavailable")).toBeInTheDocument();
   });
 
-  it("renders the unavailable state when the API fails", async () => {
-    serve({}, false, 500);
-    render(await NflAccuracyPage());
-    expect(screen.getByText("NFL predictions unavailable")).toBeInTheDocument();
+  // Final fixes (review N1): only "not configured" renders unavailable; any other
+  // failure throws so ISR keeps serving the last good page.
+  it.each([429, 500])("throws when the API returns %i", async (status) => {
+    serve({}, false, status);
+    await expect(NflAccuracyPage()).rejects.toThrow(String(status));
+  });
+
+  it("throws on a network failure", async () => {
+    vi.stubEnv("NFL_API_BASE_URL", "https://nfl.example.test");
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
+    await expect(NflAccuracyPage()).rejects.toThrow("fetch failed");
+  });
+
+  it("has its own title and description", () => {
+    expect(metadata.title).toBe("NFL Prediction Accuracy — NRL Predictor");
+    expect(metadata.description).toMatch(/home-team baseline and the betting market/);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import NflWeekPage from "./page";
+import NflWeekPage, { generateMetadata } from "./page";
 
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -81,10 +81,16 @@ describe("/nfl/predictions/[season]/[week]", () => {
     expect(fn).not.toHaveBeenCalled();
   });
 
-  it("renders 'NFL predictions unavailable' when the fetch fails (spec 5.6)", async () => {
-    serve({ ok: false, status: 500 });
-    render(await page("2026", "8"));
-    expect(screen.getByText("NFL predictions unavailable")).toBeInTheDocument();
+  // Final fixes (review N1): only "not configured" renders unavailable; a
+  // 429/5xx/network failure throws so ISR keeps serving the last good page.
+  it.each([429, 500])("throws when the predictions fetch returns %i", async (status) => {
+    serve({ ok: false, status });
+    await expect(page("2026", "8")).rejects.toThrow(String(status));
+  });
+
+  it("throws on a network failure", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
+    await expect(page("2026", "8")).rejects.toThrow("fetch failed");
   });
 
   it.each([["abc", "8"], ["2026", "eight"], ["2026", "0"], ["2026", "26"], ["1800", "8"], ["2026", "8.5"]])(
@@ -94,4 +100,29 @@ describe("/nfl/predictions/[season]/[week]", () => {
       expect(fn).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("/nfl/predictions/[season]/[week] metadata", () => {
+  const meta = (season: string, week: string) =>
+    generateMetadata({ params: Promise.resolve({ season, week }) });
+
+  it("titles the page with the season and the API's week label", async () => {
+    serve({ ok: true, status: 200, body: [GAME] });
+    const m = await meta("2026", "7");
+    expect(m.title).toBe("2026 Week 7 NFL Predictions — NRL Predictor");
+    expect(m.description).toMatch(/2026 Week 7/);
+  });
+
+  it("falls back to 'Week N' when the week list cannot be fetched", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
+    expect((await meta("2026", "19")).title).toBe("2026 Week 19 NFL Predictions — NRL Predictor");
+    vi.stubEnv("NFL_API_BASE_URL", "");
+    expect((await meta("2026", "19")).title).toBe("2026 Week 19 NFL Predictions — NRL Predictor");
+  });
+
+  it("has a generic title for an out-of-range URL without calling the API", async () => {
+    const fn = serve({ ok: true, status: 200, body: [GAME] });
+    expect((await meta("2026", "99")).title).toBe("NFL Predictions — NRL Predictor");
+    expect(fn).not.toHaveBeenCalled();
+  });
 });

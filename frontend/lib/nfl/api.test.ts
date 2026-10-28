@@ -182,10 +182,15 @@ describe("loadNflWeek (spec 5.6)", () => {
     await expect(loadNflWeek(2026, 8)).resolves.toEqual({ status: "unavailable" });
   });
 
-  it("is unavailable when the predictions fetch fails or rejects", async () => {
-    mockFetch(() => ({ ok: false, status: 500 }));
-    await expect(loadNflWeek(2026, 8)).resolves.toEqual({ status: "unavailable" });
+  // Final fixes (review N1): only "not configured" is the unavailable state. Any
+  // other failure throws, so Next ISR keeps serving the last good page.
+  it.each([429, 500, 503])("throws when the predictions fetch returns %i", async (status) => {
+    mockFetch((url) => (url.includes("/nfl/weeks") ? {} : { ok: false, status }));
+    await expect(loadNflWeek(2026, 8)).rejects.toThrow(String(status));
+  });
+
+  it("throws when the predictions fetch rejects", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
-    await expect(loadNflWeek(2026, 8)).resolves.toEqual({ status: "unavailable" });
+    await expect(loadNflWeek(2026, 8)).rejects.toThrow("fetch failed");
   });
 });

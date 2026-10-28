@@ -35,6 +35,11 @@ function makeGame(overrides: Partial<NflPrediction> = {}): NflPrediction {
 }
 
 describe("NflGameCard — prediction (spec 5.3)", () => {
+  it("tolerates a row with no key factors (review N2)", () => {
+    render(<NflGameCard game={makeGame({ key_factors: null as unknown as string[] })} />);
+    expect(screen.getByTestId("nfl-pick")).toHaveTextContent("Chiefs by 3–10");
+  });
+
   it("renders the winner and the integer margin band", () => {
     render(<NflGameCard game={makeGame()} />);
     expect(screen.getByTestId("nfl-pick")).toHaveTextContent("Chiefs by 3–10");

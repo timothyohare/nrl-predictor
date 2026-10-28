@@ -12,8 +12,9 @@ describe("sitemap (spec 5.7)", () => {
     expect(urls()).toEqual(expect.arrayContaining([BASE, `${BASE}/accuracy`, `${BASE}/how-it-works`]));
   });
 
-  it("lists the NFL landing and accuracy pages", () => {
-    expect(urls()).toEqual(expect.arrayContaining([`${BASE}/nfl`, `${BASE}/nfl/accuracy`]));
+  it("lists the NFL accuracy page but not the redirect-only /nfl (review N4)", () => {
+    expect(urls()).toContain(`${BASE}/nfl/accuracy`);
+    expect(urls()).not.toContain(`${BASE}/nfl`);
   });
 
   it("has no duplicate URLs", () => {

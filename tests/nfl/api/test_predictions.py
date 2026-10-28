@@ -286,12 +286,19 @@ def test_malformed_game_row_is_skipped(tables, caplog):
     assert DEN in caplog.text
 
 
-def test_week_of_only_malformed_rows_is_404(tables):
+def test_week_of_only_malformed_rows_is_500_and_logged_as_an_error(tables, caplog):
+    """Final fixes (review N2): every row skipped is a systemic failure, not "no
+    data yet" — a 404 would be cached by the frontend as an empty week."""
     put(tables.games, game(GB))
     broken = prediction(GB, winner="packers")
     del broken["predicted_winner"]
     put(tables.predictions, broken)
-    assert get()["statusCode"] == 404
+    with caplog.at_level("ERROR"):
+        response = get()
+    assert response["statusCode"] == 500
+    assert body(response) == {"error": "NFL predictions are temporarily unavailable"}
+    assert "predicted_winner" not in response["body"]
+    assert any(r.levelname == "ERROR" and "2026 week 8" in r.getMessage() for r in caplog.records)
 
 
 # --- review N2: degenerate moneylines never 500 the week -----------------------
@@ -306,3 +313,57 @@ def test_degenerate_moneylines_have_no_implied_probability(tables, home_ml, away
     (pred,) = body(response)
     assert pred["market"] == {"spread_favourite": "packers", "spread_line": 3.5,
                               "implied_home_prob": None}
+
+
+# --- final fixes: stored rows are presented with display names and no "-0" -----
+
+def test_missing_key_factors_default_to_an_empty_list(tables):
+    put(tables.games, game(GB))
+    row = prediction(GB, winner="packers")
+    del row["key_factors"]
+    put(tables.predictions, row)
+    response = get()
+    assert response["statusCode"] == 200
+    (pred,) = body(response)
+    assert pred["key_factors"] == []
+
+
+def test_stored_slugs_in_text_become_display_names_for_this_games_teams_only(tables):
+    put(tables.games, game(GB))
+    row = prediction(GB, winner="packers")
+    row["key_factors"] = [
+        "Elo rating gap: packers 1520 vs panthers 1500 (+20)",
+        "Home-field advantage (+55 Elo) applied to packers",
+        "chiefs and packersville are not this game's slugs",
+    ]
+    row["reasoning"] = "Elo + Monte Carlo model (no LLM). packers rated 1520, panthers rated 1500. picking packers by 1-12."
+    put(tables.predictions, row)
+    (pred,) = body(get())
+    assert pred["key_factors"] == [
+        "Elo rating gap: Packers 1520 vs Panthers 1500 (+20)",
+        "Home-field advantage (+55 Elo) applied to Packers",
+        "chiefs and packersville are not this game's slugs",
+    ]
+    assert pred["reasoning"] == (
+        "Elo + Monte Carlo model (no LLM). Packers rated 1520, Panthers rated 1500. picking Packers by 1-12."
+    )
+    assert pred["predicted_winner"] == "packers"
+    assert (pred["home_team"], pred["away_team"]) == ("packers", "panthers")
+    assert pred["matchId"] == GB
+
+
+def test_stored_minus_zero_is_normalised_to_plus_zero(tables):
+    put(tables.games, game(GB))
+    row = prediction(GB, winner="packers")
+    row["key_factors"] = [
+        "Elo rating gap: packers 1500 vs panthers 1500 (-0)",
+        "packers rating adjusted -0 ahead of kickoff (team sheet/injury signal)",
+        "panthers rating adjusted -10 ahead of kickoff (team sheet/injury signal)",
+    ]
+    put(tables.predictions, row)
+    (pred,) = body(get())
+    assert pred["key_factors"] == [
+        "Elo rating gap: Packers 1500 vs Panthers 1500 (+0)",
+        "Packers rating adjusted +0 ahead of kickoff (team sheet/injury signal)",
+        "Panthers rating adjusted -10 ahead of kickoff (team sheet/injury signal)",
+    ]

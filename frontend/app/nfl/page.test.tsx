@@ -33,10 +33,18 @@ describe("/nfl", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it("renders the unavailable state when the API fails", async () => {
+  // Final fixes (review N1): a 429/5xx/network failure must throw so ISR keeps
+  // serving the last good page instead of caching "unavailable" for an hour.
+  it("throws on an API failure instead of rendering the unavailable state", async () => {
     vi.stubEnv("NFL_API_BASE_URL", "https://nfl.example.test");
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 429, json: async () => ({}) })));
-    render(await NflHomePage());
-    expect(screen.getByText("NFL predictions unavailable")).toBeInTheDocument();
+    await expect(NflHomePage()).rejects.toThrow("429");
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("throws on a network failure", async () => {
+    vi.stubEnv("NFL_API_BASE_URL", "https://nfl.example.test");
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
+    await expect(NflHomePage()).rejects.toThrow("fetch failed");
   });
 });

@@ -3,12 +3,14 @@ spec criteria 2.8 and 2.9."""
 from __future__ import annotations
 
 import random
+import re
 from collections import defaultdict
 
 import pytest
 
 from common.nfl.games import parse_csv
 from common.nfl.model import NFL, predict_game
+from common.stats_model.predictor import predict_match
 from common.stats_model.sport import NRL
 
 
@@ -69,3 +71,53 @@ def test_team_without_history_starts_at_the_starting_rating(by_id):
     got = predict_game(game, sparse, random.Random(1), n_simulations=500)
     want = predict_game(game, explicit, random.Random(1), n_simulations=500)
     assert got == want
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 final fixes: display names and "-0" in the human-readable text
+# ---------------------------------------------------------------------------
+
+def _words(text: str) -> set[str]:
+    return set(re.findall(r"[A-Za-z0-9]+", text))
+
+
+def test_nfl_text_uses_display_names_but_the_winner_stays_a_slug(by_id):
+    game = by_id["2025_01_DAL_PHI"]
+    pred = predict_game(
+        game, {"eagles": 1580.0, "cowboys": 1500.0}, random.Random(1), n_simulations=1000
+    )
+    assert pred.predicted_winner == "eagles"
+    words = _words(" ".join([*pred.key_factors, pred.reasoning]))
+    assert {"Eagles", "Cowboys"} <= words
+    assert not {"eagles", "cowboys"} & words
+    assert pred.key_factors[0] == "Elo rating gap: Eagles 1580 vs Cowboys 1500 (+80)"
+    assert pred.key_factors[1] == "Home-field advantage (+55 Elo) applied to Eagles"
+    assert "picking Eagles by" in pred.reasoning
+
+
+def test_nfl_model_labels_with_the_nfl_display_name():
+    assert NFL.team_label("49ers") == "49ers"
+    assert NFL.team_label("eagles") == "Eagles"
+
+
+def test_team_label_defaults_to_identity_for_nrl():
+    assert NRL.team_label("sea-eagles") == "sea-eagles"
+    assert NRL.signed_int_text is False
+
+
+@pytest.mark.parametrize("away", [1500.3, 1499.7, 1500.0])
+def test_nfl_near_zero_elo_gap_is_plus_zero(by_id, away):
+    game = by_id["2025_01_DAL_PHI"]
+    pred = predict_game(game, {"eagles": 1500.0, "cowboys": away}, random.Random(1), n_simulations=500)
+    assert pred.key_factors[0].endswith("(+0)")
+
+
+def test_nfl_near_zero_rating_adjustments_never_read_minus_zero():
+    pred = predict_match(
+        "eagles", "cowboys", {"eagles": 1500.0, "cowboys": 1500.0}, NFL.home_advantage, 500,
+        random.Random(1), home_rating_adjustment=-0.3, away_rating_adjustment=-12.6, model=NFL,
+    )
+    text = " ".join(pred.key_factors)
+    assert "Eagles rating adjusted +0 ahead of kickoff" in text
+    assert "Cowboys rating adjusted -13 ahead of kickoff" in text
+    assert "-0" not in text
