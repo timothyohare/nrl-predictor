@@ -1,8 +1,15 @@
-import { getNflAccuracy, type NflAccuracy, type NflSummary } from "@/lib/nfl/api";
+import type { Metadata } from "next";
+import { getNflAccuracy, NflUnavailableError, type NflAccuracy, type NflSummary } from "@/lib/nfl/api";
 import NflUnavailable from "@/components/nfl/NflUnavailable";
 
 // ISR: regenerate at most hourly (lib/nfl/api.ts NFL_REVALIDATE_SECONDS).
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "NFL Prediction Accuracy — NRL Predictor",
+  description:
+    "How the NFL Elo + Monte Carlo model's picks compare with a home-team baseline and the betting market.",
+};
 
 const DASH = "—";
 const pct = (v: number | null) => (v == null ? DASH : `${(v * 100).toFixed(1)}%`);
@@ -13,8 +20,11 @@ export default async function NflAccuracyPage() {
   let data: NflAccuracy;
   try {
     data = await getNflAccuracy();
-  } catch {
-    return <NflUnavailable />;
+  } catch (err) {
+    // Only "not configured" renders unavailable; anything else throws so ISR
+    // keeps serving the last good page (Phase 5 review N1).
+    if (err instanceof NflUnavailableError) return <NflUnavailable />;
+    throw err;
   }
 
   const rows: [string, NflSummary][] = [

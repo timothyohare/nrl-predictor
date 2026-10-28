@@ -17,7 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const nflRoutes: MetadataRoute.Sitemap = [
-    { url: `${BASE_URL}/nfl`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/nfl/accuracy`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
   ];
 

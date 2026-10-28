@@ -11,7 +11,12 @@ constants (`elo.DEFAULT_*`, `simulate._MARGIN_*`, `confidence._*_THRESHOLD`,
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+
+
+def _identity(slug: str) -> str:
+    return slug
 
 
 @dataclass(frozen=True)
@@ -33,6 +38,12 @@ class SportModel:
     # boundary (0.0 = carry ratings over unchanged).
     season_regression: float
     starting_rating: float
+    # Renders a team slug in key_factors/reasoning text only — never in
+    # predicted_winner or any id. NRL keeps the identity (byte-identical text).
+    team_label: Callable[[str], str] = _identity
+    # Signed integers in key_factors via `round()` so a gap in (-0.5, 0) reads
+    # "+0", not "-0". Off for NRL so its text stays byte-identical.
+    signed_int_text: bool = False
 
 
 # Fitted 2026-08-17 against the 92-match round-qualified backtest window (rounds

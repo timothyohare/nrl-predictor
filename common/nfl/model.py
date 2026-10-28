@@ -9,6 +9,7 @@ import random
 from collections.abc import Mapping
 
 from common.nfl.games import Game
+from common.nfl.teams import display_name
 from common.stats_model.predictor import StatsPrediction, predict_match
 from common.stats_model.sport import SportModel
 
@@ -38,6 +39,8 @@ NFL = SportModel(
     home_label="Home-field",
     season_regression=0.5,
     starting_rating=1500.0,
+    team_label=display_name,
+    signed_int_text=True,
 )
 
 

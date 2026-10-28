@@ -13,6 +13,7 @@ frozen prediction row.
 from __future__ import annotations
 
 import logging
+import re
 
 from common.nfl.backtest import devig_home_probability
 from common.nfl.match_id import stage_label
@@ -27,8 +28,7 @@ OUTLIER_MARGIN_GAP = 3
 
 _PASS_THROUGH = (
     "predicted_winner", "predicted_margin", "margin_low", "margin_high",
-    "home_win_probability", "confidence", "key_factors", "reasoning", "model_used",
-    "generation", "generatedAt",
+    "home_win_probability", "confidence", "model_used", "generation", "generatedAt",
 )
 
 
@@ -74,6 +74,20 @@ def _is_outlier(pred: dict, home: str, market: dict) -> bool | None:
     return (favourite is not None and favourite != winner) or abs(signed - spread) > OUTLIER_MARGIN_GAP
 
 
+# Rows stored before the final display fixes carry "-0" for a gap in (-0.5, 0).
+_MINUS_ZERO = re.compile(r"(?<=\()-0(?=\))|(?<=adjusted )-0(?= )")
+
+
+def _readable(text, home: str, away: str):
+    """Stored key_factors/reasoning with this game's two slugs as display names
+    (word-boundary, so `packersville` or another game's slug is never touched)
+    and "-0" as "+0". Non-strings pass through unchanged."""
+    if not isinstance(text, str):
+        return text
+    slugs = re.compile(r"\b(" + "|".join(re.escape(s) for s in (home, away)) + r")\b")
+    return _MINUS_ZERO.sub("+0", slugs.sub(lambda m: display_name(m.group(1)), text))
+
+
 def present(pred: dict, game: dict) -> dict:
     home, away = game["home_team"], game["away_team"]
     week = int(game["week"])
@@ -92,6 +106,8 @@ def present(pred: dict, game: dict) -> dict:
         **{k: pred.get(k) for k in _PASS_THROUGH},
         "predicted_winner_name": display_name(pred["predicted_winner"]),
         "backfilled": bool(pred.get("backfilled", False)),
+        "key_factors": [_readable(f, home, away) for f in pred.get("key_factors") or []],
+        "reasoning": _readable(pred.get("reasoning"), home, away),
     }
     result = _result(game)
     if result:
@@ -114,7 +130,7 @@ def lambda_handler(event: dict, context) -> dict:
                           f"and week an integer {WEEKS[0]}-{WEEKS[1]}")
 
     games = season_games(season, week)
-    presented = []
+    presented, skipped = [], 0
     for mid, row in latest_ok_predictions(season, week).items():
         if mid not in games:
             continue
@@ -122,7 +138,13 @@ def lambda_handler(event: dict, context) -> dict:
             presented.append(present(row, games[mid]))
         except Exception:
             # One malformed row must not take the whole week down (review N1).
+            skipped += 1
             logger.warning("Skipping malformed NFL prediction/game row %s", mid, exc_info=True)
+    if skipped and not presented:
+        # Every row malformed is systemic (e.g. a writer schema change), not "no
+        # data yet": a 404 would be cached by the frontend as an empty week.
+        logger.error("All %d NFL prediction rows for %s week %s were malformed", skipped, season, week)
+        return error(500, "NFL predictions are temporarily unavailable")
     if not presented:
         return error(404, f"No NFL predictions for {season} week {week}")
 

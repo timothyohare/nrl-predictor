@@ -128,7 +128,7 @@ export default function NflGameCard({ game }: { game: NflPrediction }) {
       )}
 
       <ul className="space-y-1">
-        {game.key_factors.map((factor, i) => (
+        {(game.key_factors ?? []).map((factor, i) => (
           <li key={i} className="text-sm text-gray-700 flex gap-1">
             <span aria-hidden="true" className="text-gray-400">•</span> {factor}
           </li>

@@ -92,22 +92,28 @@ def predict_match(
     margin_high = _snap(sim.winning_margin_mean + sim.margin_stdev, model.margin_step)
     confidence = confidence_for(sim.home_win_probability, model=model)
     elo_diff = home_rating - away_rating
+    # Human-readable text only: predicted_winner and ids stay slugs.
+    home_name, away_name = model.team_label(home), model.team_label(away)
+    winner_name = model.team_label(predicted_winner)
+
+    def signed(x: float) -> str:
+        return f"{round(x):+d}" if model.signed_int_text else f"{x:+.0f}"
 
     key_factors = [
-        f"Elo rating gap: {home} {home_rating:.0f} vs {away} {away_rating:.0f} ({elo_diff:+.0f})",
+        f"Elo rating gap: {home_name} {home_rating:.0f} vs {away_name} {away_rating:.0f} ({signed(elo_diff)})",
         "Neutral site: no home advantage applied" if neutral
-        else f"{model.home_label} advantage (+{home_advantage:.0f} Elo) applied to {home}",
+        else f"{model.home_label} advantage (+{home_advantage:.0f} Elo) applied to {home_name}",
         f"Simulated home win probability {sim.home_win_probability:.1%} over "
         f"{n_simulations:,} Monte Carlo trials",
     ]
     if home_rating_adjustment:
         key_factors.append(
-            f"{home} rating adjusted {home_rating_adjustment:+.0f} ahead of kickoff "
+            f"{home_name} rating adjusted {signed(home_rating_adjustment)} ahead of kickoff "
             "(team sheet/injury signal)"
         )
     if away_rating_adjustment:
         key_factors.append(
-            f"{away} rating adjusted {away_rating_adjustment:+.0f} ahead of kickoff "
+            f"{away_name} rating adjusted {signed(away_rating_adjustment)} ahead of kickoff "
             "(team sheet/injury signal)"
         )
     if margin_stdev_multiplier != 1.0:
@@ -119,13 +125,13 @@ def predict_match(
     home_phrase = model.home_label.lower().replace(" ", "-")
     venue = (
         "at a neutral site (no home advantage)" if neutral
-        else f"before {home_phrase} adjustment (+{home_advantage:.0f} to {home})"
+        else f"before {home_phrase} adjustment (+{home_advantage:.0f} to {home_name})"
     )
     reasoning = (
-        f"Elo + Monte Carlo model (no LLM). {home} rated {home_rating:.0f}, {away} rated "
+        f"Elo + Monte Carlo model (no LLM). {home_name} rated {home_rating:.0f}, {away_name} rated "
         f"{away_rating:.0f} {venue}. "
-        f"{n_simulations:,} simulated trials gave {home} a {sim.home_win_probability:.1%} win "
-        f"probability, picking {predicted_winner} by {margin_low}-{margin_high} "
+        f"{n_simulations:,} simulated trials gave {home_name} a {sim.home_win_probability:.1%} win "
+        f"probability, picking {winner_name} by {margin_low}-{margin_high} "
         f"(point estimate {predicted_margin}, +/-1 SD of the simulated margin, {confidence} confidence). "
     )
     if home_rating_adjustment or away_rating_adjustment or margin_stdev_multiplier != 1.0:

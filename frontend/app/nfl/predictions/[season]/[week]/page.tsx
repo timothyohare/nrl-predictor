@@ -1,5 +1,6 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadNflWeek } from "@/lib/nfl/api";
+import { getNflWeeks, loadNflWeek } from "@/lib/nfl/api";
 import NflGameCard from "@/components/nfl/NflGameCard";
 import NflUnavailable from "@/components/nfl/NflUnavailable";
 import WeekSelector from "@/components/nfl/WeekSelector";
@@ -16,6 +17,25 @@ function parseParam(value: string, min: number, max: number): number | null {
   if (!/^[0-9]{1,4}$/.test(value)) return null;
   const n = Number(value);
   return n >= min && n <= max ? n : null;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { season: seasonParam, week: weekParam } = await params;
+  const season = parseParam(seasonParam, 1999, 2100);
+  const week = parseParam(weekParam, 1, 25);
+  if (season === null || week === null) return { title: "NFL Predictions — NRL Predictor" };
+
+  // Same ISR-cached URL as the page's week list; the page handles any failure.
+  let label = `Week ${week}`;
+  try {
+    label = (await getNflWeeks(season)).find((w) => w.week === week)?.label ?? label;
+  } catch {
+    // keep "Week N"
+  }
+  return {
+    title: `${season} ${label} NFL Predictions — NRL Predictor`,
+    description: `NFL ${season} ${label} game predictions from an Elo + Monte Carlo model, with results and the betting market for comparison.`,
+  };
 }
 
 export default async function NflWeekPage({ params }: Props) {

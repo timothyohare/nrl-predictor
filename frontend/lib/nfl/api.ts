@@ -136,14 +136,19 @@ export function getNflAccuracy(season?: number): Promise<NflAccuracy> {
   return nflJson<NflAccuracy>(season ? `/nfl/accuracy?season=${season}` : "/nfl/accuracy");
 }
 
-/** Everything the week page needs. Any failure fetching the predictions makes the
- *  section unavailable rather than throwing; the week list is optional. */
+/** Everything the week page needs; the week list is optional. Only an unset
+ *  NFL_API_BASE_URL is the unavailable state. Any other predictions failure
+ *  (429/5xx/network) throws, so Next ISR keeps serving the last good page
+ *  rather than caching "unavailable" for an hour (Phase 5 review N1). */
 export async function loadNflWeek(season: number, week: number): Promise<NflWeekView> {
   const [predictionsResult, weeksResult] = await Promise.allSettled([
     getNflPredictions(season, week),
     getNflWeeks(season),
   ]);
-  if (predictionsResult.status === "rejected") return { status: "unavailable" };
+  if (predictionsResult.status === "rejected") {
+    if (predictionsResult.reason instanceof NflUnavailableError) return { status: "unavailable" };
+    throw predictionsResult.reason;
+  }
   const predictions = predictionsResult.value;
 
   const weeks: NflWeekOption[] = weeksResult.status === "fulfilled"
