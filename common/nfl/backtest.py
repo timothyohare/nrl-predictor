@@ -54,6 +54,18 @@ CONFIDENCE_LEVELS = ("HIGH", "MEDIUM", "LOW")
 # Walk-forward ratings
 # ---------------------------------------------------------------------------
 
+# Display-only SportModel fields: not fitted, and team_label is not JSON-serialisable.
+_PRESENTATION_FIELDS = ("team_label", "signed_int_text")
+
+
+def model_params(model: SportModel) -> dict:
+    """The model's fitted constants, as reported/printed by the backtest."""
+    params = asdict(model)
+    for name in _PRESENTATION_FIELDS:
+        del params[name]
+    return params
+
+
 def pregame_ratings(
     games: Iterable[Game], model: SportModel, from_season: int | None = None
 ) -> Iterator[tuple[Game, float, float]]:
@@ -361,7 +373,7 @@ def run_backtest(
         "data_sha256": hashlib.sha256(data).hexdigest(),
         "fit_window": [min(g.season for g in games), eval_from - 1],
         "eval_window": [eval_from, eval_to],
-        "params": asdict(model),
+        "params": model_params(model),
         "n_simulations": n_simulations,
         "seed": seed,
         "overall": model_block["overall"],

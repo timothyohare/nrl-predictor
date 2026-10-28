@@ -20,7 +20,6 @@ committed in common/nfl/model.py.
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import hashlib
 import json
 import sys
@@ -94,10 +93,10 @@ def main(argv: list[str] | None = None) -> int:
         fitted = backtest.fit(games, args.eval_from)
         print(f"data_sha256 {hashlib.sha256(data).hexdigest()}")
         print(f"fit window: seasons < {args.eval_from}")
-        print(json.dumps(dataclasses.asdict(fitted), indent=2))
+        print(json.dumps(backtest.model_params(fitted), indent=2))
         if fitted != NFL:
             print("fit differs from common/nfl/model.py NFL (committed):")
-            print(json.dumps(dataclasses.asdict(NFL), indent=2))
+            print(json.dumps(backtest.model_params(NFL), indent=2))
             return 1
         print("fitted constants match common/nfl/model.py NFL")
         return 0
