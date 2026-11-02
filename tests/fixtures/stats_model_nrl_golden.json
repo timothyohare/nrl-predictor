@@ -1,0 +1,820 @@
+{
+  "compute_ratings_as_of": {
+    "cases": [
+      {
+        "expected": {},
+        "inputs": {
+          "before_round": 1,
+          "home_advantage": 55.0
+        }
+      },
+      {
+        "expected": {
+          "broncos": 1478.9046929904137,
+          "panthers": 1556.9291666058218,
+          "raiders": 1437.6926454968193,
+          "roosters": 1535.2134520201382,
+          "sharks": 1504.2968355243563,
+          "storm": 1486.9632073624507
+        },
+        "inputs": {
+          "before_round": 3,
+          "home_advantage": 55.0
+        }
+      },
+      {
+        "expected": {
+          "broncos": 1442.487225896751,
+          "panthers": 1532.6937666813194,
+          "raiders": 1425.3593282723027,
+          "roosters": 1584.3449573758999,
+          "sharks": 1490.5997066763446,
+          "storm": 1524.5150150973825
+        },
+        "inputs": {
+          "before_round": 5,
+          "home_advantage": 55.0
+        }
+      },
+      {
+        "expected": {
+          "broncos": 1474.819202672824,
+          "panthers": 1581.9735024781037,
+          "raiders": 1427.7152930335094,
+          "roosters": 1505.1350846058954,
+          "sharks": 1438.4602532864865,
+          "storm": 1571.896663923181
+        },
+        "inputs": {
+          "before_round": 8,
+          "home_advantage": 55.0
+        }
+      },
+      {
+        "expected": {
+          "broncos": 1471.8494482029623,
+          "panthers": 1591.3547120859748,
+          "raiders": 1424.7270964680895,
+          "roosters": 1500.9693538496756,
+          "sharks": 1437.7661119798242,
+          "storm": 1573.3332774134735
+        },
+        "inputs": {
+          "before_round": 8,
+          "home_advantage": 0.0
+        }
+      }
+    ],
+    "results": [
+      {
+        "awayScore": 12,
+        "awayTeam": "broncos",
+        "homeScore": 24,
+        "homeTeam": "panthers",
+        "matchId": "round-1-panthers-v-broncos"
+      },
+      {
+        "awayScore": 20,
+        "awayTeam": "roosters",
+        "homeScore": 18,
+        "homeTeam": "storm",
+        "matchId": "round-1-storm-v-roosters"
+      },
+      {
+        "awayScore": 6,
+        "awayTeam": "raiders",
+        "homeScore": 30,
+        "homeTeam": "sharks",
+        "matchId": "round-1-sharks-v-raiders"
+      },
+      {
+        "awayScore": 16,
+        "awayTeam": "storm",
+        "homeScore": 16,
+        "homeTeam": "broncos",
+        "matchId": "round-2-broncos-v-storm"
+      },
+      {
+        "awayScore": 10,
+        "awayTeam": "sharks",
+        "homeScore": 22,
+        "homeTeam": "roosters",
+        "matchId": "round-2-roosters-v-sharks"
+      },
+      {
+        "awayScore": 36,
+        "awayTeam": "panthers",
+        "homeScore": 4,
+        "homeTeam": "raiders",
+        "matchId": "round-2-raiders-v-panthers"
+      },
+      {
+        "awayScore": 14,
+        "awayTeam": "storm",
+        "homeScore": 12,
+        "homeTeam": "Penrith Panthers",
+        "matchId": "round-3-panthers-v-storm"
+      },
+      {
+        "awayScore": 24,
+        "awayTeam": "broncos",
+        "homeScore": 26,
+        "homeTeam": "sharks",
+        "matchId": "round-3-sharks-v-broncos"
+      },
+      {
+        "awayScore": 0,
+        "awayTeam": "raiders",
+        "homeScore": 44,
+        "homeTeam": "roosters",
+        "matchId": "round-3-roosters-v-raiders"
+      },
+      {
+        "awayScore": 0,
+        "awayTeam": "roosters",
+        "homeScore": 60,
+        "homeTeam": "panthers",
+        "matchId": "panthers-v-roosters"
+      },
+      {
+        "awayScore": 8,
+        "awayTeam": "sharks",
+        "homeScore": 20,
+        "homeTeam": "storm",
+        "matchId": "round-4-storm-v-sharks"
+      },
+      {
+        "awayScore": 32,
+        "awayTeam": "roosters",
+        "homeScore": 10,
+        "homeTeam": "broncos",
+        "matchId": "round-4-broncos-v-roosters"
+      },
+      {
+        "awayScore": 18,
+        "awayTeam": "panthers",
+        "homeScore": 19,
+        "homeTeam": "raiders",
+        "matchId": "round-4-raiders-v-panthers"
+      },
+      {
+        "awayScore": 6,
+        "awayTeam": "sharks",
+        "homeScore": 28,
+        "homeTeam": "panthers",
+        "matchId": "round-5-panthers-v-sharks"
+      },
+      {
+        "awayScore": 12,
+        "awayTeam": "raiders",
+        "homeScore": 34,
+        "homeTeam": "storm",
+        "matchId": "round-5-storm-v-raiders"
+      },
+      {
+        "awayScore": 20,
+        "awayTeam": "broncos",
+        "homeScore": 14,
+        "homeTeam": "roosters",
+        "matchId": "round-5-roosters-v-broncos"
+      },
+      {
+        "awayScore": 22,
+        "awayTeam": "raiders",
+        "homeScore": 22,
+        "homeTeam": "broncos",
+        "matchId": "round-6-broncos-v-raiders"
+      },
+      {
+        "awayScore": 30,
+        "awayTeam": "storm",
+        "homeScore": 6,
+        "homeTeam": "sharks",
+        "matchId": "round-6-sharks-v-storm"
+      },
+      {
+        "awayScore": 10,
+        "awayTeam": "roosters",
+        "homeScore": 38,
+        "homeTeam": "panthers",
+        "matchId": "round-6-panthers-v-roosters"
+      },
+      {
+        "awayScore": 12,
+        "awayTeam": "roosters",
+        "homeScore": 16,
+        "homeTeam": "raiders",
+        "matchId": "round-7-raiders-v-roosters"
+      }
+    ]
+  },
+  "confidence_for": [
+    {
+      "expected": "HIGH",
+      "inputs": {
+        "win_probability": 0.0
+      }
+    },
+    {
+      "expected": "HIGH",
+      "inputs": {
+        "win_probability": 0.3
+      }
+    },
+    {
+      "expected": "HIGH",
+      "inputs": {
+        "win_probability": 0.38
+      }
+    },
+    {
+      "expected": "MEDIUM",
+      "inputs": {
+        "win_probability": 0.44
+      }
+    },
+    {
+      "expected": "LOW",
+      "inputs": {
+        "win_probability": 0.5
+      }
+    },
+    {
+      "expected": "LOW",
+      "inputs": {
+        "win_probability": 0.53
+      }
+    },
+    {
+      "expected": "MEDIUM",
+      "inputs": {
+        "win_probability": 0.56
+      }
+    },
+    {
+      "expected": "HIGH",
+      "inputs": {
+        "win_probability": 0.62
+      }
+    },
+    {
+      "expected": "HIGH",
+      "inputs": {
+        "win_probability": 0.7
+      }
+    },
+    {
+      "expected": "HIGH",
+      "inputs": {
+        "win_probability": 1.0
+      }
+    }
+  ],
+  "predict_match": [
+    {
+      "expected": {
+        "confidence": "MEDIUM",
+        "home_win_probability": 0.576,
+        "key_factors": [
+          "Elo rating gap: panthers 1500 vs broncos 1500 (+0)",
+          "Home ground advantage (+55 Elo) applied to panthers",
+          "Simulated home win probability 57.6% over 2,000 Monte Carlo trials"
+        ],
+        "margin_high": 28,
+        "margin_low": 2,
+        "predicted_margin": 2,
+        "predicted_winner": "panthers",
+        "reasoning": "Elo + Monte Carlo model (no LLM). panthers rated 1500, broncos rated 1500 before home-ground adjustment (+55 to panthers). 2,000 simulated trials gave panthers a 57.6% win probability, picking panthers by 2-28 (point estimate 2, +/-1 SD of the simulated margin, MEDIUM confidence). No team-sheet, injury, weather, or narrative signal used \u2014 see docs/plans/10-elo-monte-carlo-predictor.md."
+      },
+      "inputs": {
+        "away": "broncos",
+        "away_rating_adjustment": 0.0,
+        "home": "panthers",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "broncos": 1500.0,
+          "panthers": 1500.0
+        },
+        "seed": 1
+      }
+    },
+    {
+      "expected": {
+        "confidence": "LOW",
+        "home_win_probability": 0.4955,
+        "key_factors": [
+          "Elo rating gap: panthers 1500 vs broncos 1500 (+0)",
+          "Home ground advantage (+0 Elo) applied to panthers",
+          "Simulated home win probability 49.5% over 2,000 Monte Carlo trials"
+        ],
+        "margin_high": 26,
+        "margin_low": 2,
+        "predicted_margin": 0,
+        "predicted_winner": "broncos",
+        "reasoning": "Elo + Monte Carlo model (no LLM). panthers rated 1500, broncos rated 1500 before home-ground adjustment (+0 to panthers). 2,000 simulated trials gave panthers a 49.5% win probability, picking broncos by 2-26 (point estimate 0, +/-1 SD of the simulated margin, LOW confidence). No team-sheet, injury, weather, or narrative signal used \u2014 see docs/plans/10-elo-monte-carlo-predictor.md."
+      },
+      "inputs": {
+        "away": "broncos",
+        "away_rating_adjustment": 0.0,
+        "home": "panthers",
+        "home_advantage": 0.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "broncos": 1500.0,
+          "panthers": 1500.0
+        },
+        "seed": 2
+      }
+    },
+    {
+      "expected": {
+        "confidence": "HIGH",
+        "home_win_probability": 0.8825,
+        "key_factors": [
+          "Elo rating gap: panthers 1650 vs broncos 1350 (+300)",
+          "Home ground advantage (+55 Elo) applied to panthers",
+          "Simulated home win probability 88.2% over 2,000 Monte Carlo trials"
+        ],
+        "margin_high": 38,
+        "margin_low": 10,
+        "predicted_margin": 18,
+        "predicted_winner": "panthers",
+        "reasoning": "Elo + Monte Carlo model (no LLM). panthers rated 1650, broncos rated 1350 before home-ground adjustment (+55 to panthers). 2,000 simulated trials gave panthers a 88.2% win probability, picking panthers by 10-38 (point estimate 18, +/-1 SD of the simulated margin, HIGH confidence). No team-sheet, injury, weather, or narrative signal used \u2014 see docs/plans/10-elo-monte-carlo-predictor.md."
+      },
+      "inputs": {
+        "away": "broncos",
+        "away_rating_adjustment": 0.0,
+        "home": "panthers",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "broncos": 1350.0,
+          "panthers": 1650.0
+        },
+        "seed": 3
+      }
+    },
+    {
+      "expected": {
+        "confidence": "HIGH",
+        "home_win_probability": 0.194,
+        "key_factors": [
+          "Elo rating gap: panthers 1350 vs broncos 1650 (-300)",
+          "Home ground advantage (+55 Elo) applied to panthers",
+          "Simulated home win probability 19.4% over 2,000 Monte Carlo trials"
+        ],
+        "margin_high": 34,
+        "margin_low": 8,
+        "predicted_margin": 13,
+        "predicted_winner": "broncos",
+        "reasoning": "Elo + Monte Carlo model (no LLM). panthers rated 1350, broncos rated 1650 before home-ground adjustment (+55 to panthers). 2,000 simulated trials gave panthers a 19.4% win probability, picking broncos by 8-34 (point estimate 13, +/-1 SD of the simulated margin, HIGH confidence). No team-sheet, injury, weather, or narrative signal used \u2014 see docs/plans/10-elo-monte-carlo-predictor.md."
+      },
+      "inputs": {
+        "away": "broncos",
+        "away_rating_adjustment": 0.0,
+        "home": "panthers",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "broncos": 1650.0,
+          "panthers": 1350.0
+        },
+        "seed": 4
+      }
+    },
+    {
+      "expected": {
+        "confidence": "HIGH",
+        "home_win_probability": 0.625,
+        "key_factors": [
+          "Elo rating gap: storm 1520 vs roosters 1480 (+40)",
+          "Home ground advantage (+55 Elo) applied to storm",
+          "Simulated home win probability 62.5% over 2,000 Monte Carlo trials",
+          "Match-day variance widened 1.40x (weather signal)"
+        ],
+        "margin_high": 34,
+        "margin_low": 2,
+        "predicted_margin": 5,
+        "predicted_winner": "storm",
+        "reasoning": "Elo + Monte Carlo model (no LLM). storm rated 1520, roosters rated 1480 before home-ground adjustment (+55 to storm). 2,000 simulated trials gave storm a 62.5% win probability, picking storm by 2-34 (point estimate 5, +/-1 SD of the simulated margin, HIGH confidence). Pre-match signal adjustments applied ahead of simulation \u2014 see key_factors for team sheet/injury/weather detail."
+      },
+      "inputs": {
+        "away": "roosters",
+        "away_rating_adjustment": 0.0,
+        "home": "storm",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.4,
+        "n_simulations": 2000,
+        "ratings": {
+          "roosters": 1480.0,
+          "storm": 1520.0
+        },
+        "seed": 5
+      }
+    },
+    {
+      "expected": {
+        "confidence": "LOW",
+        "home_win_probability": 0.4595,
+        "key_factors": [
+          "Elo rating gap: storm 1480 vs roosters 1530 (-50)",
+          "Home ground advantage (+55 Elo) applied to storm",
+          "Simulated home win probability 46.0% over 2,000 Monte Carlo trials",
+          "storm rating adjusted -40 ahead of kickoff (team sheet/injury signal)"
+        ],
+        "margin_high": 26,
+        "margin_low": 2,
+        "predicted_margin": 1,
+        "predicted_winner": "roosters",
+        "reasoning": "Elo + Monte Carlo model (no LLM). storm rated 1480, roosters rated 1530 before home-ground adjustment (+55 to storm). 2,000 simulated trials gave storm a 46.0% win probability, picking roosters by 2-26 (point estimate 1, +/-1 SD of the simulated margin, LOW confidence). Pre-match signal adjustments applied ahead of simulation \u2014 see key_factors for team sheet/injury/weather detail."
+      },
+      "inputs": {
+        "away": "roosters",
+        "away_rating_adjustment": 0.0,
+        "home": "storm",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": -40.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "roosters": 1530.0,
+          "storm": 1480.0
+        },
+        "seed": 6
+      }
+    },
+    {
+      "expected": {
+        "confidence": "MEDIUM",
+        "home_win_probability": 0.572,
+        "key_factors": [
+          "Elo rating gap: storm 1510 vs roosters 1505 (+5)",
+          "Home ground advantage (+55 Elo) applied to storm",
+          "Simulated home win probability 57.2% over 2,000 Monte Carlo trials",
+          "roosters rating adjusted +25 ahead of kickoff (team sheet/injury signal)"
+        ],
+        "margin_high": 26,
+        "margin_low": 4,
+        "predicted_margin": 2,
+        "predicted_winner": "storm",
+        "reasoning": "Elo + Monte Carlo model (no LLM). storm rated 1510, roosters rated 1505 before home-ground adjustment (+55 to storm). 2,000 simulated trials gave storm a 57.2% win probability, picking storm by 4-26 (point estimate 2, +/-1 SD of the simulated margin, MEDIUM confidence). Pre-match signal adjustments applied ahead of simulation \u2014 see key_factors for team sheet/injury/weather detail."
+      },
+      "inputs": {
+        "away": "roosters",
+        "away_rating_adjustment": 25.0,
+        "home": "storm",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "roosters": 1505.0,
+          "storm": 1510.0
+        },
+        "seed": 7
+      }
+    },
+    {
+      "expected": {
+        "confidence": "HIGH",
+        "home_win_probability": 0.776,
+        "key_factors": [
+          "Elo rating gap: sharks 1560 vs raiders 1440 (+120)",
+          "Home ground advantage (+55 Elo) applied to sharks",
+          "Simulated home win probability 77.6% over 2,000 Monte Carlo trials",
+          "sharks rating adjusted +15 ahead of kickoff (team sheet/injury signal)",
+          "raiders rating adjusted -30 ahead of kickoff (team sheet/injury signal)",
+          "Match-day variance widened 1.40x (weather signal)"
+        ],
+        "margin_high": 38,
+        "margin_low": 4,
+        "predicted_margin": 11,
+        "predicted_winner": "sharks",
+        "reasoning": "Elo + Monte Carlo model (no LLM). sharks rated 1560, raiders rated 1440 before home-ground adjustment (+55 to sharks). 2,000 simulated trials gave sharks a 77.6% win probability, picking sharks by 4-38 (point estimate 11, +/-1 SD of the simulated margin, HIGH confidence). Pre-match signal adjustments applied ahead of simulation \u2014 see key_factors for team sheet/injury/weather detail."
+      },
+      "inputs": {
+        "away": "raiders",
+        "away_rating_adjustment": -30.0,
+        "home": "sharks",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 15.0,
+        "margin_stdev_multiplier": 1.4,
+        "n_simulations": 2000,
+        "ratings": {
+          "raiders": 1440.0,
+          "sharks": 1560.0
+        },
+        "seed": 8
+      }
+    },
+    {
+      "expected": {
+        "confidence": "LOW",
+        "home_win_probability": 0.5585,
+        "key_factors": [
+          "Elo rating gap: sharks 1490 vs raiders 1500 (-10)",
+          "Home ground advantage (+55 Elo) applied to sharks",
+          "Simulated home win probability 55.9% over 2,000 Monte Carlo trials"
+        ],
+        "margin_high": 26,
+        "margin_low": 4,
+        "predicted_margin": 2,
+        "predicted_winner": "sharks",
+        "reasoning": "Elo + Monte Carlo model (no LLM). sharks rated 1490, raiders rated 1500 before home-ground adjustment (+55 to sharks). 2,000 simulated trials gave sharks a 55.9% win probability, picking sharks by 4-26 (point estimate 2, +/-1 SD of the simulated margin, LOW confidence). No team-sheet, injury, weather, or narrative signal used \u2014 see docs/plans/10-elo-monte-carlo-predictor.md."
+      },
+      "inputs": {
+        "away": "raiders",
+        "away_rating_adjustment": 0.0,
+        "home": "sharks",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 2000,
+        "ratings": {
+          "raiders": 1500.0,
+          "sharks": 1490.0
+        },
+        "seed": 9
+      }
+    },
+    {
+      "expected": {
+        "confidence": "HIGH",
+        "home_win_probability": 0.6273,
+        "key_factors": [
+          "Elo rating gap: dolphins 1600 vs titans 1570 (+30)",
+          "Home ground advantage (+55 Elo) applied to dolphins",
+          "Simulated home win probability 62.7% over 10,000 Monte Carlo trials"
+        ],
+        "margin_high": 28,
+        "margin_low": 4,
+        "predicted_margin": 4,
+        "predicted_winner": "dolphins",
+        "reasoning": "Elo + Monte Carlo model (no LLM). dolphins rated 1600, titans rated 1570 before home-ground adjustment (+55 to dolphins). 10,000 simulated trials gave dolphins a 62.7% win probability, picking dolphins by 4-28 (point estimate 4, +/-1 SD of the simulated margin, HIGH confidence). No team-sheet, injury, weather, or narrative signal used \u2014 see docs/plans/10-elo-monte-carlo-predictor.md."
+      },
+      "inputs": {
+        "away": "titans",
+        "away_rating_adjustment": 0.0,
+        "home": "dolphins",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.0,
+        "n_simulations": 10000,
+        "ratings": {
+          "dolphins": 1600.0,
+          "titans": 1570.0
+        },
+        "seed": 10
+      }
+    },
+    {
+      "expected": {
+        "confidence": "MEDIUM",
+        "home_win_probability": 0.3825,
+        "key_factors": [
+          "Elo rating gap: dolphins 1440 vs titans 1600 (-160)",
+          "Home ground advantage (+55 Elo) applied to dolphins",
+          "Simulated home win probability 38.2% over 2,000 Monte Carlo trials",
+          "titans rating adjusted -20 ahead of kickoff (team sheet/injury signal)",
+          "Match-day variance widened 1.40x (weather signal)"
+        ],
+        "margin_high": 32,
+        "margin_low": 2,
+        "predicted_margin": 4,
+        "predicted_winner": "titans",
+        "reasoning": "Elo + Monte Carlo model (no LLM). dolphins rated 1440, titans rated 1600 before home-ground adjustment (+55 to dolphins). 2,000 simulated trials gave dolphins a 38.2% win probability, picking titans by 2-32 (point estimate 4, +/-1 SD of the simulated margin, MEDIUM confidence). Pre-match signal adjustments applied ahead of simulation \u2014 see key_factors for team sheet/injury/weather detail."
+      },
+      "inputs": {
+        "away": "titans",
+        "away_rating_adjustment": -20.0,
+        "home": "dolphins",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.4,
+        "n_simulations": 2000,
+        "ratings": {
+          "dolphins": 1440.0,
+          "titans": 1600.0
+        },
+        "seed": 11
+      }
+    },
+    {
+      "expected": {
+        "confidence": "HIGH",
+        "home_win_probability": 0.8868,
+        "key_factors": [
+          "Elo rating gap: eels 1700 vs dragons 1400 (+300)",
+          "Home ground advantage (+55 Elo) applied to eels",
+          "Simulated home win probability 88.7% over 5,000 Monte Carlo trials",
+          "Match-day variance widened 1.40x (weather signal)"
+        ],
+        "margin_high": 42,
+        "margin_low": 6,
+        "predicted_margin": 19,
+        "predicted_winner": "eels",
+        "reasoning": "Elo + Monte Carlo model (no LLM). eels rated 1700, dragons rated 1400 before home-ground adjustment (+55 to eels). 5,000 simulated trials gave eels a 88.7% win probability, picking eels by 6-42 (point estimate 19, +/-1 SD of the simulated margin, HIGH confidence). Pre-match signal adjustments applied ahead of simulation \u2014 see key_factors for team sheet/injury/weather detail."
+      },
+      "inputs": {
+        "away": "dragons",
+        "away_rating_adjustment": 0.0,
+        "home": "eels",
+        "home_advantage": 55.0,
+        "home_rating_adjustment": 0.0,
+        "margin_stdev_multiplier": 1.4,
+        "n_simulations": 5000,
+        "ratings": {
+          "dragons": 1400.0,
+          "eels": 1700.0
+        },
+        "seed": 12
+      }
+    }
+  ],
+  "simulate_match": [
+    {
+      "expected": {
+        "expected_margin": 2.2806632659301735,
+        "home_win_probability": 0.576,
+        "margin_stdev": 12.635020729129089,
+        "n": 2000,
+        "winning_margin_mean": 15.134504853799513
+      },
+      "inputs": {
+        "away_rating": 1500.0,
+        "home_advantage": 55.0,
+        "home_rating": 1500.0,
+        "margin_stdev_multiplier": 1.0,
+        "n": 2000,
+        "seed": 1
+      }
+    },
+    {
+      "expected": {
+        "expected_margin": 0.044605011882323256,
+        "home_win_probability": 0.4955,
+        "margin_stdev": 12.002137634412534,
+        "n": 2000,
+        "winning_margin_mean": 13.893997978373132
+      },
+      "inputs": {
+        "away_rating": 1500.0,
+        "home_advantage": 0.0,
+        "home_rating": 1500.0,
+        "margin_stdev_multiplier": 1.0,
+        "n": 2000,
+        "seed": 2
+      }
+    },
+    {
+      "expected": {
+        "expected_margin": 18.258103600163214,
+        "home_win_probability": 0.8825,
+        "margin_stdev": 13.55870191049964,
+        "n": 2000,
+        "winning_margin_mean": 23.778315037805683
+      },
+      "inputs": {
+        "away_rating": 1350.0,
+        "home_advantage": 55.0,
+        "home_rating": 1650.0,
+        "margin_stdev_multiplier": 1.0,
+        "n": 2000,
+        "seed": 3
+      }
+    },
+    {
+      "expected": {
+        "expected_margin": -13.53279737396746,
+        "home_win_probability": 0.194,
+        "margin_stdev": 17.099507983200073,
+        "n": 2000,
+        "winning_margin_mean": 21.66478127787332
+      },
+      "inputs": {
+        "away_rating": 1650.0,
+        "home_advantage": 55.0,
+        "home_rating": 1350.0,
+        "margin_stdev_multiplier": 1.4,
+        "n": 2000,
+        "seed": 4
+      }
+    },
+    {
+      "expected": {
+        "expected_margin": 3.9370649721862283,
+        "home_win_probability": 0.6236,
+        "margin_stdev": 9.354475775413519,
+        "n": 5000,
+        "winning_margin_mean": 15.58071609604099
+      },
+      "inputs": {
+        "away_rating": 1480.0,
+        "home_advantage": 55.0,
+        "home_rating": 1520.0,
+        "margin_stdev_multiplier": 0.7,
+        "n": 5000,
+        "seed": 5
+      }
+    },
+    {
+      "expected": {
+        "expected_margin": -0.38519422244605506,
+        "home_win_probability": 0.481,
+        "margin_stdev": 11.680393592788317,
+        "n": 2000,
+        "winning_margin_mean": 14.077493519691732
+      },
+      "inputs": {
+        "away_rating": 1555.0,
+        "home_advantage": 55.0,
+        "home_rating": 1480.0,
+        "margin_stdev_multiplier": 1.0,
+        "n": 2000,
+        "seed": 6
+      }
+    }
+  ],
+  "update_ratings": [
+    {
+      "expected": [
+        1521.0953070095863,
+        1478.9046929904137
+      ],
+      "inputs": {
+        "away_rating": 1500.0,
+        "away_score": 12,
+        "home_advantage": 55.0,
+        "home_rating": 1500.0,
+        "home_score": 24,
+        "k_factor": 20.0
+      }
+    },
+    {
+      "expected": [
+        1469.56277183138,
+        1530.43722816862
+      ],
+      "inputs": {
+        "away_rating": 1500.0,
+        "away_score": 24,
+        "home_advantage": 55.0,
+        "home_rating": 1500.0,
+        "home_score": 12,
+        "k_factor": 20.0
+      }
+    },
+    {
+      "expected": [
+        1500.0,
+        1500.0
+      ],
+      "inputs": {
+        "away_rating": 1500.0,
+        "away_score": 18,
+        "home_advantage": 55.0,
+        "home_rating": 1500.0,
+        "home_score": 18,
+        "k_factor": 20.0
+      }
+    },
+    {
+      "expected": [
+        1657.3356903409456,
+        1342.6643096590544
+      ],
+      "inputs": {
+        "away_rating": 1350.0,
+        "away_score": 0,
+        "home_advantage": 55.0,
+        "home_rating": 1650.0,
+        "home_score": 40,
+        "k_factor": 20.0
+      }
+    },
+    {
+      "expected": [
+        1384.5606306006193,
+        1615.4393693993807
+      ],
+      "inputs": {
+        "away_rating": 1650.0,
+        "away_score": 18,
+        "home_advantage": 0.0,
+        "home_rating": 1350.0,
+        "home_score": 20,
+        "k_factor": 32.0
+      }
+    }
+  ]
+}

@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   env: {
     // AWS_COMMIT_ID is set automatically by Amplify on every build
     GIT_SHA: (process.env.AWS_COMMIT_ID || process.env.CODEBUILD_RESOLVED_SOURCE_VERSION || "local").slice(0, 7),
+    // Amplify exposes console env vars at build time but not reliably to the SSR
+    // runtime, so bake the (public) NFL API URL in. Unset → "" → "unavailable" pages.
+    NFL_API_BASE_URL: process.env.NFL_API_BASE_URL ?? "",
   },
 };
 

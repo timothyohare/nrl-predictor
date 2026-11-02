@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bungee, Nunito } from "next/font/google";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import SportSwitcher from "@/components/SportSwitcher";
 import "./globals.css";
 
 const bungee = Bungee({
@@ -27,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${bungee.variable} ${nunito.variable}`}>
       <body className="bg-gray-50 text-gray-900 min-h-screen font-sans">
-        <header className="bg-nrl-blue text-white px-4 py-3 flex items-center gap-6 border-b-4 border-nrl-gold">
+        <header className="bg-nrl-blue text-white px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b-4 border-nrl-gold">
           <Link href="/" className="hover:opacity-90 transition-opacity">
             <Logo />
           </Link>
@@ -37,6 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/tournament" className="hover:text-nrl-gold transition-colors">Tournament</Link>
             <Link href="/how-it-works" className="hover:text-nrl-gold transition-colors">How it works</Link>
           </nav>
+          <div className="sm:ml-auto">
+            <SportSwitcher />
+          </div>
         </header>
         <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
         <footer className="border-t text-center text-xs text-gray-400 py-4 space-y-1">
