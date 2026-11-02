@@ -50,12 +50,15 @@ def test_handler_resolves_to_a_callable(handler):
     assert callable(getattr(module, func_name, None))
 
 
-def test_season_flag_ships_off_and_flags_the_licence_question():
+def test_season_flag_is_on_and_records_the_licence_decision():
+    """Go-live confirmed 2026-11-02: nflverse data used with attribution."""
     m = re.search(r"^NFL_SEASON_ACTIVE\s*=\s*(\w+)", _STACK, re.MULTILINE)
-    assert m and m.group(1) == "False"
+    assert m and m.group(1) == "True"
     preamble = _STACK[: m.start()]
     assert re.search(r"licen[cs]e", preamble, re.IGNORECASE)
     assert "nflverse" in preamble
+    assert "attribution" in preamble
+    assert "OPEN QUESTION" not in preamble
 
 
 def test_every_rule_is_gated_by_the_season_flag():
