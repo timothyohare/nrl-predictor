@@ -31,7 +31,8 @@ REPO_ROOT = ".."
 LAMBDA_RUNTIME = _lambda.Runtime.PYTHON_3_12
 
 _ASSET_EXCLUDE = [
-    "cdk.out", ".venv", "frontend", "infra", ".git", ".github",
+    "cdk.out", ".*",  # dotfiles: .env holds API keys
+    ".venv", "frontend", "infra", ".git", ".github",
     "node_modules", "**/__pycache__", "**/*.pyc", "**/*.pyo", "tests",
     "TODO.md", "CLAUDE.md", "fetcher-spikes", "docs",
     "v1",            # v1 version code ships from its own stack

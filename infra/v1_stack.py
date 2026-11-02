@@ -52,6 +52,7 @@ SEASON_ACTIVE = False
 # Directories that must never end up in the Lambda zip
 _ASSET_EXCLUDE = [
     "cdk.out",       # CDK output — recursive death if included
+    ".*",            # dotfiles: .env holds API keys; also .venv/.git/.mypy_cache
     ".venv",
     "frontend",
     "infra",
