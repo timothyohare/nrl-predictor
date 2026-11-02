@@ -48,14 +48,11 @@ from constructs import Construct
 REPO_ROOT = ".."
 LAMBDA_RUNTIME = _lambda.Runtime.PYTHON_3_12
 
-# OPEN QUESTION (blocks deploy, not build): the nflverse data licence.
-# nflverse/nfldata declares no licence (GitHub API "license": null, checked
-# 2026-10-26), so whether a public site may be built on it with attribution only
-# is unresolved — see .claude/sdlc/nfl-predictor/spec.md, open question 1. Until
-# the user answers it, this ships False: a deploy creates the stack but the daily
-# rule stays DISABLED, so no scheduled ingest runs. Flip to True only once the
-# licence question is resolved and the user confirms go-live.
-NFL_SEASON_ACTIVE = False
+# Data licence: nflverse/nfldata declares no licence (GitHub API "license": null,
+# checked 2026-10-26). Decided 2026-11-02 (owner): use it on the public site with
+# attribution — every NFL page carries the nflverse credit line. Setting this to
+# False disables the daily rule (stack stays deployed) for the off-season.
+NFL_SEASON_ACTIVE = True
 
 NFLVERSE_GAMES_CSV_URL = "https://github.com/nflverse/nfldata/raw/master/data/games.csv"
 
